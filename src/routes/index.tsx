@@ -161,7 +161,7 @@ function HomePage() {
               },
             ].map((s) => (
               <div key={s.step}>
-                <span className="text-xs font-mono text-[var(--brand-amber)]">{s.step}</span>
+                <span className="text-xs font-mono text-[var(--brand-amber-text)]">{s.step}</span>
                 <h3 className="mt-2 text-base font-semibold text-[var(--brand-ink)]">{s.title}</h3>
                 <p className="mt-1 text-sm leading-relaxed text-slate-600">{s.body}</p>
               </div>

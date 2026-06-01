@@ -68,6 +68,7 @@
    * components ([var(--brand-amber)] etc). The Tailwind semantic tokens
    * below are tuned to match (background = slate-50, primary = ink). */
   --brand-amber: #F7931E;
+  --brand-amber-text: #B45309; /* darker amber for small text on white (WCAG AA) */
   --brand-ink: #0F172A;
   --brand-bg: #F8FAFC;
   --brand-border: rgba(15, 23, 42, 0.07);

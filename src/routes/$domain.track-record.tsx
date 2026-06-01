@@ -38,7 +38,7 @@ function TrackRecordPage() {
       <DomainDisclaimer domain={domainId} />
 
       <section className="mx-auto max-w-6xl px-4 pt-12 sm:px-6 sm:pt-16">
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--brand-amber)]">
+        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--brand-amber-text)]">
           {DOMAIN_LABEL[domainId]} — track record
         </p>
         <h1 className="mt-2 text-3xl font-bold tracking-tight text-[var(--brand-ink)] sm:text-4xl">
