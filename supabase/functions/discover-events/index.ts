@@ -13,7 +13,7 @@ import { handleCorsPreflight, jsonResponse, errorResponse } from "../_shared/htt
 
 registerAllDomains();
 
-interface DiscoverBody { domains?: string[]; }
+interface DiscoverBody { domains?: string[]; debug?: boolean; }
 
 interface PerDomainResult {
   domain: string;
@@ -22,6 +22,13 @@ interface PerDomainResult {
   updated: number;
   skipped: number;
   errors: string[];
+  debug?: {
+    perplexity_status: number;
+    perplexity_chars: number;
+    perplexity_first_1500_chars: string;
+    extracted_array_length: number;
+    first_item: unknown;
+  };
 }
 
 Deno.serve(async (req) => {
@@ -41,6 +48,39 @@ Deno.serve(async (req) => {
     const res: PerDomainResult = { domain: id, attempted: 0, inserted: 0, updated: 0, skipped: 0, errors: [] };
     let adapter;
     try { adapter = getDomain(id); } catch (e) { res.errors.push((e as Error).message); return res; }
+
+    if (body.debug) {
+      try {
+        const mod = await import(`../_shared/domains/${id}.ts`);
+        const { perplexityChat } = await import("../_shared/perplexity.ts");
+        const { safeExtractJsonArray } = await import("../_shared/domains/_util.ts");
+        const sys = mod.DISCOVERY_SYSTEM;
+        const usr = typeof mod.DISCOVERY_USER === "function" ? mod.DISCOVERY_USER(now) : mod.DISCOVERY_USER;
+        if (!sys || !usr) {
+          res.errors.push(`debug: domain ${id} does not export DISCOVERY_SYSTEM / DISCOVERY_USER`);
+          return res;
+        }
+        const pResp = await perplexityChat(
+          [
+            { role: "system", content: sys },
+            { role: "user", content: usr },
+          ],
+          { model: "sonar", temperature: 0.1, searchRecencyFilter: "week", maxTokens: 2000 },
+        );
+        const extracted = safeExtractJsonArray(pResp.content);
+        res.debug = {
+          perplexity_status: 200,
+          perplexity_chars: pResp.content.length,
+          perplexity_first_1500_chars: pResp.content.slice(0, 1500),
+          extracted_array_length: extracted.length,
+          first_item: extracted[0] ?? null,
+        };
+      } catch (e) {
+        res.errors.push(`debug failed: ${(e as Error).message}`);
+      }
+      return res;
+    }
+
     let events;
     try { events = await adapter.discover(now); } catch (e) {
       res.errors.push(`discover failed: ${(e as Error).message}`); return res;
