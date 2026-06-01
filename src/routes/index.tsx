@@ -160,7 +160,13 @@ function SectionHeader({
   );
 }
 
-function Hero({ onAsk }: { onAsk: (q: string) => void }) {
+function Hero({
+  onAsk,
+  askActive,
+}: {
+  onAsk: (q: string) => void;
+  askActive: boolean;
+}) {
   return (
     <section className="px-5 pb-7 pt-9">
       <h1
@@ -188,8 +194,16 @@ function Hero({ onAsk }: { onAsk: (q: string) => void }) {
         <AskInput placeholders={EXAMPLES} onSubmit={onAsk} />
       </div>
 
-      {/* Example chips — tap to ask directly */}
-      <div className="-mx-5 mt-4 overflow-x-auto px-5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      {/* Example chips — tap to ask directly. Fade out while panel is active. */}
+      <div
+        className="-mx-5 mt-4 overflow-x-auto px-5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        aria-hidden={askActive}
+        style={{
+          opacity: askActive ? 0 : 1,
+          pointerEvents: askActive ? "none" : undefined,
+          transition: "opacity 200ms ease-out",
+        }}
+      >
         <div className="flex w-max gap-2">
           {EXAMPLES.map((q) => (
             <button
