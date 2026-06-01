@@ -1,106 +1,158 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { SiteShell } from "@/components/site/SiteShell";
+import { Header } from "@/components/site/Header";
+import { Footer } from "@/components/site/Footer";
+import { WhatWeAnalyseSection } from "@/components/site/WhatWeAnalyseSection";
 
 export const Route = createFileRoute("/about")({
   head: () => ({
     meta: [
-      { title: "About — Prophiq" },
-      { name: "description", content: "How Prophiq's multi-model consensus works." },
+      { title: "How it works — Prophiq" },
+      {
+        name: "description",
+        content:
+          "An honest look at what the Prophiq engine does, what it analyses, and how it has done so far.",
+      },
+      { property: "og:title", content: "How it works — Prophiq" },
+      {
+        property: "og:description",
+        content:
+          "What the Prophiq engine analyses, and how it forecasts every upcoming event.",
+      },
     ],
   }),
   component: AboutPage,
 });
 
+const STEPS = [
+  {
+    n: "01",
+    title: "Discover.",
+    body: "An autonomous engine pulls every upcoming event from across the web every few hours — sport, politics, markets, entertainment.",
+  },
+  {
+    n: "02",
+    title: "Forecast.",
+    body: "For each event, the Prophiq engine reasons across the factors above and produces a calibrated probability for every possible outcome.",
+  },
+  {
+    n: "03",
+    title: "Score.",
+    body: "When the event happens, we record what actually occurred. Every forecast is scored. The running track record is public.",
+  },
+];
+
 function AboutPage() {
   return (
-    <SiteShell>
-      <div className="mx-auto max-w-2xl px-4 py-16 sm:px-6 sm:py-24">
-        <h1 className="text-3xl font-bold tracking-tight text-[var(--brand-ink)] sm:text-4xl">
-          About Prophiq
-        </h1>
+    <div style={{ background: "var(--bg)", color: "var(--ink)" }}>
+      <Header />
+      <main className="mx-auto max-w-2xl">
+        <section className="px-5 pb-7 pt-9">
+          <h1
+            className="font-display tracking-[-0.035em]"
+            style={{
+              fontWeight: 700,
+              lineHeight: 0.96,
+              fontSize: "clamp(40px, 9vw, 56px)",
+            }}
+          >
+            How Prophiq
+            <br />
+            <span style={{ color: "var(--amber)" }}>works.</span>
+          </h1>
+          <p
+            className="mt-5 max-w-[40ch] font-body text-[16px] leading-[1.45]"
+            style={{ color: "var(--ink-soft)" }}
+          >
+            An honest look at what the engine does, what it analyses, and how it
+            has done so far.
+          </p>
+        </section>
 
-        <div className="mt-8 space-y-8 text-sm leading-relaxed text-slate-700 sm:text-base">
-          <section>
-            <h2 className="text-lg font-semibold text-[var(--brand-ink)]">What Prophiq is</h2>
-            <p className="mt-2">
-              Prophiq is a consensus forecasting engine. For every upcoming public event — a football
-              final, an election, a central-bank decision, an awards ceremony — we run three
-              independent frontier AI models in parallel, fuse their rankings into a single
-              consensus prediction, and publish the result with full reasoning. You can browse the
-              feed, ask follow-up questions in a chat panel on any event, or submit your own question
-              and watch the pipeline run live.
-            </p>
-          </section>
+        <SectionHeader label="WHAT WE ANALYSE" />
+        <section className="px-5 pb-8 pt-3">
+          <WhatWeAnalyseSection />
+        </section>
 
-          <section>
-            <h2 className="text-lg font-semibold text-[var(--brand-ink)]">How it works</h2>
-            <ol className="mt-3 list-decimal space-y-3 pl-5">
-              <li>
-                <strong className="text-[var(--brand-ink)]">Discovery.</strong> An autonomous cron
-                scans public sources every few hours for new events across sport, politics, markets,
-                and entertainment. Each event is validated, classified into a domain, and stored with
-                structured metadata.
-              </li>
-              <li>
-                <strong className="text-[var(--brand-ink)]">Multi-model fan-out.</strong> For every
-                event, three frontier language models research the context independently and rank the
-                possible outcomes by likelihood. Each model works from the same evidence but reasons
-                in its own way.
-              </li>
-              <li>
-                <strong className="text-[var(--brand-ink)]">Borda consensus.</strong> The
-                individual rankings are merged with a weighted Borda count. The algorithm rewards
-                outcomes that multiple models rank highly, while surfacing "dark horses" — outcomes
-                one model championed but others overlooked.
-              </li>
-              <li>
-                <strong className="text-[var(--brand-ink)]">Scoring.</strong> After the event
-                resolves, the actual outcome is compared against the prediction. We record top-pick
-                accuracy, top-3 hit rate, and an overall grade so the track record stays honest.
-              </li>
-            </ol>
-          </section>
-
-          <section>
-            <h2 className="text-lg font-semibold text-[var(--brand-ink)]">Why three models</h2>
-            <p className="mt-2">
-              A single model can be confidently wrong. Three independent models, drawn from
-              different providers and architectures, give us diversity of reasoning, robustness
-              against any one model's blind spots, and a natural calibration signal: when all three
-              agree, the prediction is usually well-founded; when they diverge, the disagreement
-              itself is information.
-            </p>
-          </section>
-
-          <section>
-            <h2 className="text-lg font-semibold text-[var(--brand-ink)]">What it's not</h2>
-            <p className="mt-2">
-              Prophiq is not a betting tipster, not a financial adviser, and not a crystal ball. The
-              predictions are probabilistic forecasts generated by language models, not guarantees.
-              Markets coverage is informational only. Politics coverage is non-partisan. Sport odds
-              framing is for entertainment — please{" "}
-              <a
-                href="https://www.begambleaware.org"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="underline hover:text-[var(--brand-ink)]"
+        <SectionHeader label="HOW WE FORECAST" />
+        <section className="space-y-5 px-5 pb-8 pt-4">
+          {STEPS.map((s) => (
+            <div key={s.n}>
+              <span
+                className="font-mono text-[11px] tracking-[0.18em]"
+                style={{ color: "var(--amber-strong)", fontWeight: 600 }}
               >
-                gamble responsibly
-              </a>
-              .
-            </p>
-          </section>
+                {s.n}
+              </span>
+              <p
+                className="mt-1 font-display text-[20px] leading-snug tracking-[-0.01em]"
+                style={{ fontWeight: 600 }}
+              >
+                <span style={{ color: "var(--ink)" }}>{s.title}</span>{" "}
+                <span style={{ color: "var(--ink-soft)" }}>{s.body}</span>
+              </p>
+            </div>
+          ))}
+        </section>
 
-          <section>
-            <h2 className="text-lg font-semibold text-[var(--brand-ink)]">Acknowledgements</h2>
-            <p className="mt-2">
-              Prophiq's consensus engine calls models from Anthropic, OpenAI, and Google. Research
-              and context gathering are powered by Perplexity. Data storage, auth, edge functions, and
-              real-time subscriptions run on Supabase.
+        <SectionHeader label="TRACK RECORD" />
+        <section className="px-5 pb-8 pt-3" id="track-record">
+          <div
+            className="rounded-xl px-4 py-5"
+            style={{
+              background: "var(--bg-card)",
+              border: "1px solid var(--border-soft)",
+              color: "var(--ink-soft)",
+            }}
+          >
+            <p className="font-body text-[13px] leading-relaxed">
+              Every forecast is graded after the event resolves. The running
+              tally — events scored, top-pick hit rate, top-3 hit rate — is
+              public and updates automatically.
             </p>
-          </section>
-        </div>
-      </div>
-    </SiteShell>
+          </div>
+        </section>
+
+        <SectionHeader label="HYGIENE" />
+        <section className="px-5 pb-12 pt-3">
+          <p
+            className="font-body text-[13px] leading-relaxed"
+            style={{ color: "var(--ink-soft)" }}
+          >
+            Prophiq is not a betting tipster, not a financial adviser, and not a
+            crystal ball. Forecasts are probabilistic and informational only.
+            Markets coverage is not financial advice. Politics coverage is
+            non-partisan. Sport odds framing is for entertainment — please{" "}
+            <a
+              href="https://www.begambleaware.org"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline"
+              style={{ color: "var(--ink)" }}
+            >
+              gamble responsibly
+            </a>
+            .
+          </p>
+        </section>
+      </main>
+      <Footer />
+    </div>
+  );
+}
+
+function SectionHeader({ label }: { label: string }) {
+  return (
+    <div className="flex items-center gap-3 px-5 pb-2 pt-2">
+      <span
+        className="font-mono text-[10px] tracking-[0.2em]"
+        style={{ color: "var(--ink-faint)", fontWeight: 600 }}
+      >
+        {label}
+      </span>
+      <span
+        className="h-px flex-1"
+        style={{ background: "var(--border-soft)" }}
+      />
+    </div>
   );
 }

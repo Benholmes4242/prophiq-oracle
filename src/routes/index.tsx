@@ -1,174 +1,276 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { SiteShell } from "@/components/site/SiteShell";
-import { DomainCard } from "@/components/site/DomainCard";
-import { EventCard } from "@/components/site/EventCard";
-import { useDomainSummaries, useRecentPicks } from "@/hooks/useEvents";
-import { DOMAINS } from "@/lib/types";
+import { useEffect, useRef, useState, type FormEvent } from "react";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { Header } from "@/components/site/Header";
+import { Footer } from "@/components/site/Footer";
+import { TodaysLeadCard } from "@/components/site/TodaysLeadCard";
+import { AlsoTodayList } from "@/components/site/AlsoTodayList";
+import { WhatWeAnalyseSection } from "@/components/site/WhatWeAnalyseSection";
+import {
+  ScoredYesterday,
+  ScoredYesterdayHeader,
+} from "@/components/site/ScoredYesterday";
+import { useHomepagePicks, useScoredYesterday } from "@/hooks/useEvents";
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Prophiq — Multi-model consensus predictions" },
+      { title: "Prophiq — What happens next?" },
       {
         name: "description",
         content:
-          "Prophiq runs three frontier AI models in parallel on every upcoming event in sport, politics, markets, and entertainment — then publishes the consensus pick with reasons.",
+          "From the Grand National to the FOMC, Prophiq forecasts every upcoming event worth following. Ask anything.",
       },
-      { property: "og:title", content: "Prophiq — Multi-model consensus predictions" },
+      { property: "og:title", content: "Prophiq — What happens next?" },
       {
         property: "og:description",
-        content:
-          "Sport, politics, markets, entertainment. Three models, one consensus, every event.",
+        content: "Calibrated forecasts for every upcoming event. Ask anything.",
       },
     ],
   }),
   component: HomePage,
 });
 
-function HomePage() {
-  const summaries = useDomainSummaries();
-  const recent = useRecentPicks(6);
+const EXAMPLES = [
+  "Who'll win the Monaco GP?",
+  "Will the Fed cut in June?",
+  "Best bets for the World Cup opener?",
+  "Will Alcaraz win Roland Garros?",
+  "Who wins the Armenian election?",
+];
 
-  const upcomingByDomain = new Map(
-    (summaries.data ?? []).map((s) => [s.domain, s.upcoming_count]),
-  );
+function HomePage() {
+  const picks = useHomepagePicks();
+  const scored = useScoredYesterday(6);
+  const lead = picks.data?.[0];
+  const rest = picks.data?.slice(1, 4) ?? [];
 
   return (
-    <SiteShell>
-      {/* Hero */}
-      <section className="relative overflow-hidden">
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[420px] bg-[radial-gradient(60%_60%_at_50%_0%,color-mix(in_oklab,var(--brand-amber)_20%,transparent),transparent_70%)]"
-        />
-        <div className="mx-auto max-w-6xl px-4 pb-12 pt-16 sm:px-6 sm:pt-24">
-          <span className="inline-flex items-center gap-2 rounded-full border border-[var(--brand-border)] bg-white/70 px-3 py-1 text-xs font-medium text-slate-600 backdrop-blur">
-            <span className="h-1.5 w-1.5 rounded-full bg-[var(--brand-amber)]" />
-            Three models. One consensus. Every event.
-          </span>
-          <h1 className="mt-5 max-w-3xl text-4xl font-bold tracking-tight text-[var(--brand-ink)] sm:text-5xl md:text-6xl">
-            Predictions you can{" "}
-            <span className="text-[var(--brand-amber)]">interrogate</span>, not just read.
-          </h1>
-          <p className="mt-5 max-w-2xl text-base leading-relaxed text-slate-600 sm:text-lg">
-            Prophiq runs frontier AI models in parallel on every upcoming event in sport,
-            politics, markets, and entertainment — then publishes the consensus pick with the
-            reasoning behind it. Ask follow-ups on any event.
-          </p>
-          <div className="mt-7 flex flex-wrap items-center gap-3">
-            <Link
-              to="/predictions"
-              className="inline-flex items-center rounded-full bg-[var(--brand-ink)] px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-transform hover:-translate-y-px"
-            >
-              Browse predictions
-            </Link>
-            <Link
-              to="/ask"
-              className="inline-flex items-center rounded-full bg-[var(--brand-amber)] px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-transform hover:-translate-y-px"
-            >
-              Ask a question →
-            </Link>
-          </div>
-        </div>
-      </section>
+    <div style={{ background: "var(--bg)", color: "var(--ink)" }}>
+      <Header />
+      <main className="mx-auto max-w-2xl">
+        <Hero />
 
-      {/* Domain cards */}
-      <section className="mx-auto max-w-6xl px-4 sm:px-6">
-        <div className="flex items-end justify-between gap-4">
-          <h2 className="text-xl font-semibold tracking-tight text-[var(--brand-ink)] sm:text-2xl">
-            Four domains
-          </h2>
-          <Link
-            to="/predictions"
-            className="text-sm font-medium text-slate-600 hover:text-[var(--brand-ink)]"
-          >
-            See all →
-          </Link>
-        </div>
-        <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {DOMAINS.map((d) => (
-            <DomainCard key={d} domain={d} upcomingCount={upcomingByDomain.get(d)} />
-          ))}
-        </div>
-      </section>
+        {/* Today's Lead */}
+        <section className="px-5 pb-6">
+          {picks.isLoading ? (
+            <LeadSkeleton />
+          ) : lead ? (
+            <TodaysLeadCard pick={lead} />
+          ) : (
+            <EmptyLead />
+          )}
+        </section>
 
-      {/* Recent picks rail */}
-      <section className="mx-auto mt-16 max-w-6xl px-4 sm:px-6">
-        <div className="flex items-end justify-between gap-4">
-          <div>
-            <h2 className="text-xl font-semibold tracking-tight text-[var(--brand-ink)] sm:text-2xl">
-              Recent picks
-            </h2>
-            <p className="mt-1 text-sm text-slate-600">
-              Fresh consensus predictions across every domain.
-            </p>
-          </div>
-          <Link
-            to="/predictions"
-            className="text-sm font-medium text-slate-600 hover:text-[var(--brand-ink)]"
-          >
-            All predictions →
-          </Link>
-        </div>
-
-        <div className="mt-5">
-          {recent.isLoading ? (
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {Array.from({ length: 6 }).map((_, i) => (
+        {/* Also today */}
+        <SectionHeader label="ALSO TODAY" trailing={`${rest.length} picks`} />
+        <section className="px-5 pb-8 pt-3">
+          {picks.isLoading ? (
+            <div className="space-y-3">
+              {[0, 1, 2].map((i) => (
                 <div
                   key={i}
-                  className="h-44 animate-pulse rounded-xl border border-[var(--brand-border)] bg-white"
+                  className="h-20 animate-pulse rounded-xl"
+                  style={{ background: "var(--bg-card)" }}
                 />
               ))}
             </div>
-          ) : recent.isError ? (
-            <p className="rounded-lg border border-[var(--brand-border)] bg-white p-6 text-sm text-slate-600">
-              Couldn't load recent picks. Try refreshing.
-            </p>
-          ) : (recent.data?.length ?? 0) === 0 ? (
-            <p className="rounded-lg border border-dashed border-[var(--brand-border)] bg-white p-6 text-sm text-slate-600">
-              No predictions yet. Check back soon.
-            </p>
           ) : (
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {recent.data!.map(({ event, prediction }) => (
-                <EventCard key={event.id} event={event} prediction={prediction} />
-              ))}
-            </div>
+            <AlsoTodayList picks={rest} />
           )}
-        </div>
-      </section>
+        </section>
 
-      {/* How it works strip */}
-      <section className="mx-auto mt-20 max-w-6xl px-4 sm:px-6">
-        <div className="rounded-2xl border border-[var(--brand-border)] bg-white p-8">
-          <div className="grid gap-6 md:grid-cols-3">
-            {[
-              {
-                step: "01",
-                title: "Discover",
-                body: "An autonomous cron pulls upcoming events from across the web every few hours.",
-              },
-              {
-                step: "02",
-                title: "Predict in parallel",
-                body: "Three frontier AI models research each event independently and rank the outcomes.",
-              },
-              {
-                step: "03",
-                title: "Reach consensus",
-                body: "A weighted Borda count fuses the rankings — and surfaces how much the models agree.",
-              },
-            ].map((s) => (
-              <div key={s.step}>
-                <span className="text-xs font-mono text-[var(--brand-amber-text)]">{s.step}</span>
-                <h3 className="mt-2 text-base font-semibold text-[var(--brand-ink)]">{s.title}</h3>
-                <p className="mt-1 text-sm leading-relaxed text-slate-600">{s.body}</p>
-              </div>
-            ))}
-          </div>
+        {/* What we analyse */}
+        <SectionHeader label="WHAT WE ANALYSE" />
+        <section className="px-5 pb-8 pt-3">
+          <WhatWeAnalyseSection />
+        </section>
+
+        {/* Scored yesterday */}
+        <div className="px-5 pb-2 pt-2">
+          <ScoredYesterdayHeader picks={scored.data ?? []} />
         </div>
-      </section>
-    </SiteShell>
+        <section className="px-5 pb-10 pt-3">
+          <ScoredYesterday picks={scored.data ?? []} />
+        </section>
+      </main>
+      <Footer />
+    </div>
+  );
+}
+
+function SectionHeader({
+  label,
+  trailing,
+}: {
+  label: string;
+  trailing?: string;
+}) {
+  return (
+    <div className="flex items-center gap-3 px-5 pb-2 pt-2">
+      <span
+        className="font-mono text-[10px] tracking-[0.2em]"
+        style={{ color: "var(--ink-faint)", fontWeight: 600 }}
+      >
+        {label}
+      </span>
+      <span
+        className="h-px flex-1"
+        style={{ background: "var(--border-soft)" }}
+      />
+      {trailing && (
+        <span
+          className="font-mono text-[10px]"
+          style={{ color: "var(--ink-faint)" }}
+        >
+          {trailing}
+        </span>
+      )}
+    </div>
+  );
+}
+
+function Hero() {
+  const navigate = useNavigate();
+  const [question, setQuestion] = useState("");
+  const [phIdx, setPhIdx] = useState(0);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const id = setInterval(
+      () => setPhIdx((i) => (i + 1) % EXAMPLES.length),
+      2400,
+    );
+    return () => clearInterval(id);
+  }, []);
+
+  function onSubmit(e: FormEvent) {
+    e.preventDefault();
+    const q = question.trim();
+    if (!q) return;
+    void navigate({ to: "/ask", search: { q } as never });
+  }
+
+  return (
+    <section className="px-5 pb-7 pt-9">
+      <h1
+        className="font-display tracking-[-0.035em]"
+        style={{
+          fontWeight: 700,
+          lineHeight: 0.94,
+          fontSize: "clamp(48px, 11vw, 72px)",
+        }}
+      >
+        What happens
+        <br />
+        <span style={{ color: "var(--amber)" }}>next?</span>
+      </h1>
+
+      <p
+        className="mt-5 max-w-[34ch] font-body text-[16px] leading-[1.45]"
+        style={{ color: "var(--ink-soft)" }}
+      >
+        From the Grand National to the FOMC, we forecast every upcoming event
+        worth following. Ask anything.
+      </p>
+
+      {/* Ask input */}
+      <form
+        onSubmit={onSubmit}
+        className="mt-7 flex items-center gap-3 rounded-2xl px-4 py-3 focus-within:ring-2 focus-within:ring-[var(--amber)]/30"
+        style={{
+          background: "var(--bg-card)",
+          border: "1.5px solid var(--border-strong)",
+          boxShadow:
+            "0 1px 0 var(--border-soft), 0 10px 24px -14px rgba(11,18,32,0.18)",
+        }}
+      >
+        <label htmlFor="ask" className="sr-only">
+          Ask a question
+        </label>
+        <input
+          id="ask"
+          ref={inputRef}
+          value={question}
+          onChange={(e) => setQuestion(e.target.value)}
+          placeholder={EXAMPLES[phIdx]}
+          maxLength={500}
+          className="font-body flex-1 bg-transparent text-[15px] outline-none placeholder:transition-opacity"
+          style={{ color: "var(--ink)" }}
+          aria-label="Ask Prophiq a question"
+        />
+        <button
+          type="submit"
+          aria-label="Submit question"
+          className="grid h-9 w-9 shrink-0 place-items-center rounded-xl transition-transform hover:scale-[1.04]"
+          style={{ background: "var(--amber)" }}
+        >
+          <svg
+            width="15"
+            height="15"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="white"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden
+          >
+            <polyline points="9 18 15 12 9 6" />
+          </svg>
+        </button>
+      </form>
+
+      {/* Example chips */}
+      <div className="-mx-5 mt-4 overflow-x-auto px-5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div className="flex w-max gap-2">
+          {EXAMPLES.map((q) => (
+            <button
+              key={q}
+              type="button"
+              onClick={() => {
+                setQuestion(q);
+                inputRef.current?.focus();
+              }}
+              className="whitespace-nowrap rounded-full px-3 py-1.5 font-body text-[12.5px]"
+              style={{
+                border: "1px solid var(--border-strong)",
+                color: "var(--ink-soft)",
+                background: "var(--bg-card)",
+              }}
+            >
+              {q}
+            </button>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function LeadSkeleton() {
+  return (
+    <div
+      className="h-64 animate-pulse rounded-2xl"
+      style={{ background: "var(--bg-card)" }}
+    />
+  );
+}
+
+function EmptyLead() {
+  return (
+    <div
+      className="rounded-2xl px-5 py-8 text-center"
+      style={{
+        background: "var(--bg-card)",
+        border: "1px dashed var(--border-soft)",
+      }}
+    >
+      <p
+        className="font-body text-[13px]"
+        style={{ color: "var(--ink-soft)" }}
+      >
+        No forecasts ready for today yet — check back shortly.
+      </p>
+    </div>
   );
 }
