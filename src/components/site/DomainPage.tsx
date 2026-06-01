@@ -43,13 +43,11 @@ export function DomainPage({ domain }: { domain: DomainId }) {
   const { data: events = [], isLoading } = useDomainEvents(domain);
   const { data: resolved = [] } = useDomainResolvedEvents(domain, 5);
 
-  const [askOpen, setAskOpen] = useState(false);
-  const [askQ, setAskQ] = useState("");
+  const [askQ, setAskQ] = useState<string | null>(null);
   function ask(q: string) {
     const trimmed = q.trim();
     if (!trimmed) return;
     setAskQ(trimmed);
-    setAskOpen(true);
   }
 
   const lead = events[0] ?? null;
