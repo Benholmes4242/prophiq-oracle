@@ -29,7 +29,7 @@ export const Route = createFileRoute("/$domain/events/$slug")({
     const title = `${event.title} — Prophiq`;
     const description =
       event.description ??
-      `Multi-model consensus prediction for ${event.title}. ${DOMAIN_LABEL[event.domain]} on Prophiq.`;
+      `Calibrated prediction for ${event.title}. ${DOMAIN_LABEL[event.domain]} on Prophiq.`;
     const url = `https://prophiq-opinion-nexus.lovable.app/${params.domain}/events/${params.slug}`;
     const jsonLd = {
       "@context": "https://schema.org",
