@@ -21,11 +21,9 @@ export const Route = createFileRoute("/search")({
   validateSearch: (s: Record<string, unknown>) => ({
     q: typeof s.q === "string" ? s.q : "",
   }),
-  head: ({ search }) => ({
+  head: () => ({
     meta: [
-      {
-        title: search.q ? `"${search.q}" — Prophiq` : "Search — Prophiq",
-      },
+      { title: "Search — Prophiq" },
       { name: "robots", content: "noindex" },
     ],
   }),
