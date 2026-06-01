@@ -170,7 +170,11 @@ Deno.serve(async (req) => {
 
       // ----- 6. CONSENSUS -----
       sse.send({ stage: "consensus", status: "start" });
-      const ranked = consensusOut.consensus.ranked_outcomes;
+      const labelById = new Map((outcomeIds ?? []).map((o) => [o.id, o.label]));
+      const ranked = consensusOut.consensus.ranked_outcomes.map((r) => ({
+        ...r,
+        outcome_label: labelById.get(r.outcome_id) ?? r.outcome_id,
+      }));
       await supabase.from("predictions").update({ is_current: false }).eq("event_id", event.id).eq("mode", "prediction");
       const { data: prediction, error: pErr } = await supabase.from("predictions").insert({
         event_id: event.id,
