@@ -56,21 +56,30 @@ function HomePage() {
   const lead = picks.data?.[0];
   const rest = picks.data?.slice(1, 4) ?? [];
 
-  const [askOpen, setAskOpen] = useState(false);
-  const [askQ, setAskQ] = useState("");
+  const [askQ, setAskQ] = useState<string | null>(null);
 
   function ask(q: string) {
     const trimmed = q.trim();
     if (!trimmed) return;
     setAskQ(trimmed);
-    setAskOpen(true);
   }
 
   return (
     <div style={{ background: "var(--bg)", color: "var(--ink)" }}>
       <Header />
       <main className="mx-auto max-w-2xl">
-        <Hero onAsk={ask} />
+        <Hero onAsk={ask} askActive={askQ !== null} />
+
+        {askQ && (
+          <section className="px-5">
+            <AskInlinePanel
+              key={askQ}
+              question={askQ}
+              topic="any"
+              onDismiss={() => setAskQ(null)}
+            />
+          </section>
+        )}
 
         {/* Today's Lead */}
         <section className="px-5 pb-6">
