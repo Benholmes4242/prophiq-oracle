@@ -37,10 +37,16 @@ const STATUS_LABEL: Record<StatusTab, string> = {
   resolved: "Resolved",
 };
 
-function mapStatusTab(tab: StatusTab): EventStatus | EventStatus[] {
-  if (tab === "upcoming") return "scheduled";
-  if (tab === "live") return "live";
-  return "resolved";
+function buildStatusFilter(tab: StatusTab): {
+  status: EventStatus | EventStatus[];
+  startedBefore?: string;
+} {
+  if (tab === "upcoming") return { status: "scheduled" };
+  if (tab === "resolved") return { status: "resolved" };
+  // Live: events that have started but aren't yet resolved. We don't
+  // currently flip status -> 'live' anywhere, so derive it client-side
+  // from starts_at < now() AND status = 'scheduled'.
+  return { status: "scheduled", startedBefore: new Date().toISOString() };
 }
 
 export const Route = createFileRoute("/predictions")({
@@ -64,9 +70,11 @@ function PredictionsPage() {
   const search = Route.useSearch() as SearchParams;
   const navigate = useNavigate({ from: "/predictions" });
 
+  const statusFilter = buildStatusFilter(search.status);
   const filter = {
     domain: search.domain.length ? (search.domain as DomainId[]) : undefined,
-    status: mapStatusTab(search.status),
+    status: statusFilter.status,
+    startedBefore: statusFilter.startedBefore,
     mode: search.mode as EventMode,
     source: search.source as EventSource | undefined,
     order:
@@ -75,6 +83,7 @@ function PredictionsPage() {
         : ("starts_at_asc" as const),
     limit: PAGE_CAP,
   };
+
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["events-feed", filter],
