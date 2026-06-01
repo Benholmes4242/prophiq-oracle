@@ -7,7 +7,7 @@ import { TodaysLeadCard } from "@/components/site/TodaysLeadCard";
 import { DomainUpcomingList } from "@/components/site/DomainUpcomingList";
 import { DomainResolvedStrip } from "@/components/site/DomainResolvedStrip";
 import { AskInput } from "@/components/site/AskInput";
-import { AskSheet } from "@/components/site/AskSheet";
+import { AskInlinePanel } from "@/components/site/AskInlinePanel";
 import { useDomainEvents, useDomainResolvedEvents } from "@/hooks/useEvents";
 import { getChipsForDomain, classifyEvent } from "@/lib/subcategory";
 import type { DomainId, EventWithPrediction } from "@/lib/types";
