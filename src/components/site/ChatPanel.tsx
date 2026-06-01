@@ -113,7 +113,7 @@ function Thread({
 }: {
   messages: ReturnType<typeof useChat>["messages"];
   sending: boolean;
-  innerRef: React.RefObject<HTMLDivElement>;
+  innerRef: React.RefObject<HTMLDivElement | null>;
 }) {
   return (
     <div ref={innerRef} className="flex-1 space-y-3 overflow-y-auto px-4 py-3">
