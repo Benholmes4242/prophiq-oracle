@@ -12,7 +12,10 @@ export interface PerplexityOptions {
   maxTokens?: number;
   searchRecencyFilter?: "day" | "week" | "month" | "year";
   searchDomainFilter?: string[];
-  responseFormat?: Record<string, unknown>;
+  responseFormat?: {
+    type: "json_schema";
+    json_schema: { schema: Record<string, unknown> };
+  };
 }
 
 export interface PerplexityResponse {

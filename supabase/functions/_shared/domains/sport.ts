@@ -49,7 +49,44 @@ export const sportAdapter: DomainAdapter = {
           { role: "system", content: DISCOVERY_SYSTEM },
           { role: "user", content: DISCOVERY_USER(now) },
         ],
-        { model: "sonar", temperature: 0.1, maxTokens: 2000 },
+        {
+          model: "sonar-pro",
+          temperature: 0.1,
+          maxTokens: 2000,
+          responseFormat: {
+            type: "json_schema",
+            json_schema: {
+              schema: {
+                type: "object",
+                properties: {
+                  events: {
+                    type: "array",
+                    items: {
+                      type: "object",
+                      properties: {
+                        title: { type: "string" },
+                        question: { type: "string" },
+                        description: { type: "string" },
+                        starts_at: { type: "string" },
+                        resolves_at: { type: "string" },
+                        outcomes: {
+                          type: "array",
+                          items: {
+                            type: "object",
+                            properties: { label: { type: "string" } },
+                            required: ["label"],
+                          },
+                        },
+                      },
+                      required: ["title", "question", "starts_at", "outcomes"],
+                    },
+                  },
+                },
+                required: ["events"],
+              },
+            },
+          },
+        },
       );
     } catch (err) {
       console.warn(`[domain:${DOMAIN_ID}] discover failed:`, (err as Error).message);
