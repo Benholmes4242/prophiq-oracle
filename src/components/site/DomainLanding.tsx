@@ -59,7 +59,7 @@ export function DomainLanding({ domain }: { domain: DomainId }) {
           </div>
         ) : (events.data?.length ?? 0) === 0 ? (
           <p className="rounded-lg border border-dashed border-[var(--brand-border)] bg-white p-6 text-sm text-slate-600">
-            No {DOMAIN_LABEL[domain].toLowerCase()} predictions yet. Check back soon.
+            No upcoming {DOMAIN_LABEL[domain].toLowerCase()} events scheduled. The discovery cron runs every few hours.
           </p>
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
