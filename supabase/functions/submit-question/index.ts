@@ -203,7 +203,7 @@ Deno.serve(async (req) => {
 
       // ----- 7. DONE -----
       await recordOutcome("accepted");
-      sse.send({ stage: "done", status: "done", data: { event_id: event.id, prediction_id: prediction.id, slug: event.slug } });
+      sse.send({ stage: "done", status: "done", data: { event_id: event.id, prediction_id: prediction.id, slug: event.slug, domain: domainId } });
       sse.close();
     } catch (err) {
       sse.send({ stage: "done", status: "error", message: (err as Error).message });
