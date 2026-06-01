@@ -47,6 +47,16 @@ Return STRICT JSON only — no prose, no markdown fences. Schema:
 Rank EVERY outcome exactly once, starting at rank 1.`;
 }
 
+/**
+ * Model IDs are constants so they're easy to find and rotate when providers age them out.
+ * Last rotated: 2026-06-01 (Claude 3.5 Sonnet Oct 2024 and Gemini 1.5 Flash both retired).
+ */
+export const MODEL_IDS = {
+  claude: "claude-sonnet-4-5",
+  gpt: "gpt-4o-mini",
+  gemini: "gemini-2.5-flash",
+} as const;
+
 interface RawRanking {
   outcome_id?: string;
   rank?: number;
@@ -126,7 +136,7 @@ export const callClaude: LlmCaller = async ({ prompt, outcomes, temperature }) =
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "claude-3-5-sonnet-20241022",
+        model: MODEL_IDS.claude,
         max_tokens: 2000,
         temperature: temperature ?? 0.2,
         messages: [{ role: "user", content: prompt + jsonSuffix(outcomes) }],
@@ -155,7 +165,7 @@ export const callGPT: LlmCaller = async ({ prompt, outcomes, temperature }) => {
       method: "POST",
       headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: "gpt-4o-mini",
+        model: MODEL_IDS.gpt,
         temperature: temperature ?? 0.2,
         response_format: { type: "json_object" },
         messages: [
@@ -183,7 +193,7 @@ export const callGemini: LlmCaller = async ({ prompt, outcomes, temperature }) =
   const key = readEnv("GOOGLE_API_KEY");
   if (!key) return { model: "gemini", ranked_outcome_ids: [], error: "GOOGLE_API_KEY missing" };
   try {
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`;
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_IDS.gemini}:generateContent?key=${key}`;
     const res = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
