@@ -61,6 +61,7 @@ export function ChatPanel({ eventId }: { eventId: string | undefined }) {
         {/* Spacer so content isn't hidden behind the fixed sheet */}
         <div aria-hidden className={expanded ? "h-[70vh]" : "h-14"} />
         <div
+          id="chat-sheet"
           className={
             "fixed inset-x-0 bottom-0 z-30 flex flex-col rounded-t-2xl border-t border-[var(--brand-border)] bg-white shadow-[0_-8px_24px_-12px_rgba(15,23,42,0.15)] transition-[height] duration-200 " +
             (expanded ? "h-[70vh]" : "h-14")
@@ -71,6 +72,8 @@ export function ChatPanel({ eventId }: { eventId: string | undefined }) {
             onClick={() => setExpanded((v) => !v)}
             className="flex h-14 shrink-0 items-center justify-between px-4 text-left"
             aria-expanded={expanded}
+            aria-controls="chat-sheet"
+            aria-label={expanded ? "Collapse chat panel" : "Expand chat panel"}
           >
             <span className="text-sm font-medium text-[var(--brand-ink)]">
               {expanded ? "Chat about this prediction" : "Ask a follow-up about this prediction…"}

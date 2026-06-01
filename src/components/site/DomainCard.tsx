@@ -23,7 +23,7 @@ export function DomainCard({
     >
       <div>
         <div className="flex items-center justify-between">
-          <span className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--brand-amber)]">
+          <span className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--brand-amber-text)]">
             {DOMAIN_LABEL[domain]}
           </span>
           <span
@@ -36,7 +36,7 @@ export function DomainCard({
 
       <div className="mt-6 flex items-center justify-between text-xs">
         {typeof upcomingCount === "number" && upcomingCount > 0 ? (
-          <span className="font-mono text-slate-500">{upcomingCount} scheduled</span>
+          <span className="font-mono text-slate-600">{upcomingCount} scheduled</span>
         ) : (
           <span />
         )}
