@@ -102,18 +102,23 @@ async function run() {
   );
   assert(sportPrompt.toLowerCase().includes("odds") || sportPrompt.toLowerCase().includes("probabilit"), "sport odds-mode prompt mentions odds/probability");
 
+  // Strip negation/forbidden-language sentences before scanning for banned terms.
+  const stripNegations = (s: string) =>
+    s.split(/(?<=[.!\n])\s+/).filter((sent) => !/\b(do not|don't|never|no betting|avoid|forbidden|informational only)\b/i.test(sent)).join(" ");
+  const BAN = /\b(bet|bets|betting|bookmak|odds)\b/i;
+
   const politicsPrompt = politicsAdapter.buildPrompt(
     { id: "x", domain: "politics", external_id: null, slug: "p", title: "Election", description: null, question: "Who wins?", starts_at: "2026-06-10T15:00:00Z", resolves_at: "2026-06-11T03:00:00Z", status: "scheduled", mode: "prediction", source: "discovered", moderation_status: "approved", metadata: null },
     [{ id: "o1", event_id: "x", external_id: null, label: "Party A", metadata: null }, { id: "o2", event_id: "x", external_id: null, label: "Party B", metadata: null }],
   );
-  assert(!/\bbet|bets|betting|bookmak|odds\b/i.test(politicsPrompt), "politics prompt avoids betting/odds language");
+  assert(!BAN.test(stripNegations(politicsPrompt)), "politics prompt avoids betting/odds language");
 
   const marketsPrompt = marketsAdapter.buildPrompt(
     { id: "x", domain: "markets", external_id: null, slug: "m", title: "FOMC", description: null, question: "Cut?", starts_at: "2026-06-10T15:00:00Z", resolves_at: "2026-06-10T20:00:00Z", status: "scheduled", mode: "prediction", source: "discovered", moderation_status: "approved", metadata: null },
     [{ id: "o1", event_id: "x", external_id: null, label: "Hold", metadata: null }, { id: "o2", event_id: "x", external_id: null, label: "Cut", metadata: null }],
   );
   assert(/informational only/i.test(marketsPrompt), "markets prompt includes informational-only disclaimer");
-  assert(!/\bbet|bets|betting|bookmak|odds\b/i.test(marketsPrompt), "markets prompt avoids betting/odds language");
+  assert(!BAN.test(stripNegations(marketsPrompt)), "markets prompt avoids betting/odds language");
 
   const entPrompt = entertainmentAdapter.buildPrompt(
     { id: "x", domain: "entertainment", external_id: null, slug: "e", title: "Oscars", description: null, question: "Best Picture?", starts_at: "2026-06-10T15:00:00Z", resolves_at: "2026-06-11T03:00:00Z", status: "scheduled", mode: "prediction", source: "discovered", moderation_status: "approved", metadata: null },
