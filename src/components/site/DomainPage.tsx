@@ -136,12 +136,6 @@ export function DomainPage({ domain }: { domain: DomainId }) {
         </section>
       </main>
       <Footer />
-      <AskSheet
-        open={askOpen}
-        question={askQ}
-        topic={domain}
-        onClose={() => setAskOpen(false)}
-      />
     </div>
   );
 }
