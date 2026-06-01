@@ -47,11 +47,14 @@ export interface EventOutcomeRow {
 
 export interface RankedOutcome {
   outcome_id?: string;
-  label: string;
+  /** Human-readable outcome label, enriched at persist time from event_outcomes. */
+  outcome_label?: string;
   rank: number;
+  /** Probability on a 0-100 scale (NOT 0-1). See normaliseProbability in _shared/llm.ts. */
   probability?: number;
   fit_score?: number;
   reasons?: string[];
+  is_dark_horse?: boolean;
 }
 
 export interface PredictionRow {
