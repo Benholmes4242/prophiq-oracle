@@ -255,3 +255,113 @@ export async function fetchScoredRecent(opts: {
       };
     });
 }
+
+// ============================================================
+// Receipts page RPCs.
+// ============================================================
+
+export interface ReceiptsStats {
+  events_scored: number;
+  top_pick_hit_rate: number;
+  top_three_hit_rate: number;
+  days_running: number;
+  last_30d_accuracy: Array<{ date: string; accuracy: number }>;
+}
+
+export async function fetchReceiptsStats(): Promise<ReceiptsStats> {
+  const { data, error } = await supabase.rpc("get_receipts_stats");
+  if (error) throw error;
+  const row = Array.isArray(data) ? data[0] : data;
+  return {
+    events_scored: Number(row?.events_scored ?? 0),
+    top_pick_hit_rate: Number(row?.top_pick_hit_rate ?? 0),
+    top_three_hit_rate: Number(row?.top_three_hit_rate ?? 0),
+    days_running: Number(row?.days_running ?? 0),
+    last_30d_accuracy: Array.isArray(row?.last_30d_accuracy)
+      ? row.last_30d_accuracy
+      : [],
+  };
+}
+
+export interface RecentResolved {
+  event_id: string;
+  domain: DomainId;
+  slug: string;
+  title: string;
+  resolved_at: string;
+  top_pick_label: string | null;
+  top_pick_pct: number | null;
+  actual_outcome: string | null;
+  correct: boolean;
+  confidence: ConfidenceTier;
+}
+
+export async function fetchRecentResolved(limit = 10): Promise<RecentResolved[]> {
+  const { data, error } = await supabase.rpc("get_recent_resolved", { _limit: limit });
+  if (error) throw error;
+  return (data ?? []) as RecentResolved[];
+}
+
+export interface NotableCall {
+  event_id: string;
+  domain: DomainId;
+  slug: string;
+  title: string;
+  resolved_at: string;
+  top_pick_label: string | null;
+  top_pick_pct: number | null;
+  actual_outcome: string | null;
+  correct: boolean;
+  drama_score: number;
+}
+
+export async function fetchNotableCalls(): Promise<NotableCall[]> {
+  const { data, error } = await supabase.rpc("get_notable_calls");
+  if (error) throw error;
+  return (data ?? []) as NotableCall[];
+}
+
+// ============================================================
+// Event resolution lookup (for the resolved banner).
+// ============================================================
+
+export interface EventResolutionSummary {
+  actual_outcome: string | null;
+  top_pick_correct: boolean | null;
+}
+
+export async function fetchEventResolution(
+  eventId: string,
+): Promise<EventResolutionSummary | null> {
+  const { data: pa } = await supabase
+    .from("prediction_accuracy")
+    .select("top_pick_correct, pick_results")
+    .eq("event_id", eventId)
+    .eq("mode", "prediction")
+    .maybeSingle();
+  const { data: er } = await supabase
+    .from("event_resolutions")
+    .select("outcome_rankings")
+    .eq("event_id", eventId)
+    .maybeSingle();
+  if (!pa && !er) return null;
+  let actual: string | null = null;
+  const rankings = (er?.outcome_rankings ?? []) as Array<{
+    outcome_id: string;
+    rank: number;
+  }>;
+  const winner = rankings.find((r) => r.rank === 1) ?? rankings[0];
+  if (winner?.outcome_id) {
+    const { data: outcome } = await supabase
+      .from("event_outcomes")
+      .select("label")
+      .eq("id", winner.outcome_id)
+      .maybeSingle();
+    actual = (outcome?.label as string | undefined) ?? null;
+  }
+  return {
+    actual_outcome: actual,
+    top_pick_correct:
+      (pa?.top_pick_correct as boolean | null | undefined) ?? null,
+  };
+}

@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SportRouteImport } from './routes/sport'
+import { Route as ReceiptsRouteImport } from './routes/receipts'
 import { Route as PredictionsRouteImport } from './routes/predictions'
 import { Route as PoliticsRouteImport } from './routes/politics'
 import { Route as MarketsRouteImport } from './routes/markets'
@@ -24,6 +25,11 @@ import { Route as DomainEventsSlugRouteImport } from './routes/$domain.events.$s
 const SportRoute = SportRouteImport.update({
   id: '/sport',
   path: '/sport',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ReceiptsRoute = ReceiptsRouteImport.update({
+  id: '/receipts',
+  path: '/receipts',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PredictionsRoute = PredictionsRouteImport.update({
@@ -86,6 +92,7 @@ export interface FileRoutesByFullPath {
   '/markets': typeof MarketsRoute
   '/politics': typeof PoliticsRoute
   '/predictions': typeof PredictionsRoute
+  '/receipts': typeof ReceiptsRoute
   '/sport': typeof SportRoute
   '/$domain/track-record': typeof DomainTrackRecordRoute
   '/$domain/events/$slug': typeof DomainEventsSlugRoute
@@ -99,6 +106,7 @@ export interface FileRoutesByTo {
   '/markets': typeof MarketsRoute
   '/politics': typeof PoliticsRoute
   '/predictions': typeof PredictionsRoute
+  '/receipts': typeof ReceiptsRoute
   '/sport': typeof SportRoute
   '/$domain/track-record': typeof DomainTrackRecordRoute
   '/$domain/events/$slug': typeof DomainEventsSlugRoute
@@ -113,6 +121,7 @@ export interface FileRoutesById {
   '/markets': typeof MarketsRoute
   '/politics': typeof PoliticsRoute
   '/predictions': typeof PredictionsRoute
+  '/receipts': typeof ReceiptsRoute
   '/sport': typeof SportRoute
   '/$domain/track-record': typeof DomainTrackRecordRoute
   '/$domain/events/$slug': typeof DomainEventsSlugRoute
@@ -128,6 +137,7 @@ export interface FileRouteTypes {
     | '/markets'
     | '/politics'
     | '/predictions'
+    | '/receipts'
     | '/sport'
     | '/$domain/track-record'
     | '/$domain/events/$slug'
@@ -141,6 +151,7 @@ export interface FileRouteTypes {
     | '/markets'
     | '/politics'
     | '/predictions'
+    | '/receipts'
     | '/sport'
     | '/$domain/track-record'
     | '/$domain/events/$slug'
@@ -154,6 +165,7 @@ export interface FileRouteTypes {
     | '/markets'
     | '/politics'
     | '/predictions'
+    | '/receipts'
     | '/sport'
     | '/$domain/track-record'
     | '/$domain/events/$slug'
@@ -168,6 +180,7 @@ export interface RootRouteChildren {
   MarketsRoute: typeof MarketsRoute
   PoliticsRoute: typeof PoliticsRoute
   PredictionsRoute: typeof PredictionsRoute
+  ReceiptsRoute: typeof ReceiptsRoute
   SportRoute: typeof SportRoute
   DomainTrackRecordRoute: typeof DomainTrackRecordRoute
   DomainEventsSlugRoute: typeof DomainEventsSlugRoute
@@ -180,6 +193,13 @@ declare module '@tanstack/react-router' {
       path: '/sport'
       fullPath: '/sport'
       preLoaderRoute: typeof SportRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/receipts': {
+      id: '/receipts'
+      path: '/receipts'
+      fullPath: '/receipts'
+      preLoaderRoute: typeof ReceiptsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/predictions': {
@@ -264,6 +284,7 @@ const rootRouteChildren: RootRouteChildren = {
   MarketsRoute: MarketsRoute,
   PoliticsRoute: PoliticsRoute,
   PredictionsRoute: PredictionsRoute,
+  ReceiptsRoute: ReceiptsRoute,
   SportRoute: SportRoute,
   DomainTrackRecordRoute: DomainTrackRecordRoute,
   DomainEventsSlugRoute: DomainEventsSlugRoute,

@@ -7,6 +7,9 @@ import {
   fetchHomepagePicks,
   fetchScoredYesterday,
   fetchScoredRecent,
+  fetchReceiptsStats,
+  fetchRecentResolved,
+  fetchNotableCalls,
   type EventsFilter,
 } from "@/lib/queries";
 import type { DomainId } from "@/lib/types";
@@ -71,6 +74,30 @@ export function useDomainResolvedEvents(domain: DomainId, limit = 5) {
     queryKey: ["domain-resolved", domain, limit],
     queryFn: () =>
       fetchScoredRecent({ domain, limit, sinceMs: 7 * 24 * 60 * 60 * 1000 }),
+    staleTime: 5 * 60_000,
+  });
+}
+
+export function useReceiptsStats() {
+  return useQuery({
+    queryKey: ["receipts-stats"],
+    queryFn: fetchReceiptsStats,
+    staleTime: 5 * 60_000,
+  });
+}
+
+export function useRecentResolved(limit = 10) {
+  return useQuery({
+    queryKey: ["recent-resolved", limit],
+    queryFn: () => fetchRecentResolved(limit),
+    staleTime: 5 * 60_000,
+  });
+}
+
+export function useNotableCalls() {
+  return useQuery({
+    queryKey: ["notable-calls"],
+    queryFn: fetchNotableCalls,
     staleTime: 5 * 60_000,
   });
 }

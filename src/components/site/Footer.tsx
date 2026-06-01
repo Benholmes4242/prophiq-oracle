@@ -1,3 +1,5 @@
+import { Link } from "@tanstack/react-router";
+
 export function Footer() {
   return (
     <footer
@@ -26,6 +28,21 @@ export function Footer() {
             Prophiq
           </span>
         </div>
+        <nav
+          aria-label="Footer"
+          className="mb-3 flex flex-wrap gap-x-4 gap-y-1 font-body text-[12.5px]"
+          style={{ color: "var(--ink-soft)" }}
+        >
+          <Link to="/about" className="hover:text-[var(--ink)]">
+            How it works
+          </Link>
+          <Link to="/receipts" className="hover:text-[var(--ink)]">
+            Receipts
+          </Link>
+          <Link to="/predictions" className="hover:text-[var(--ink)]">
+            All predictions
+          </Link>
+        </nav>
         <p
           className="font-body text-[11.5px] leading-relaxed"
           style={{ color: "var(--ink-faint)" }}
