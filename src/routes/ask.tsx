@@ -176,11 +176,8 @@ function AskPage() {
               });
               if (evt.stage === "done" && evt.data) {
                 const slug = (evt.data as { slug?: string }).slug;
-                // Resolve domain from the moderation stage payload if needed.
-                const eventId = (evt.data as { event_id?: string }).event_id;
-                if (slug) {
-                  // Pull domain from the slug prefix as a safe fallback.
-                  const domain = slug.split("-")[0];
+                const domain = (evt.data as { domain?: string }).domain;
+                if (slug && domain) {
                   setSuccess({ slug, domain });
                   setTimeout(() => {
                     void navigate({
@@ -188,8 +185,8 @@ function AskPage() {
                       params: { domain, slug },
                     });
                   }, 900);
-                } else if (eventId) {
-                  setFatalError("Forecast generated but missing slug. Refresh to view.");
+                } else {
+                  setFatalError("Forecast generated but couldn't navigate. Refresh to view.");
                 }
               }
             } else if (evt.status === "error") {
