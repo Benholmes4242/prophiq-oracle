@@ -3,6 +3,7 @@
 
 import { supabase } from "./supabase";
 import type {
+  ConfidenceTier,
   DomainId,
   EventMode,
   EventRow,
