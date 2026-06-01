@@ -67,7 +67,11 @@ Deno.serve(async (req) => {
     return errorResponse(`consensus failed: ${(e as Error).message}`, 502);
   }
 
-  const ranked = consensusOut.consensus.ranked_outcomes;
+  const labelById = new Map((outcomes as EventOutcome[]).map((o) => [o.id, o.label]));
+  const ranked = consensusOut.consensus.ranked_outcomes.map((r) => ({
+    ...r,
+    outcome_label: labelById.get(r.outcome_id) ?? r.outcome_id,
+  }));
   const top3 = ranked.slice(0, 3);
   const alternates = ranked.filter((r) => r.is_dark_horse);
 
