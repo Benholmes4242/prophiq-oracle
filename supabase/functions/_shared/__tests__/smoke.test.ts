@@ -114,6 +114,26 @@ function assert(cond: unknown, msg: string) {
   assert(s.accuracy_grade === "mixed", `mixed when avg<=10 (got ${s.accuracy_grade})`);
 }
 
+// ---- scoring: brief-spec grading thresholds ----
+{
+  // 3 picks all land in top 5 but top pick is wrong → 'good'
+  const s = scorePrediction(
+    [
+      { outcome_id: "a", rank: 1 },
+      { outcome_id: "b", rank: 2 },
+      { outcome_id: "c", rank: 3 },
+    ],
+    [
+      { outcome_id: "a", rank: 2 },
+      { outcome_id: "b", rank: 4 },
+      { outcome_id: "c", rank: 5 },
+    ],
+  );
+  assert(!s.top_pick_correct, "top pick wrong");
+  assert(s.picks_in_top_5 === 3, "3 picks in top 5");
+  assert(s.accuracy_grade === "good", `should be 'good' (got ${s.accuracy_grade})`);
+}
+
 // ---- registry ----
 {
   clearDomainsForTest();
