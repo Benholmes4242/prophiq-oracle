@@ -69,6 +69,17 @@ export function DomainPage({ domain }: { domain: DomainId }) {
           <AskInput placeholder={DOMAIN_PLACEHOLDER[domain]} onSubmit={ask} />
         </section>
 
+        {askQ && (
+          <section className="px-5">
+            <AskInlinePanel
+              key={askQ}
+              question={askQ}
+              topic={domain}
+              onDismiss={() => setAskQ(null)}
+            />
+          </section>
+        )}
+
         <section className="px-5 pb-4">
           <FilterChips chips={chips} active={chip} onChange={setChip} />
         </section>
