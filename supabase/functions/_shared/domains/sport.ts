@@ -16,7 +16,9 @@ const DOMAIN_ID = "sport";
 
 export const DISCOVERY_SYSTEM = `You are a sports research assistant. Return STRICT JSON only — no prose, no markdown fences. Identify upcoming, scheduled sporting events (any major league/competition) in the next 7 days. For each event include 2-3 outcomes (typically home win / draw / away win, or competitor names for individual sports).`;
 
-export const DISCOVERY_USER = (now: Date) => `List upcoming scheduled sporting events between ${now.toISOString()} and ${new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString()}.
+export const DISCOVERY_USER = (now: Date) => `It is currently early June 2026. Find sporting events between today and one week from today (June 1-8, 2026).
+
+List upcoming scheduled sporting events between ${now.toISOString()} and ${new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString()}.
 
 Return a JSON array. Each element:
 {
@@ -33,7 +35,7 @@ Return a JSON array. Each element:
   "metadata": { "league": "...", "sport": "..." }
 }
 
-Only include events you have high confidence are scheduled. Return [] if nothing reliable.`;
+Return as many real, scheduled events as you can find in this window. Use fixture lists, official league schedules, and pre-event coverage. If you genuinely can't find any, return [].`;
 
 export const sportAdapter: DomainAdapter = {
   id: DOMAIN_ID,
@@ -47,7 +49,7 @@ export const sportAdapter: DomainAdapter = {
           { role: "system", content: DISCOVERY_SYSTEM },
           { role: "user", content: DISCOVERY_USER(now) },
         ],
-        { model: "sonar", temperature: 0.1, searchRecencyFilter: "week", maxTokens: 2000 },
+        { model: "sonar", temperature: 0.1, maxTokens: 2000 },
       );
     } catch (err) {
       console.warn(`[domain:${DOMAIN_ID}] discover failed:`, (err as Error).message);
