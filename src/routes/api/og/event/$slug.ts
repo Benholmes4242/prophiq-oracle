@@ -30,7 +30,7 @@ export const Route = createFileRoute("/api/og/event/$slug")({
               eyebrow: "Prophiq",
               title: "Event not found",
             });
-            return new Response(png, {
+            return new Response(png as unknown as BodyInit, {
               status: 200,
               headers: {
                 "Content-Type": "image/png",
@@ -67,7 +67,7 @@ export const Route = createFileRoute("/api/og/event/$slug")({
             topPickPct: top?.probability ?? null,
           });
 
-          return new Response(png, {
+          return new Response(png as unknown as BodyInit, {
             status: 200,
             headers: {
               "Content-Type": "image/png",
@@ -77,7 +77,7 @@ export const Route = createFileRoute("/api/og/event/$slug")({
           });
         } catch (err) {
           console.error("OG event render failed:", err);
-          return new Response(transparentPngFallback(), {
+          return new Response(transparentPngFallback() as unknown as BodyInit, {
             status: 503,
             headers: {
               "Content-Type": "image/png",

@@ -11,7 +11,7 @@ export const Route = createFileRoute("/api/og/home")({
             title: "What happens next?",
             topPickLabel: "Ask anything",
           });
-          return new Response(png, {
+          return new Response(png as unknown as BodyInit, {
             status: 200,
             headers: {
               "Content-Type": "image/png",
@@ -21,7 +21,7 @@ export const Route = createFileRoute("/api/og/home")({
           });
         } catch (err) {
           console.error("OG home render failed:", err);
-          return new Response(transparentPngFallback(), {
+          return new Response(transparentPngFallback() as unknown as BodyInit, {
             status: 503,
             headers: {
               "Content-Type": "image/png",
