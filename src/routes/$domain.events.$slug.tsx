@@ -107,9 +107,7 @@ function EventError({ error, reset }: { error: Error; reset: () => void }) {
 
 function EventDetailPage() {
   const { event } = Route.useLoaderData();
-  const supportsBoth = event.mode === "both";
-  const initialMode: "prediction" | "odds" = event.mode === "odds" ? "odds" : "prediction";
-  const [mode, setMode] = useState<"prediction" | "odds">(initialMode);
+  const mode: "prediction" | "odds" = event.mode === "odds" ? "odds" : "prediction";
 
   const domainId = (DOMAINS as string[]).includes(event.domain)
     ? (event.domain as DomainId)
@@ -121,7 +119,6 @@ function EventDetailPage() {
       <div className="mx-auto grid max-w-6xl gap-6 px-4 py-8 sm:px-6 lg:grid-cols-[1fr_360px]">
         <article className="min-w-0">
           <EventHeader event={event} />
-          {supportsBoth && <ModeTabs mode={mode} onChange={setMode} />}
           {event.domain === "sport" && mode === "odds" && <GamblingBanner />}
           <div className="mt-6">
             <PredictionBlock eventId={event.id} mode={mode} />
@@ -154,38 +151,7 @@ function EventHeader({ event }: { event: EventRow }) {
   );
 }
 
-function ModeTabs({
-  mode,
-  onChange,
-}: {
-  mode: "prediction" | "odds";
-  onChange: (m: "prediction" | "odds") => void;
-}) {
-  return (
-    <div
-      role="tablist"
-      aria-label="Prediction mode"
-      className="mt-5 inline-flex rounded-lg border border-[var(--brand-border)] bg-white p-1"
-    >
-      {(["prediction", "odds"] as const).map((m) => (
-        <button
-          key={m}
-          role="tab"
-          aria-selected={mode === m}
-          onClick={() => onChange(m)}
-          className={
-            "rounded-md px-3 py-1.5 text-sm font-medium transition-colors " +
-            (mode === m
-              ? "bg-[var(--brand-ink)] text-white"
-              : "text-slate-600 hover:text-[var(--brand-ink)]")
-          }
-        >
-          {m === "prediction" ? "Prediction" : "Odds"}
-        </button>
-      ))}
-    </div>
-  );
-}
+// ModeTabs removed — no user-facing mode/odds switcher.
 
 function GamblingBanner() {
   return (

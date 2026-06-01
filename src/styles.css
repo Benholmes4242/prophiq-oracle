@@ -4,20 +4,6 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/*
- * Design system definition.
- *
- * The @theme inline block maps CSS custom properties to Tailwind utility
- * classes (e.g. --color-primary -> bg-primary, text-primary).
- *
- * The :root and .dark blocks define the actual color values using oklch.
- * All colors MUST use oklch format.
- *
- * To add a new semantic color:
- * 1. Add the variable to :root (light value) and .dark (dark value)
- * 2. Register it in @theme inline as --color-<name>: var(--<name>)
- */
-
 @theme inline {
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
@@ -59,52 +45,74 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
+
+  --font-sans: var(--font-body);
+  --font-mono: var(--font-mono);
+  --font-display: var(--font-display);
 }
 
 :root {
-  --radius: 0.625rem;
+  --radius: 0.75rem;
 
-  /* Prophiq brand tokens — exposed as raw CSS vars for ad-hoc use in
-   * components ([var(--brand-amber)] etc). The Tailwind semantic tokens
-   * below are tuned to match (background = slate-50, primary = ink). */
-  --brand-amber: #F7931E;
-  --brand-amber-text: #B45309; /* darker amber for small text on white (WCAG AA) */
-  --brand-ink: #0F172A;
-  --brand-bg: #F8FAFC;
-  --brand-border: rgba(15, 23, 42, 0.07);
+  /* Prophiq Confident palette — warm paper + brand amber + deep ink */
+  --bg: #F7F4EE;
+  --bg-card: #FFFFFF;
+  --bg-tint: #FFEAD4;
+  --ink: #0B1220;
+  --ink-soft: rgba(11, 18, 32, 0.72);
+  --ink-faint: rgba(11, 18, 32, 0.5);
+  --ink-whisper: rgba(11, 18, 32, 0.28);
+  --amber: #F4731A;
+  --amber-strong: #DC5A0B;
+  --green: #15803D;
+  --border-soft: rgba(11, 18, 32, 0.1);
+  --border-strong: rgba(11, 18, 32, 0.2);
 
-  --background: oklch(0.984 0.003 247.858);
-  --foreground: oklch(0.208 0.042 265.755);
+  /* Back-compat brand aliases so existing components keep rendering. */
+  --brand-amber: var(--amber);
+  --brand-amber-text: var(--amber-strong);
+  --brand-ink: var(--ink);
+  --brand-bg: var(--bg);
+  --brand-border: var(--border-soft);
+
+  /* Typography */
+  --font-display: 'Bricolage Grotesque', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-body:    'DM Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono:    'JetBrains Mono', 'SF Mono', ui-monospace, monospace;
+
+  /* shadcn semantic tokens tuned to the warm-paper palette */
+  --background: oklch(0.967 0.012 80);
+  --foreground: oklch(0.16 0.022 265);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.208 0.042 265.755);
+  --card-foreground: oklch(0.16 0.022 265);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.208 0.042 265.755);
-  --primary: oklch(0.208 0.042 265.755);
-  --primary-foreground: oklch(0.984 0.003 247.858);
-  --secondary: oklch(0.968 0.007 247.896);
-  --secondary-foreground: oklch(0.208 0.042 265.755);
-  --muted: oklch(0.968 0.007 247.896);
-  --muted-foreground: oklch(0.554 0.046 257.417);
-  --accent: oklch(0.737 0.169 56.7); /* Prophiq amber */
+  --popover-foreground: oklch(0.16 0.022 265);
+  --primary: oklch(0.16 0.022 265);
+  --primary-foreground: oklch(0.99 0.005 80);
+  --secondary: oklch(0.94 0.013 80);
+  --secondary-foreground: oklch(0.16 0.022 265);
+  --muted: oklch(0.94 0.013 80);
+  --muted-foreground: oklch(0.45 0.02 265);
+  --accent: oklch(0.68 0.19 47);
   --accent-foreground: oklch(1 0 0);
   --destructive: oklch(0.577 0.245 27.325);
-  --destructive-foreground: oklch(0.984 0.003 247.858);
-  --border: oklch(0.929 0.013 255.508);
-  --input: oklch(0.929 0.013 255.508);
-  --ring: oklch(0.737 0.169 56.7);
-  --chart-1: oklch(0.737 0.169 56.7);
+  --destructive-foreground: oklch(0.99 0.005 80);
+  --border: oklch(0.16 0.022 265 / 10%);
+  --input: oklch(0.16 0.022 265 / 14%);
+  --ring: oklch(0.68 0.19 47);
+  --chart-1: oklch(0.68 0.19 47);
   --chart-2: oklch(0.6 0.118 184.704);
   --chart-3: oklch(0.398 0.07 227.392);
   --chart-4: oklch(0.828 0.189 84.429);
   --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(0.984 0.003 247.858);
-  --sidebar-foreground: oklch(0.208 0.042 265.755);
-  --sidebar-primary: oklch(0.208 0.042 265.755);
-  --sidebar-primary-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-accent: oklch(0.737 0.169 56.7);
+  --sidebar: oklch(0.967 0.012 80);
+  --sidebar-foreground: oklch(0.16 0.022 265);
+  --sidebar-primary: oklch(0.16 0.022 265);
+  --sidebar-primary-foreground: oklch(0.99 0.005 80);
+  --sidebar-accent: oklch(0.68 0.19 47);
   --sidebar-accent-foreground: oklch(1 0 0);
-  --sidebar-border: oklch(0.929 0.013 255.508);
-  --sidebar-ring: oklch(0.737 0.169 56.7);
+  --sidebar-border: oklch(0.16 0.022 265 / 10%);
+  --sidebar-ring: oklch(0.68 0.19 47);
 }
 
 .dark {
@@ -126,7 +134,7 @@
   --destructive-foreground: oklch(0.984 0.003 247.858);
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.551 0.027 264.364);
+  --ring: oklch(0.68 0.19 47);
   --chart-1: oklch(0.488 0.243 264.376);
   --chart-2: oklch(0.696 0.17 162.48);
   --chart-3: oklch(0.769 0.188 70.08);
@@ -148,14 +156,33 @@
   }
 
   html {
-    font-family: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
-      "Helvetica Neue", Arial, sans-serif;
-    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    font-family: var(--font-body);
+    font-feature-settings: "ss01", "cv02";
   }
 
   body {
-    background-color: var(--brand-bg);
-    color: var(--brand-ink);
+    background-color: var(--bg);
+    color: var(--ink);
     -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
+
+  .font-display { font-family: var(--font-display); }
+  .font-body    { font-family: var(--font-body); }
+  .font-mono    { font-family: var(--font-mono); }
+}
+
+/* Prob bar used in TodaysLeadCard */
+.prob-bar {
+  height: 4px;
+  background: var(--border-soft);
+  border-radius: 2px;
+  overflow: hidden;
+  position: relative;
+}
+.prob-bar > span {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: var(--amber);
+  border-radius: 2px;
 }

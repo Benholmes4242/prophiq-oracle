@@ -33,8 +33,6 @@ function applyEventFilters(q: any, filter: EventsFilter): any {
     if (Array.isArray(filter.domain)) out = out.in("domain", filter.domain);
     else out = out.eq("domain", filter.domain);
   }
-  // Mode filter: events with mode='both' support either prediction or odds,
-  // so include them when the user picks a specific mode.
   if (filter.mode === "odds") out = out.in("mode", ["odds", "both"]);
   else if (filter.mode === "prediction") out = out.in("mode", ["prediction", "both"]);
   if (filter.source) out = out.eq("source", filter.source);
@@ -51,7 +49,6 @@ function applyEventFilters(q: any, filter: EventsFilter): any {
   return out;
 }
 
-
 export async function fetchEvents(filter: EventsFilter = {}): Promise<EventRow[]> {
   const q = applyEventFilters(supabase.from("events").select(EVENT_COLS), filter);
   const { data, error } = await q;
@@ -59,10 +56,6 @@ export async function fetchEvents(filter: EventsFilter = {}): Promise<EventRow[]
   return (data ?? []) as EventRow[];
 }
 
-/**
- * Events + their current prediction (left-joined). Used by the predictions
- * feed so each card can show its top pick without a per-card round trip.
- */
 export async function fetchEventsWithPredictions(
   filter: EventsFilter = {},
   mode: "prediction" | "odds" = "prediction",
@@ -109,10 +102,6 @@ export async function fetchCurrentPrediction(
   return (data as PredictionRow | null) ?? null;
 }
 
-/**
- * Recent picks rail: most recently generated current predictions joined to
- * their events. Limited and ordered by prediction.generated_at desc.
- */
 export async function fetchRecentPicks(limit = 6): Promise<EventWithPrediction[]> {
   const { data, error } = await supabase
     .from("predictions")
@@ -177,3 +166,80 @@ export async function fetchDomainAccuracy(
   return (data ?? []) as unknown as AccuracyRow[];
 }
 
+// ============================================================
+// Homepage picks (RPC) — 1 marquee + up to 3 by agreement.
+// ============================================================
+
+export interface HomepagePick {
+  event_id: string;
+  domain: DomainId;
+  slug: string;
+  title: string;
+  question: string;
+  starts_at: string;
+  top_pick_label: string | null;
+  top_pick_pct: number | null;
+  agreement_score: number | null;
+  model_count: number;
+  reasoning_excerpt: string | null;
+  is_marquee: boolean;
+}
+
+export async function fetchHomepagePicks(): Promise<HomepagePick[]> {
+  const { data, error } = await supabase.rpc("get_homepage_picks");
+  if (error) throw error;
+  return (data ?? []) as HomepagePick[];
+}
+
+// ============================================================
+// Scored yesterday — most recent resolved events with a top pick.
+// ============================================================
+
+export interface ScoredPick {
+  event_id: string;
+  event_title: string;
+  domain: DomainId;
+  slug: string;
+  pick_label: string;
+  correct: boolean;
+  scored_at: string;
+}
+
+export async function fetchScoredYesterday(limit = 6): Promise<ScoredPick[]> {
+  const since = new Date(Date.now() - 36 * 60 * 60 * 1000).toISOString();
+  const { data, error } = await supabase
+    .from("prediction_accuracy")
+    .select(
+      "event_id, top_pick_correct, scored_at, pick_results, event:events!inner(id, slug, title, domain)",
+    )
+    .gte("scored_at", since)
+    .order("scored_at", { ascending: false })
+    .limit(limit);
+  if (error) throw error;
+  const rows = (data ?? []) as unknown as Array<{
+    event_id: string;
+    top_pick_correct: boolean | null;
+    scored_at: string;
+    pick_results: unknown;
+    event: { id: string; slug: string; title: string; domain: DomainId } | null;
+  }>;
+  return rows
+    .filter((r) => r.event != null)
+    .map((r) => {
+      const first =
+        Array.isArray(r.pick_results) && r.pick_results.length > 0
+          ? (r.pick_results[0] as { label?: string; outcome_label?: string })
+          : null;
+      const pickLabel =
+        (first?.label ?? first?.outcome_label ?? "—") as string;
+      return {
+        event_id: r.event!.id,
+        event_title: r.event!.title,
+        domain: r.event!.domain,
+        slug: r.event!.slug,
+        pick_label: pickLabel,
+        correct: r.top_pick_correct === true,
+        scored_at: r.scored_at,
+      };
+    });
+}

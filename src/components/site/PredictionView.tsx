@@ -1,40 +1,13 @@
-// Renders a current prediction: top pick, ranked alternates, and the
-// "why this prediction" explainer (consensus method, agreement, dark horses).
+// Renders a current prediction: top pick, ranked alternates, and a brief
+// "why this forecast" panel. We never expose model count, agreement %,
+// Borda math, or model names on public surfaces.
 
 import type { PredictionRow, RankedOutcome } from "@/lib/types";
+import { ConfidenceLabel } from "./ConfidenceLabel";
 
 function pct(p: number | undefined): string {
   if (typeof p !== "number") return "—";
   return `${Math.round(p)}%`;
-}
-
-function methodLabel(method: PredictionRow["consensus_method"]): string {
-  return method === "weighted_borda_count"
-    ? "Weighted Borda count across three frontier models"
-    : "Single-model fallback (other models unavailable)";
-}
-
-function agreementLabel(score: number | null): string {
-  if (score == null) return "—";
-  if (score >= 80) return "Strong agreement";
-  if (score >= 50) return "Moderate agreement";
-  return "Low agreement";
-}
-
-function modelsContributed(prediction: PredictionRow): string[] {
-  const out = new Set<string>();
-  const results = prediction.model_results as Array<{ model?: string; provider?: string; error?: string }>;
-  for (const r of results) {
-    if (r?.error) continue;
-    const name = r?.model ?? r?.provider;
-    if (typeof name === "string" && name.length > 0) out.add(name);
-  }
-  return Array.from(out);
-}
-
-function totalModelsAttempted(prediction: PredictionRow): number {
-  const results = prediction.model_results as Array<{ error?: string }>;
-  return results.length;
 }
 
 function OutcomeCard({
@@ -50,33 +23,68 @@ function OutcomeCard({
   return (
     <div
       className={
-        "rounded-xl border p-4 " +
+        "rounded-xl p-4 " +
         (highlight
-          ? "border-[var(--brand-amber)] bg-amber-50/40 shadow-sm"
-          : "border-[var(--brand-border)] bg-white")
+          ? "shadow-sm"
+          : "")
       }
+      style={{
+        background: highlight ? "var(--bg-tint)" : "var(--bg-card)",
+        border: highlight
+          ? "1.5px solid var(--amber)"
+          : "1px solid var(--border-soft)",
+      }}
     >
       <div className="flex items-baseline justify-between gap-3">
         <div className="flex items-baseline gap-2">
-          <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+          <span
+            className="font-mono text-[10px] font-semibold uppercase tracking-wider"
+            style={{ color: "var(--ink-faint)" }}
+          >
             #{rank}
           </span>
-          <h3 className={highlight ? "text-lg font-semibold" : "text-sm font-medium"}>{label}</h3>
+          <h3
+            className={
+              highlight
+                ? "font-display text-lg"
+                : "font-display text-sm"
+            }
+            style={{ fontWeight: highlight ? 700 : 600 }}
+          >
+            {label}
+          </h3>
           {outcome.is_dark_horse && (
-            <span className="rounded bg-purple-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-purple-700">
+            <span
+              className="rounded px-1.5 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-wider"
+              style={{
+                background: "var(--bg-tint)",
+                color: "var(--amber-strong)",
+              }}
+            >
               Dark horse
             </span>
           )}
         </div>
-        <span className={highlight ? "text-2xl font-mono text-[var(--brand-ink)]" : "text-sm font-mono text-slate-700"}>
+        <span
+          className={
+            highlight
+              ? "font-mono text-2xl"
+              : "font-mono text-sm"
+          }
+          style={{ color: highlight ? "var(--amber)" : "var(--ink-soft)" }}
+        >
           {pct(outcome.probability)}
         </span>
       </div>
       {highlight && outcome.reasons && outcome.reasons.length > 0 && (
         <ul className="mt-3 space-y-1.5">
           {outcome.reasons.slice(0, 3).map((r, i) => (
-            <li key={i} className="flex gap-2 text-sm text-slate-700">
-              <span className="text-[var(--brand-amber)]">•</span>
+            <li
+              key={i}
+              className="font-body flex gap-2 text-sm"
+              style={{ color: "var(--ink-soft)" }}
+            >
+              <span style={{ color: "var(--amber)" }}>•</span>
               <span>{r}</span>
             </li>
           ))}
@@ -88,8 +96,6 @@ function OutcomeCard({
 
 export function PredictionView({ prediction }: { prediction: PredictionRow }) {
   const [top, ...rest] = prediction.ranked_outcomes ?? [];
-  const models = modelsContributed(prediction);
-  const totalAttempted = totalModelsAttempted(prediction);
   const darkHorses = [
     ...(prediction.ranked_outcomes ?? []),
     ...(prediction.alternates ?? []),
@@ -97,7 +103,13 @@ export function PredictionView({ prediction }: { prediction: PredictionRow }) {
 
   if (!top) {
     return (
-      <p className="rounded-lg border border-dashed border-slate-300 p-4 text-sm text-slate-500">
+      <p
+        className="font-body rounded-lg p-4 text-sm"
+        style={{
+          border: "1px dashed var(--border-soft)",
+          color: "var(--ink-soft)",
+        }}
+      >
         No outcomes ranked yet.
       </p>
     );
@@ -106,15 +118,24 @@ export function PredictionView({ prediction }: { prediction: PredictionRow }) {
   return (
     <div className="space-y-6">
       <section>
-        <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-500">
-          Top pick
-        </h2>
+        <div className="mb-3 flex items-center justify-between">
+          <h2
+            className="font-mono text-[10px] font-semibold uppercase tracking-[0.2em]"
+            style={{ color: "var(--ink-faint)" }}
+          >
+            Top pick
+          </h2>
+          <ConfidenceLabel score={prediction.agreement_score} />
+        </div>
         <OutcomeCard outcome={top} rank={1} highlight />
       </section>
 
       {rest.length > 0 && (
         <section>
-          <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-500">
+          <h2
+            className="font-mono mb-3 text-[10px] font-semibold uppercase tracking-[0.2em]"
+            style={{ color: "var(--ink-faint)" }}
+          >
             Other picks
           </h2>
           <div className="space-y-2">
@@ -125,49 +146,54 @@ export function PredictionView({ prediction }: { prediction: PredictionRow }) {
         </section>
       )}
 
-      <section className="rounded-xl border border-[var(--brand-border)] bg-slate-50/60 p-4">
-        <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-          Why this prediction
+      <section
+        className="rounded-xl p-4"
+        style={{
+          background: "var(--bg-card)",
+          border: "1px solid var(--border-soft)",
+        }}
+      >
+        <h2
+          className="font-mono text-[10px] font-semibold uppercase tracking-[0.2em]"
+          style={{ color: "var(--ink-faint)" }}
+        >
+          Why this forecast
         </h2>
-        <dl className="mt-3 grid gap-3 text-sm sm:grid-cols-2">
-          <div>
-            <dt className="text-xs text-slate-500">Method</dt>
-            <dd className="font-medium text-[var(--brand-ink)]">{methodLabel(prediction.consensus_method)}</dd>
-          </div>
-          <div>
-            <dt className="text-xs text-slate-500">Model agreement</dt>
-            <dd className="font-medium text-[var(--brand-ink)]">
-              {agreementLabel(prediction.agreement_score)}
-              {prediction.agreement_score != null && (
-                <span className="ml-1 text-slate-500 font-mono">
-                  ({Math.round(prediction.agreement_score)}%)
-                </span>
-              )}
-            </dd>
-          </div>
-          {models.length > 0 && (
-            <div className="sm:col-span-2">
-              <dt className="text-xs text-slate-500">Models that contributed</dt>
-              <dd className="font-medium text-[var(--brand-ink)]">
-                {models.join(", ")}
-                <span className="ml-1 text-slate-500">
-                  ({models.length} of {totalAttempted} models)
-                </span>
-              </dd>
-            </div>
-          )}
-        </dl>
+        <p
+          className="font-body mt-2 text-sm leading-relaxed"
+          style={{ color: "var(--ink-soft)" }}
+        >
+          The Prophiq engine weighs recent form, historical patterns, real-time
+          signals, and a domain-specific statistical fit. Confidence above
+          reflects how cleanly that evidence converged.
+        </p>
         {darkHorses.length > 0 && (
-          <div className="mt-4 border-t border-slate-200 pt-3">
-            <p className="text-xs font-semibold uppercase tracking-wider text-purple-700">
+          <div
+            className="mt-4 border-t pt-3"
+            style={{ borderColor: "var(--border-soft)" }}
+          >
+            <p
+              className="font-mono text-[10px] font-semibold uppercase tracking-[0.2em]"
+              style={{ color: "var(--amber-strong)" }}
+            >
               Dark horses to watch
             </p>
-            <ul className="mt-2 space-y-1 text-sm text-slate-700">
+            <ul
+              className="font-body mt-2 space-y-1 text-sm"
+              style={{ color: "var(--ink-soft)" }}
+            >
               {darkHorses.map((d, i) => (
                 <li key={i}>
-                  <span className="font-medium">{d.outcome_label ?? d.outcome_id}</span>
+                  <span className="font-medium" style={{ color: "var(--ink)" }}>
+                    {d.outcome_label ?? d.outcome_id}
+                  </span>
                   {typeof d.probability === "number" && (
-                    <span className="ml-2 font-mono text-slate-500">{pct(d.probability)}</span>
+                    <span
+                      className="ml-2 font-mono"
+                      style={{ color: "var(--ink-faint)" }}
+                    >
+                      {pct(d.probability)}
+                    </span>
                   )}
                 </li>
               ))}
