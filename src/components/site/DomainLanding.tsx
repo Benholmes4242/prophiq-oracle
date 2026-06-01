@@ -5,6 +5,7 @@
 import { Link } from "@tanstack/react-router";
 import { useEvents } from "@/hooks/useEvents";
 import { EventCard } from "./EventCard";
+import { DomainDisclaimer } from "./DisclaimerBanner";
 import { DOMAIN_LABEL, DOMAIN_TAGLINE, type DomainId } from "@/lib/types";
 
 export function DomainLanding({ domain }: { domain: DomainId }) {
@@ -12,18 +13,8 @@ export function DomainLanding({ domain }: { domain: DomainId }) {
 
   return (
     <>
-      {domain === "markets" && (
-        <DisclaimerBanner tone="info">
-          <strong>Informational only.</strong> Markets coverage is not financial advice. Do
-          your own research before making any investment decisions.
-        </DisclaimerBanner>
-      )}
-      {domain === "politics" && (
-        <DisclaimerBanner tone="neutral">
-          <strong>Non-partisan.</strong> Prophiq publishes neutral, model-generated forecasts.
-          We do not endorse any candidate, party, or political outcome.
-        </DisclaimerBanner>
-      )}
+      <DomainDisclaimer domain={domain} />
+
 
       <section className="mx-auto max-w-6xl px-4 pt-12 sm:px-6 sm:pt-16">
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--brand-amber)]">
@@ -59,7 +50,7 @@ export function DomainLanding({ domain }: { domain: DomainId }) {
           </div>
         ) : (events.data?.length ?? 0) === 0 ? (
           <p className="rounded-lg border border-dashed border-[var(--brand-border)] bg-white p-6 text-sm text-slate-600">
-            No {DOMAIN_LABEL[domain].toLowerCase()} predictions yet. Check back soon.
+            No upcoming {DOMAIN_LABEL[domain].toLowerCase()} events scheduled. The discovery cron runs every few hours.
           </p>
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -73,20 +64,3 @@ export function DomainLanding({ domain }: { domain: DomainId }) {
   );
 }
 
-function DisclaimerBanner({
-  tone,
-  children,
-}: {
-  tone: "info" | "neutral";
-  children: React.ReactNode;
-}) {
-  const cls =
-    tone === "info"
-      ? "border-amber-200 bg-amber-50 text-amber-900"
-      : "border-slate-200 bg-slate-100 text-slate-800";
-  return (
-    <div className={`border-b ${cls}`}>
-      <div className="mx-auto max-w-6xl px-4 py-2.5 text-xs sm:px-6 sm:text-sm">{children}</div>
-    </div>
-  );
-}

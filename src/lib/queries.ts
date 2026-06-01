@@ -141,3 +141,39 @@ export async function fetchDomainSummaries(): Promise<DomainSummary[]> {
   if (error) throw error;
   return (data ?? []) as DomainSummary[];
 }
+
+export interface AccuracyRow {
+  id: string;
+  prediction_id: string;
+  event_id: string;
+  domain: DomainId;
+  mode: "prediction" | "odds";
+  pick_results: unknown;
+  top_pick_correct: boolean | null;
+  picks_in_top_3: number | null;
+  picks_in_top_5: number | null;
+  picks_in_top_10: number | null;
+  best_pick_actual_rank: number | null;
+  average_predicted_rank: number | null;
+  average_actual_rank: number | null;
+  accuracy_grade: "excellent" | "good" | "mixed" | "poor" | null;
+  scored_at: string;
+  event: Pick<EventRow, "id" | "slug" | "title" | "domain" | "starts_at" | "resolves_at"> | null;
+}
+
+export async function fetchDomainAccuracy(
+  domain: DomainId,
+  limit = 50,
+): Promise<AccuracyRow[]> {
+  const { data, error } = await supabase
+    .from("prediction_accuracy")
+    .select(
+      "id, prediction_id, event_id, domain, mode, pick_results, top_pick_correct, picks_in_top_3, picks_in_top_5, picks_in_top_10, best_pick_actual_rank, average_predicted_rank, average_actual_rank, accuracy_grade, scored_at, event:events!inner(id, slug, title, domain, starts_at, resolves_at)",
+    )
+    .eq("domain", domain)
+    .order("scored_at", { ascending: false })
+    .limit(limit);
+  if (error) throw error;
+  return (data ?? []) as unknown as AccuracyRow[];
+}
+
