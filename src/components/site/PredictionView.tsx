@@ -23,11 +23,18 @@ function agreementLabel(score: number | null): string {
 
 function modelsContributed(prediction: PredictionRow): string[] {
   const out = new Set<string>();
-  for (const r of prediction.model_results as Array<{ model?: string; provider?: string }>) {
+  const results = prediction.model_results as Array<{ model?: string; provider?: string; error?: string }>;
+  for (const r of results) {
+    if (r?.error) continue;
     const name = r?.model ?? r?.provider;
     if (typeof name === "string" && name.length > 0) out.add(name);
   }
   return Array.from(out);
+}
+
+function totalModelsAttempted(prediction: PredictionRow): number {
+  const results = prediction.model_results as Array<{ error?: string }>;
+  return results.length;
 }
 
 function OutcomeCard({
@@ -82,7 +89,11 @@ function OutcomeCard({
 export function PredictionView({ prediction }: { prediction: PredictionRow }) {
   const [top, ...rest] = prediction.ranked_outcomes ?? [];
   const models = modelsContributed(prediction);
-  const darkHorses = (prediction.alternates ?? []).filter((a) => a.is_dark_horse);
+  const totalAttempted = totalModelsAttempted(prediction);
+  const darkHorses = [
+    ...(prediction.ranked_outcomes ?? []),
+    ...(prediction.alternates ?? []),
+  ].filter((p) => p.is_dark_horse);
 
   if (!top) {
     return (
@@ -129,7 +140,7 @@ export function PredictionView({ prediction }: { prediction: PredictionRow }) {
               {agreementLabel(prediction.agreement_score)}
               {prediction.agreement_score != null && (
                 <span className="ml-1 text-slate-500 font-mono">
-                  ({prediction.agreement_score.toFixed(2)})
+                  ({Math.round(prediction.agreement_score)}%)
                 </span>
               )}
             </dd>
@@ -137,7 +148,12 @@ export function PredictionView({ prediction }: { prediction: PredictionRow }) {
           {models.length > 0 && (
             <div className="sm:col-span-2">
               <dt className="text-xs text-slate-500">Models that contributed</dt>
-              <dd className="font-medium text-[var(--brand-ink)]">{models.join(", ")}</dd>
+              <dd className="font-medium text-[var(--brand-ink)]">
+                {models.join(", ")}
+                <span className="ml-1 text-slate-500">
+                  ({models.length} of {totalAttempted} models)
+                </span>
+              </dd>
             </div>
           )}
         </dl>

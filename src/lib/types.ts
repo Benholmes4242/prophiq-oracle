@@ -65,6 +65,7 @@ export interface PredictionRow {
   alternates: RankedOutcome[] | null;
   consensus_method: "weighted_borda_count" | "single_model_fallback";
   consensus_score: number | null;
+  /** 0-100 scale representing how much models agree (higher = more agreement). */
   agreement_score: number | null;
   model_results: unknown[];
   prompt_version: string;
