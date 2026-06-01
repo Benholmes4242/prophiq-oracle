@@ -7,6 +7,9 @@ import {
   fetchHomepagePicks,
   fetchScoredYesterday,
   fetchScoredRecent,
+  fetchReceiptsStats,
+  fetchRecentResolved,
+  fetchNotableCalls,
   type EventsFilter,
 } from "@/lib/queries";
 import type { DomainId } from "@/lib/types";
