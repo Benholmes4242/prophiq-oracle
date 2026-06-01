@@ -59,7 +59,7 @@ Deno.serve(async (req) => {
     .from("events").select("id, title, question, domain, mode, starts_at").eq("id", body.event_id).single();
   if (evErr || !event) return errorResponse("event not found", 404);
   const { data: prediction } = await supabase
-    .from("predictions").select("ranked_outcomes, consensus_method, agreement_score")
+    .from("predictions").select("ranked_outcomes, agreement_score")
     .eq("event_id", body.event_id).eq("is_current", true).maybeSingle();
 
   // Get or create thread
