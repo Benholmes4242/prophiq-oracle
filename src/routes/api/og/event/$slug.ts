@@ -21,7 +21,7 @@ export const Route = createFileRoute("/api/og/event/$slug")({
 
           const { data: event } = await sb
             .from("events")
-            .select("title, domain, slug")
+            .select("id, title, domain, slug")
             .eq("slug", params.slug)
             .maybeSingle();
 
@@ -42,8 +42,9 @@ export const Route = createFileRoute("/api/og/event/$slug")({
           const { data: pred } = await sb
             .from("v_predictions_public")
             .select("ranked_outcomes")
-            .eq("event_id", (event as { id?: string }).id ?? "")
+            .eq("event_id", (event as { id: string }).id)
             .eq("is_current", true)
+            .eq("mode", "prediction")
             .maybeSingle();
 
           const top =
