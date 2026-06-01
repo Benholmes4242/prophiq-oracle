@@ -111,7 +111,7 @@ function assert(cond: unknown, msg: string) {
     [{ outcome_id: "a", rank: 5 }],
   );
   assert(!s.top_pick_correct, "wrong top pick");
-  assert(s.accuracy_grade === "mixed", `mixed when avg<=10 (got ${s.accuracy_grade})`);
+  assert(s.accuracy_grade === "poor", `single pick at rank 5 → poor (got ${s.accuracy_grade})`);
 }
 
 // ---- scoring: brief-spec grading thresholds ----
