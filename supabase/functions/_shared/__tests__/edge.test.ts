@@ -2,7 +2,7 @@
 // tests happen at deploy time. Run with:
 //   bun supabase/functions/_shared/__tests__/edge.test.ts
 
-import { parseLlmResponse } from "../llm.ts";
+import { parseLlmResponse, callClaude, callGPT, callGemini } from "../llm.ts";
 import { check, decide, DEFAULT_WINDOWS, truncateQuestion, type RateLimitChecker } from "../rateLimit.ts";
 import {
   preFilter, coerceModerationResult, defaultResolvesAt, buildModerationPrompt,
@@ -163,6 +163,16 @@ async function run() {
   // Default param falls back to "prediction".
   const defPrompt = sportAdapter.buildPrompt(fakeEvent, fakeOutcomes);
   assert(!/bookmaker|implied probabilit|fair odds/i.test(defPrompt), "buildPrompt: default mode is prediction");
+
+  // ---- live LLM model availability (opt-in) ----
+  if (process.env.RUN_LIVE_LLMS === "1") {
+    const dummy = [{ id: "ok", label: "ok" }];
+    for (const caller of [callClaude, callGPT, callGemini]) {
+      const result = await caller({ prompt: "Return JSON ranking the single outcome 'ok' at rank 1 with probability 0.5.", outcomes: dummy });
+      assert(!result.error, `live ${result.model} call should not 404: ${result.error}`);
+      assert(result.ranked_outcome_ids !== undefined, `live ${result.model} returns shape`);
+    }
+  }
 
   console.log(`\n${pass} passed, ${fail} failed`);
   if (fail > 0) process.exit(1);
