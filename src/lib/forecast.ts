@@ -181,7 +181,8 @@ export async function runForecast(opts: RunForecastOpts): Promise<void> {
           }> | undefined)?.[0];
         if (top) {
           topLabel = top.outcome_label ?? "—";
-          topPct = (top.probability ?? 0) * (top.probability! > 1 ? 1 : 100);
+          const p = top.probability ?? 0;
+          topPct = p > 1 ? p : p * 100;
           reasoningExcerpt = top.reasons?.[0] ?? "";
         }
         if (pred?.confidence) confidence = pred.confidence as ConfidenceTier;
