@@ -13,7 +13,7 @@ import { handleCorsPreflight, jsonResponse, errorResponse } from "../_shared/htt
 
 registerAllDomains();
 
-interface DiscoverBody { domains?: string[]; debug?: boolean; }
+interface DiscoverBody { domains?: string[]; }
 
 interface PerDomainResult {
   domain: string;
@@ -22,13 +22,6 @@ interface PerDomainResult {
   updated: number;
   skipped: number;
   errors: string[];
-  debug?: {
-    perplexity_status: number;
-    perplexity_chars: number;
-    perplexity_first_1500_chars: string;
-    extracted_array_length: number;
-    first_item: unknown;
-  };
 }
 
 Deno.serve(async (req) => {
@@ -48,24 +41,6 @@ Deno.serve(async (req) => {
     const res: PerDomainResult = { domain: id, attempted: 0, inserted: 0, updated: 0, skipped: 0, errors: [] };
     let adapter;
     try { adapter = getDomain(id); } catch (e) { res.errors.push((e as Error).message); return res; }
-
-    if (body.debug) {
-      let raw = "";
-      try {
-        const events = await adapter.discover(now, { onRawResponse: (r) => { raw = r; } });
-        res.attempted = events.length;
-        res.debug = {
-          perplexity_status: 200,
-          perplexity_chars: raw.length,
-          perplexity_first_1500_chars: raw.slice(0, 1500),
-          extracted_array_length: events.length,
-          first_item: events[0] ?? null,
-        };
-      } catch (e) {
-        res.errors.push(`debug failed: ${(e as Error).message}`);
-      }
-      return res;
-    }
 
     let events;
     try { events = await adapter.discover(now); } catch (e) {

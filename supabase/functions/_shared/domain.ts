@@ -51,7 +51,7 @@ export interface DomainAdapter {
   id: DomainId;
   displayName: string;
   /** Discover upcoming events for this domain. Idempotent on (domain, external_id). */
-  discover(now: Date, debug?: { onRawResponse?: (raw: string) => void }): Promise<DiscoveredEvent[]>;
+  discover(now: Date): Promise<DiscoveredEvent[]>;
   /** Resolve a finished event into final rankings. Return null if not yet resolvable. */
   resolve(event: DomainEvent, outcomes: EventOutcome[]): Promise<ResolutionResult | null>;
   /** Build the per-domain research prompt for the AI consensus engine.

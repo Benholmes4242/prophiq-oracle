@@ -16,7 +16,9 @@ const DOMAIN_ID = "entertainment";
 
 const DISCOVERY_SYSTEM = `You are an entertainment-industry research assistant. Return STRICT JSON only — no prose, no markdown. Identify upcoming entertainment events in the next 30 days: awards ceremonies (Oscars, Grammys, Emmys, etc.), major film openings, album releases, reality-show finales, and high-profile cultural events. Do NOT use betting or odds language.`;
 
-const DISCOVERY_USER = (now: Date) => `List upcoming scheduled entertainment events between ${now.toISOString()} and ${new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString()}.
+const DISCOVERY_USER = (now: Date) => `It is currently early June 2026. Find entertainment events between today and 30 days from today.
+
+List upcoming scheduled entertainment events between ${now.toISOString()} and ${new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString()}.
 
 Return a JSON array. Each element:
 {
@@ -32,7 +34,36 @@ Return a JSON array. Each element:
   "metadata": { "category": "...", "event_type": "awards|release|finale" }
 }
 
-Only include events you have high confidence are scheduled. Return [] if nothing reliable.`;
+Return as many real, scheduled events as you can find. Use awards-show calendars, release schedules, and industry trade coverage. If you genuinely can't find any, return [].`;
+
+const DISCOVERY_SCHEMA = {
+  type: "object",
+  properties: {
+    events: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          title: { type: "string" },
+          question: { type: "string" },
+          description: { type: "string" },
+          starts_at: { type: "string" },
+          resolves_at: { type: "string" },
+          outcomes: {
+            type: "array",
+            items: {
+              type: "object",
+              properties: { label: { type: "string" } },
+              required: ["label"],
+            },
+          },
+        },
+        required: ["title", "question", "starts_at", "outcomes"],
+      },
+    },
+  },
+  required: ["events"],
+} as const;
 
 export const entertainmentAdapter: DomainAdapter = {
   id: DOMAIN_ID,
@@ -46,7 +77,15 @@ export const entertainmentAdapter: DomainAdapter = {
           { role: "system", content: DISCOVERY_SYSTEM },
           { role: "user", content: DISCOVERY_USER(now) },
         ],
-        { model: "sonar", temperature: 0.1, searchRecencyFilter: "month", maxTokens: 2000 },
+        {
+          model: "sonar-pro",
+          temperature: 0.1,
+          maxTokens: 2000,
+          responseFormat: {
+            type: "json_schema",
+            json_schema: { schema: DISCOVERY_SCHEMA as unknown as Record<string, unknown> },
+          },
+        },
       );
     } catch (err) {
       console.warn(`[domain:${DOMAIN_ID}] discover failed:`, (err as Error).message);

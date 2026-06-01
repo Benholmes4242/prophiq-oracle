@@ -61,7 +61,6 @@ async function sha256Hex(input: string): Promise<string> {
  * should never throw because of a malformed response.
  */
 export function safeExtractJsonArray(content: string): unknown[] {
-  console.log(`[safeExtractJsonArray] input length: ${content.length}, first 300 chars: ${content.slice(0, 300)}`);
   if (!content) return [];
   const candidates: string[] = [];
   // Fenced code block
@@ -84,7 +83,6 @@ export function safeExtractJsonArray(content: string): unknown[] {
       // try next
     }
   }
-  console.warn(`[safeExtractJsonArray] all parse attempts failed; returning []`);
   return [];
 }
 

@@ -16,7 +16,9 @@ const DOMAIN_ID = "markets";
 
 const DISCOVERY_SYSTEM = `You are a financial-markets research assistant. Return STRICT JSON only — no prose, no markdown. Identify upcoming, scheduled market-moving events (earnings releases, central bank decisions, major economic data prints, IPO debuts) in the next 14 days. Output is INFORMATIONAL ONLY — never use betting language. Frame outcomes as directional movements or numeric ranges.`;
 
-const DISCOVERY_USER = (now: Date) => `List upcoming scheduled market events between ${now.toISOString()} and ${new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000).toISOString()}.
+const DISCOVERY_USER = (now: Date) => `It is currently early June 2026. Find market-moving events between today and 14 days from today.
+
+List upcoming scheduled market events between ${now.toISOString()} and ${new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000).toISOString()}.
 
 Return a JSON array. Each element:
 {
@@ -33,7 +35,36 @@ Return a JSON array. Each element:
   "metadata": { "asset": "...", "event_type": "earnings|cb|macro|ipo" }
 }
 
-Only include events you have high confidence are scheduled. Return [] if nothing reliable.`;
+Outcome labels should be directional moves or numeric ranges (e.g. "Beat consensus", "In line", "Miss"; "Hold", "Cut 25bps", "Hike 25bps"; "Above $X", "Between $X-$Y", "Below $Y"). INFORMATIONAL ONLY — never use betting language. Return as many real, scheduled events as you can find using economic calendars, earnings calendars, and central-bank schedules. If you genuinely can't find any, return [].`;
+
+const DISCOVERY_SCHEMA = {
+  type: "object",
+  properties: {
+    events: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          title: { type: "string" },
+          question: { type: "string" },
+          description: { type: "string" },
+          starts_at: { type: "string" },
+          resolves_at: { type: "string" },
+          outcomes: {
+            type: "array",
+            items: {
+              type: "object",
+              properties: { label: { type: "string" } },
+              required: ["label"],
+            },
+          },
+        },
+        required: ["title", "question", "starts_at", "outcomes"],
+      },
+    },
+  },
+  required: ["events"],
+} as const;
 
 export const marketsAdapter: DomainAdapter = {
   id: DOMAIN_ID,
@@ -47,7 +78,15 @@ export const marketsAdapter: DomainAdapter = {
           { role: "system", content: DISCOVERY_SYSTEM },
           { role: "user", content: DISCOVERY_USER(now) },
         ],
-        { model: "sonar", temperature: 0.1, searchRecencyFilter: "week", maxTokens: 2000 },
+        {
+          model: "sonar-pro",
+          temperature: 0.1,
+          maxTokens: 2000,
+          responseFormat: {
+            type: "json_schema",
+            json_schema: { schema: DISCOVERY_SCHEMA as unknown as Record<string, unknown> },
+          },
+        },
       );
     } catch (err) {
       console.warn(`[domain:${DOMAIN_ID}] discover failed:`, (err as Error).message);

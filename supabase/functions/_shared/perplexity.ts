@@ -53,7 +53,7 @@ export async function perplexityChat(
     body: JSON.stringify(body),
   });
 
-  console.log(`[Perplexity] HTTP ${res.status}, ok=${res.ok}`);
+
 
   if (!res.ok) {
     const text = await res.text();
