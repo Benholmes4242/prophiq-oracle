@@ -64,7 +64,7 @@ export async function fetchEventsWithPredictions(
   const q = applyEventFilters(
     supabase
       .from("events")
-      .select(`${EVENT_COLS}, predictions!left(*)`)
+      .select(`${EVENT_COLS}, predictions:v_predictions_public!left(*)`)
       .eq("predictions.is_current", true)
       .eq("predictions.mode", mode),
     filter,
@@ -93,7 +93,7 @@ export async function fetchCurrentPrediction(
   mode: "prediction" | "odds" = "prediction",
 ): Promise<PredictionRow | null> {
   const { data, error } = await supabase
-    .from("predictions")
+    .from("v_predictions_public")
     .select("*")
     .eq("event_id", eventId)
     .eq("mode", mode)
@@ -105,7 +105,7 @@ export async function fetchCurrentPrediction(
 
 export async function fetchRecentPicks(limit = 6): Promise<EventWithPrediction[]> {
   const { data, error } = await supabase
-    .from("predictions")
+    .from("v_predictions_public")
     .select(`*, event:events!inner(${EVENT_COLS})`)
     .eq("is_current", true)
     .order("generated_at", { ascending: false })
