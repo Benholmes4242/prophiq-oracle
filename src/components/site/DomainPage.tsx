@@ -7,7 +7,7 @@ import { TodaysLeadCard } from "@/components/site/TodaysLeadCard";
 import { DomainUpcomingList } from "@/components/site/DomainUpcomingList";
 import { DomainResolvedStrip } from "@/components/site/DomainResolvedStrip";
 import { AskInput } from "@/components/site/AskInput";
-import { AskSheet } from "@/components/site/AskSheet";
+import { AskInlinePanel } from "@/components/site/AskInlinePanel";
 import { useDomainEvents, useDomainResolvedEvents } from "@/hooks/useEvents";
 import { getChipsForDomain, classifyEvent } from "@/lib/subcategory";
 import type { DomainId, EventWithPrediction } from "@/lib/types";
@@ -43,13 +43,11 @@ export function DomainPage({ domain }: { domain: DomainId }) {
   const { data: events = [], isLoading } = useDomainEvents(domain);
   const { data: resolved = [] } = useDomainResolvedEvents(domain, 5);
 
-  const [askOpen, setAskOpen] = useState(false);
-  const [askQ, setAskQ] = useState("");
+  const [askQ, setAskQ] = useState<string | null>(null);
   function ask(q: string) {
     const trimmed = q.trim();
     if (!trimmed) return;
     setAskQ(trimmed);
-    setAskOpen(true);
   }
 
   const lead = events[0] ?? null;
@@ -70,6 +68,17 @@ export function DomainPage({ domain }: { domain: DomainId }) {
         <section className="px-5 pb-5">
           <AskInput placeholder={DOMAIN_PLACEHOLDER[domain]} onSubmit={ask} />
         </section>
+
+        {askQ && (
+          <section className="px-5">
+            <AskInlinePanel
+              key={askQ}
+              question={askQ}
+              topic={domain}
+              onDismiss={() => setAskQ(null)}
+            />
+          </section>
+        )}
 
         <section className="px-5 pb-4">
           <FilterChips chips={chips} active={chip} onChange={setChip} />
@@ -127,12 +136,6 @@ export function DomainPage({ domain }: { domain: DomainId }) {
         </section>
       </main>
       <Footer />
-      <AskSheet
-        open={askOpen}
-        question={askQ}
-        topic={domain}
-        onClose={() => setAskOpen(false)}
-      />
     </div>
   );
 }

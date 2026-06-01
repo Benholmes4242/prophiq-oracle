@@ -6,7 +6,7 @@ import { TodaysLeadCard } from "@/components/site/TodaysLeadCard";
 import { AlsoTodayList } from "@/components/site/AlsoTodayList";
 import { WhatWeAnalyseSection } from "@/components/site/WhatWeAnalyseSection";
 import { AskInput } from "@/components/site/AskInput";
-import { AskSheet } from "@/components/site/AskSheet";
+import { AskInlinePanel } from "@/components/site/AskInlinePanel";
 import {
   ScoredYesterday,
   ScoredYesterdayHeader,
@@ -56,21 +56,30 @@ function HomePage() {
   const lead = picks.data?.[0];
   const rest = picks.data?.slice(1, 4) ?? [];
 
-  const [askOpen, setAskOpen] = useState(false);
-  const [askQ, setAskQ] = useState("");
+  const [askQ, setAskQ] = useState<string | null>(null);
 
   function ask(q: string) {
     const trimmed = q.trim();
     if (!trimmed) return;
     setAskQ(trimmed);
-    setAskOpen(true);
   }
 
   return (
     <div style={{ background: "var(--bg)", color: "var(--ink)" }}>
       <Header />
       <main className="mx-auto max-w-2xl">
-        <Hero onAsk={ask} />
+        <Hero onAsk={ask} askActive={askQ !== null} />
+
+        {askQ && (
+          <section className="px-5">
+            <AskInlinePanel
+              key={askQ}
+              question={askQ}
+              topic="any"
+              onDismiss={() => setAskQ(null)}
+            />
+          </section>
+        )}
 
         {/* Today's Lead */}
         <section className="px-5 pb-6">
@@ -116,12 +125,6 @@ function HomePage() {
         </section>
       </main>
       <Footer />
-      <AskSheet
-        open={askOpen}
-        question={askQ}
-        topic="any"
-        onClose={() => setAskOpen(false)}
-      />
     </div>
   );
 }
@@ -157,7 +160,13 @@ function SectionHeader({
   );
 }
 
-function Hero({ onAsk }: { onAsk: (q: string) => void }) {
+function Hero({
+  onAsk,
+  askActive,
+}: {
+  onAsk: (q: string) => void;
+  askActive: boolean;
+}) {
   return (
     <section className="px-5 pb-7 pt-9">
       <h1
@@ -185,8 +194,16 @@ function Hero({ onAsk }: { onAsk: (q: string) => void }) {
         <AskInput placeholders={EXAMPLES} onSubmit={onAsk} />
       </div>
 
-      {/* Example chips — tap to ask directly */}
-      <div className="-mx-5 mt-4 overflow-x-auto px-5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      {/* Example chips — tap to ask directly. Fade out while panel is active. */}
+      <div
+        className="-mx-5 mt-4 overflow-x-auto px-5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        aria-hidden={askActive}
+        style={{
+          opacity: askActive ? 0 : 1,
+          pointerEvents: askActive ? "none" : undefined,
+          transition: "opacity 200ms ease-out",
+        }}
+      >
         <div className="flex w-max gap-2">
           {EXAMPLES.map((q) => (
             <button
