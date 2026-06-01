@@ -1,17 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { SiteShell } from "@/components/site/SiteShell";
-import { DomainLanding } from "@/components/site/DomainLanding";
+import { DomainPage } from "@/components/site/DomainPage";
 
 export const Route = createFileRoute("/markets")({
   head: () => ({
     meta: [
-      { title: "Markets predictions — Prophiq" },
-      { name: "description", content: "Informational forecasts for upcoming earnings, central bank decisions, and macro events." },
+      { title: "Markets — Prophiq" },
+      { name: "description", content: "Informational forecasts for upcoming earnings, central bank decisions, and macro prints." },
+      { property: "og:title", content: "Markets — Prophiq" },
+      { property: "og:description", content: "Informational forecasts for upcoming earnings, central bank decisions, and macro prints." },
     ],
   }),
-  component: () => (
-    <SiteShell>
-      <DomainLanding domain="markets" />
-    </SiteShell>
-  ),
+  component: () => <DomainPage domain="markets" />,
 });

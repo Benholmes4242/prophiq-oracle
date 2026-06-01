@@ -1,17 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { SiteShell } from "@/components/site/SiteShell";
-import { DomainLanding } from "@/components/site/DomainLanding";
+import { DomainPage } from "@/components/site/DomainPage";
 
 export const Route = createFileRoute("/politics")({
   head: () => ({
     meta: [
-      { title: "Politics predictions — Prophiq" },
-      { name: "description", content: "Non-partisan Prophiq forecasts for upcoming elections, votes, and political contests." },
+      { title: "Politics — Prophiq" },
+      { name: "description", content: "Non-partisan Prophiq forecasts for upcoming elections, leadership contests, and political moments." },
+      { property: "og:title", content: "Politics — Prophiq" },
+      { property: "og:description", content: "Non-partisan Prophiq forecasts for upcoming elections, leadership contests, and political moments." },
     ],
   }),
-  component: () => (
-    <SiteShell>
-      <DomainLanding domain="politics" />
-    </SiteShell>
-  ),
+  component: () => <DomainPage domain="politics" />,
 });
