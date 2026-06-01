@@ -94,7 +94,7 @@ function PredictionsPage() {
     const next = search.domain.includes(d)
       ? search.domain.filter((x) => x !== d)
       : [...search.domain, d];
-    navigate({ search: (p) => ({ ...p, domain: next }) });
+    navigate({ search: (p: SearchParams) => ({ ...p, domain: next }) });
   }
 
   return (
@@ -119,7 +119,7 @@ function PredictionsPage() {
             {search.domain.length > 0 && (
               <button
                 type="button"
-                onClick={() => navigate({ search: (p) => ({ ...p, domain: [] }) })}
+                onClick={() => navigate({ search: (p: SearchParams) => ({ ...p, domain: [] }) })}
                 className="text-xs text-slate-500 underline-offset-2 hover:underline"
               >
                 Clear
@@ -132,7 +132,7 @@ function PredictionsPage() {
               <Pill
                 key={m}
                 active={search.mode === m}
-                onClick={() => navigate({ search: (p) => ({ ...p, mode: m }) })}
+                onClick={() => navigate({ search: (p: SearchParams) => ({ ...p, mode: m }) })}
               >
                 {m === "prediction" ? "Prediction" : "Odds"}
               </Pill>
@@ -148,7 +148,7 @@ function PredictionsPage() {
                   active={active}
                   onClick={() =>
                     navigate({
-                      search: (p) => ({ ...p, source: active ? undefined : s }),
+                      search: (p: SearchParams) => ({ ...p, source: active ? undefined : s }),
                     })
                   }
                 >
@@ -166,7 +166,7 @@ function PredictionsPage() {
               <button
                 key={s}
                 type="button"
-                onClick={() => navigate({ search: (p) => ({ ...p, status: s }) })}
+                onClick={() => navigate({ search: (p: SearchParams) => ({ ...p, status: s }) })}
                 className={`-mb-px border-b-2 px-4 py-2 text-sm font-medium transition-colors ${
                   active
                     ? "border-[var(--brand-amber)] text-[var(--brand-ink)]"
