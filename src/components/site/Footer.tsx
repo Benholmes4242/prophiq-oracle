@@ -65,9 +65,13 @@ export function Footer() {
           </div>
         </div>
 
-        <div className="mt-10 flex flex-col items-start justify-between gap-2 border-t border-[var(--brand-border)] pt-6 text-xs text-slate-500 sm:flex-row sm:items-center">
+        <div className="mt-10 flex flex-col items-start justify-between gap-4 border-t border-[var(--brand-border)] pt-6 text-xs text-slate-500 sm:flex-row sm:items-center">
           <span>© {new Date().getFullYear()} Prophiq.</span>
-          <span>Predictions are model-generated forecasts, not guarantees.</span>
+          <span className="max-w-xl text-center leading-relaxed sm:text-right">
+            Prophiq is an AI-driven prediction platform. Forecasts are informational only, not
+            advice. Markets coverage is not financial advice. We do not endorse any candidate or
+            party. 18+ where applicable.
+          </span>
         </div>
       </div>
     </footer>

@@ -176,6 +176,7 @@ function PredictionsPage() {
                 key={s}
                 type="button"
                 onClick={() => navigate({ search: (p: SearchParams) => ({ ...p, status: s }) })}
+                aria-pressed={active}
                 className={`-mb-px border-b-2 px-4 py-2 text-sm font-medium transition-colors ${
                   active
                     ? "border-[var(--brand-amber)] text-[var(--brand-ink)]"
@@ -261,6 +262,7 @@ function Pill({
     <button
       type="button"
       onClick={onClick}
+      aria-pressed={active}
       className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
         active
           ? "border-[var(--brand-ink)] bg-[var(--brand-ink)] text-white"

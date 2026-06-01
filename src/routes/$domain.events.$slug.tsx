@@ -147,7 +147,9 @@ function EventHeader({ event }: { event: EventRow }) {
         {event.title}
       </h1>
       <p className="text-sm text-slate-600">{event.question}</p>
-      <p className="text-xs font-mono text-slate-500">{countdown}</p>
+      <p className="text-xs font-mono text-slate-500" suppressHydrationWarning>
+        {countdown}
+      </p>
     </header>
   );
 }
