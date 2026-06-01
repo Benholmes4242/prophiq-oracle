@@ -44,9 +44,9 @@ async function run() {
   assert(getDomain("markets") === marketsAdapter, "registry returns markets adapter");
 
   // ---- stableEventId dedup ----
-  const id1 = await stableEventId("Arsenal vs Chelsea - Premier League", "2026-06-05T14:00:00Z");
-  const id2 = await stableEventId("Arsenal v Chelsea", "2026-06-05T18:30:00Z"); // same day, looser title
-  const id3 = await stableEventId("Arsenal versus Chelsea!!!", "2026-06-05T09:00:00Z");
+  const id1 = await stableEventId("Arsenal vs Chelsea", "2026-06-05T14:00:00Z");
+  const id2 = await stableEventId("arsenal v chelsea", "2026-06-05T18:30:00Z"); // same day, looser
+  const id3 = await stableEventId("  Arsenal   versus   Chelsea!!! ", "2026-06-05T09:00:00Z");
   assert(id1 === id2, "stableEventId: 'vs' and 'v' normalise the same");
   assert(id1 === id3, "stableEventId: 'versus' + punctuation normalise the same");
   const idDiff = await stableEventId("Arsenal vs Chelsea", "2026-06-06T14:00:00Z");
