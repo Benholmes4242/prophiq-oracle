@@ -57,7 +57,7 @@ const MODERATION_SYSTEM = `You are a moderation + classification step for a publ
 
 export function buildModerationPrompt(question: string, today: Date): string {
   const todayIso = today.toISOString().slice(0, 10);
-  return `Today is ${todayIso}.
+  return `Today is ${todayIso}. Treat ambiguous time references ("next election", "this year's Masters") as the next future occurrence — never reject for a missing date.
 
 User-submitted question: """${question}"""
 
