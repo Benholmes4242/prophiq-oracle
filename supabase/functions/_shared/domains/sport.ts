@@ -14,9 +14,9 @@ import { coerceDiscoveredEvent, logSkip, safeExtractJsonArray } from "./_util.ts
 
 const DOMAIN_ID = "sport";
 
-const DISCOVERY_SYSTEM = `You are a sports research assistant. Return STRICT JSON only — no prose, no markdown fences. Identify upcoming, scheduled sporting events (any major league/competition) in the next 7 days. For each event include 2-3 outcomes (typically home win / draw / away win, or competitor names for individual sports).`;
+export const DISCOVERY_SYSTEM = `You are a sports research assistant. Return STRICT JSON only — no prose, no markdown fences. Identify upcoming, scheduled sporting events (any major league/competition) in the next 7 days. For each event include 2-3 outcomes (typically home win / draw / away win, or competitor names for individual sports).`;
 
-const DISCOVERY_USER = (now: Date) => `List upcoming scheduled sporting events between ${now.toISOString()} and ${new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString()}.
+export const DISCOVERY_USER = (now: Date) => `List upcoming scheduled sporting events between ${now.toISOString()} and ${new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString()}.
 
 Return a JSON array. Each element:
 {
