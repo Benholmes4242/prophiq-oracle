@@ -25,6 +25,17 @@ export const Route = createFileRoute("/")({
         property: "og:description",
         content: "Calibrated forecasts for every upcoming event. Ask anything.",
       },
+      {
+        property: "og:image",
+        content: "https://prophiq-opinion-nexus.lovable.app/api/og/home",
+      },
+      { property: "og:image:width", content: "1200" },
+      { property: "og:image:height", content: "630" },
+      { property: "twitter:card", content: "summary_large_image" },
+      {
+        property: "twitter:image",
+        content: "https://prophiq-opinion-nexus.lovable.app/api/og/home",
+      },
     ],
   }),
   component: HomePage,
