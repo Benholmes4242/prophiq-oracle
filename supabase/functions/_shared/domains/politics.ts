@@ -16,7 +16,9 @@ const DOMAIN_ID = "politics";
 
 const DISCOVERY_SYSTEM = `You are a politics research assistant. Return STRICT JSON only — no prose, no markdown. Identify upcoming political events (elections, parliamentary votes, leadership contests, confirmations, referendums) in the next 30 days. Use neutral, non-partisan language. Do NOT use betting or odds language.`;
 
-const DISCOVERY_USER = (now: Date) => `List upcoming scheduled political events between ${now.toISOString()} and ${new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString()}.
+const DISCOVERY_USER = (now: Date) => `It is currently early June 2026. Find political events between today and 30 days from today.
+
+List upcoming scheduled political events between ${now.toISOString()} and ${new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString()}.
 
 Return a JSON array. Each element:
 {
@@ -32,7 +34,36 @@ Return a JSON array. Each element:
   "metadata": { "country": "...", "type": "election|vote|leadership" }
 }
 
-Only include events you have high confidence are scheduled. Return [] if nothing reliable.`;
+Return as many real, scheduled events as you can find. Use official schedules, parliamentary calendars, election commissions, and reputable political reporting. If you genuinely can't find any, return [].`;
+
+const DISCOVERY_SCHEMA = {
+  type: "object",
+  properties: {
+    events: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          title: { type: "string" },
+          question: { type: "string" },
+          description: { type: "string" },
+          starts_at: { type: "string" },
+          resolves_at: { type: "string" },
+          outcomes: {
+            type: "array",
+            items: {
+              type: "object",
+              properties: { label: { type: "string" } },
+              required: ["label"],
+            },
+          },
+        },
+        required: ["title", "question", "starts_at", "outcomes"],
+      },
+    },
+  },
+  required: ["events"],
+} as const;
 
 export const politicsAdapter: DomainAdapter = {
   id: DOMAIN_ID,
@@ -46,7 +77,15 @@ export const politicsAdapter: DomainAdapter = {
           { role: "system", content: DISCOVERY_SYSTEM },
           { role: "user", content: DISCOVERY_USER(now) },
         ],
-        { model: "sonar", temperature: 0.1, searchRecencyFilter: "month", maxTokens: 2000 },
+        {
+          model: "sonar-pro",
+          temperature: 0.1,
+          maxTokens: 2000,
+          responseFormat: {
+            type: "json_schema",
+            json_schema: { schema: DISCOVERY_SCHEMA as unknown as Record<string, unknown> },
+          },
+        },
       );
     } catch (err) {
       console.warn(`[domain:${DOMAIN_ID}] discover failed:`, (err as Error).message);
