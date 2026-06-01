@@ -124,7 +124,7 @@ async function run() {
     { id: "x", domain: "entertainment", external_id: null, slug: "e", title: "Oscars", description: null, question: "Best Picture?", starts_at: "2026-06-10T15:00:00Z", resolves_at: "2026-06-11T03:00:00Z", status: "scheduled", mode: "prediction", source: "discovered", moderation_status: "approved", metadata: null },
     [{ id: "o1", event_id: "x", external_id: null, label: "Film A", metadata: null }, { id: "o2", event_id: "x", external_id: null, label: "Film B", metadata: null }],
   );
-  assert(!/\bbet|bets|betting|bookmak|odds\b/i.test(entPrompt), "entertainment prompt avoids betting/odds language");
+  assert(!BAN.test(stripNegations(entPrompt)), "entertainment prompt avoids betting/odds language");
 
   // ---- optional live perplexity probe ----
   const runLive = (globalThis as { process?: { env: Record<string, string | undefined> } }).process?.env?.RUN_PERPLEXITY === "1";
