@@ -107,9 +107,7 @@ function EventError({ error, reset }: { error: Error; reset: () => void }) {
 
 function EventDetailPage() {
   const { event } = Route.useLoaderData();
-  const supportsBoth = event.mode === "both";
-  const initialMode: "prediction" | "odds" = event.mode === "odds" ? "odds" : "prediction";
-  const [mode, setMode] = useState<"prediction" | "odds">(initialMode);
+  const mode: "prediction" | "odds" = event.mode === "odds" ? "odds" : "prediction";
 
   const domainId = (DOMAINS as string[]).includes(event.domain)
     ? (event.domain as DomainId)
@@ -121,7 +119,6 @@ function EventDetailPage() {
       <div className="mx-auto grid max-w-6xl gap-6 px-4 py-8 sm:px-6 lg:grid-cols-[1fr_360px]">
         <article className="min-w-0">
           <EventHeader event={event} />
-          {supportsBoth && <ModeTabs mode={mode} onChange={setMode} />}
           {event.domain === "sport" && mode === "odds" && <GamblingBanner />}
           <div className="mt-6">
             <PredictionBlock eventId={event.id} mode={mode} />
