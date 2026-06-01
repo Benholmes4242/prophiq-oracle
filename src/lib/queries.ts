@@ -320,3 +320,48 @@ export async function fetchNotableCalls(): Promise<NotableCall[]> {
   if (error) throw error;
   return (data ?? []) as NotableCall[];
 }
+
+// ============================================================
+// Event resolution lookup (for the resolved banner).
+// ============================================================
+
+export interface EventResolutionSummary {
+  actual_outcome: string | null;
+  top_pick_correct: boolean | null;
+}
+
+export async function fetchEventResolution(
+  eventId: string,
+): Promise<EventResolutionSummary | null> {
+  const { data: pa } = await supabase
+    .from("prediction_accuracy")
+    .select("top_pick_correct, pick_results")
+    .eq("event_id", eventId)
+    .eq("mode", "prediction")
+    .maybeSingle();
+  const { data: er } = await supabase
+    .from("event_resolutions")
+    .select("outcome_rankings")
+    .eq("event_id", eventId)
+    .maybeSingle();
+  if (!pa && !er) return null;
+  let actual: string | null = null;
+  const rankings = (er?.outcome_rankings ?? []) as Array<{
+    outcome_id: string;
+    rank: number;
+  }>;
+  const winner = rankings.find((r) => r.rank === 1) ?? rankings[0];
+  if (winner?.outcome_id) {
+    const { data: outcome } = await supabase
+      .from("event_outcomes")
+      .select("label")
+      .eq("id", winner.outcome_id)
+      .maybeSingle();
+    actual = (outcome?.label as string | undefined) ?? null;
+  }
+  return {
+    actual_outcome: actual,
+    top_pick_correct:
+      (pa?.top_pick_correct as boolean | null | undefined) ?? null,
+  };
+}
