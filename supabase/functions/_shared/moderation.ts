@@ -28,6 +28,10 @@ export function preFilter(question: string): PreFilterResult {
     /\bcsam\b/i,
     /\bchild (porn|sexual)\b/i,
     /\b(how to (make|build) (a )?(bomb|weapon))\b/i,
+    // prompt-injection patterns
+    /\bignore (previous|all|the|above) (instructions|prompts?|context|rules?)\b/i,
+    /\byou are (now|actually) (a different|an? un?safe|a (?:dev|admin) ai)\b/i,
+    /\b(disregard|forget) (the )?(previous|all|above) (instructions?|prompts?)\b/i,
   ];
   for (const re of banned) {
     if (re.test(q)) return { ok: false, reason: "question violates safety policy" };
