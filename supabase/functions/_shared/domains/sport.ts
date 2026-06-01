@@ -94,6 +94,7 @@ export const sportAdapter: DomainAdapter = {
     }
 
     console.log(`[domain:sport] perplexity raw response (${response.content.length} chars):`, response.content.slice(0, 2000));
+    if (debug?.onRawResponse) debug.onRawResponse(response.content);
 
     const items = safeExtractJsonArray(response.content);
     const out: DiscoveredEvent[] = [];
