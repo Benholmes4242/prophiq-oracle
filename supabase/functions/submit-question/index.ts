@@ -17,6 +17,7 @@ import { preFilter, runModeration, defaultResolvesAt } from "../_shared/moderati
 import { stableEventId } from "../_shared/domains/_util.ts";
 import { runConsensus } from "../_shared/runConsensus.ts";
 import { getServiceClient } from "../_shared/supabaseClient.ts";
+import { scoreToConfidence } from "../_shared/confidence.ts";
 import {
   handleCorsPreflight, errorResponse, jsonResponse,
   SseStream, getFingerprint, getClientIp, hashIp,
