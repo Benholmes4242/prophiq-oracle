@@ -139,6 +139,31 @@ async function run() {
   assert(getFingerprint({ fingerprint: "fp-body" }, fakeReq) === "fp-body", "getFingerprint: body wins over header");
   assert(getFingerprint({ fingerprint: "  " }, fakeReq) === "fp-from-header", "getFingerprint: blank body string falls back to header");
 
+  // ------------ generate-prediction: mode passthrough ------------
+  // Functional test: adapter.buildPrompt MUST honor the mode arg the edge
+  // function passes through, not just event.mode. We mock event.mode === "both"
+  // (so both predictions are allowed) and check that "odds" yields bookmaker
+  // framing while "prediction" suppresses it.
+  const fakeEvent: DomainEvent = {
+    id: "ev1", domain: "sport", external_id: null, slug: "s",
+    title: "Team A vs Team B", description: null, question: "Who wins?",
+    starts_at: "2026-07-01T15:00:00Z", resolves_at: "2026-07-01T18:00:00Z",
+    status: "scheduled", mode: "both", source: "discovered",
+    moderation_status: "approved", metadata: null,
+  };
+  const fakeOutcomes: EventOutcome[] = [
+    { id: "a", event_id: "ev1", external_id: null, label: "Team A win", metadata: null },
+    { id: "b", event_id: "ev1", external_id: null, label: "Draw", metadata: null },
+    { id: "c", event_id: "ev1", external_id: null, label: "Team B win", metadata: null },
+  ];
+  const oddsPrompt = sportAdapter.buildPrompt(fakeEvent, fakeOutcomes, "odds");
+  const predPrompt = sportAdapter.buildPrompt(fakeEvent, fakeOutcomes, "prediction");
+  assert(/bookmaker|implied probabilit|fair odds/i.test(oddsPrompt), "buildPrompt: mode=odds includes bookmaker framing");
+  assert(!/bookmaker|implied probabilit|fair odds/i.test(predPrompt), "buildPrompt: mode=prediction omits bookmaker framing");
+  // Default param falls back to "prediction".
+  const defPrompt = sportAdapter.buildPrompt(fakeEvent, fakeOutcomes);
+  assert(!/bookmaker|implied probabilit|fair odds/i.test(defPrompt), "buildPrompt: default mode is prediction");
+
   console.log(`\n${pass} passed, ${fail} failed`);
   if (fail > 0) process.exit(1);
   console.log("All edge helper tests passed.");
