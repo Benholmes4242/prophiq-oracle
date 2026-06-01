@@ -41,7 +41,7 @@ export const sportAdapter: DomainAdapter = {
   id: DOMAIN_ID,
   displayName: "Sport",
 
-  async discover(now: Date): Promise<DiscoveredEvent[]> {
+  async discover(now: Date, debug?: { onRawResponse?: (raw: string) => void }): Promise<DiscoveredEvent[]> {
     let response;
     try {
       response = await perplexityChat(
