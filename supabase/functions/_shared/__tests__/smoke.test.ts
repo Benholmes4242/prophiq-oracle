@@ -111,7 +111,7 @@ function assert(cond: unknown, msg: string) {
     [{ outcome_id: "a", rank: 5 }],
   );
   assert(!s.top_pick_correct, "wrong top pick");
-  assert(s.accuracy_grade === "mixed", `mixed when avg<=10 (got ${s.accuracy_grade})`);
+  assert(s.accuracy_grade === "poor", `single pick at rank 5 → poor (got ${s.accuracy_grade})`);
 }
 
 // ---- scoring: brief-spec grading thresholds ----
@@ -132,6 +132,25 @@ function assert(cond: unknown, msg: string) {
   assert(!s.top_pick_correct, "top pick wrong");
   assert(s.picks_in_top_5 === 3, "3 picks in top 5");
   assert(s.accuracy_grade === "good", `should be 'good' (got ${s.accuracy_grade})`);
+}
+
+// ---- scoring: 'mixed' grade ----
+{
+  // 2 picks both landing in top 10 but none in top 5, top pick wrong → 'mixed'
+  const s = scorePrediction(
+    [
+      { outcome_id: "a", rank: 1 },
+      { outcome_id: "b", rank: 2 },
+    ],
+    [
+      { outcome_id: "a", rank: 7 },
+      { outcome_id: "b", rank: 9 },
+    ],
+  );
+  assert(!s.top_pick_correct, "top pick wrong");
+  assert(s.picks_in_top_5 === 0, "0 picks in top 5");
+  assert(s.picks_in_top_10 === 2, "2 picks in top 10");
+  assert(s.accuracy_grade === "mixed", `should be 'mixed' (got ${s.accuracy_grade})`);
 }
 
 // ---- registry ----
