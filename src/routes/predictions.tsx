@@ -58,8 +58,10 @@ export const Route = createFileRoute("/predictions")({
   component: PredictionsPage,
 });
 
+type SearchParams = z.infer<typeof searchSchema>;
+
 function PredictionsPage() {
-  const search = Route.useSearch();
+  const search = Route.useSearch() as SearchParams;
   const navigate = useNavigate({ from: "/predictions" });
 
   const filter = {
