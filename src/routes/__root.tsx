@@ -78,18 +78,18 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Prophiq — Multi-model consensus predictions" },
+      { title: "Prophiq — What happens next?" },
       {
         name: "description",
         content:
-          "Three frontier AI models, one consensus pick — for every upcoming event in sport, politics, markets, and entertainment.",
+          "From the Grand National to the FOMC, Prophiq forecasts every upcoming event worth following. Ask anything.",
       },
       { name: "author", content: "Prophiq" },
-      { property: "og:title", content: "Prophiq — Multi-model consensus predictions" },
+      { property: "og:title", content: "Prophiq — What happens next?" },
       {
         property: "og:description",
         content:
-          "Three frontier AI models, one consensus pick — for every upcoming event in sport, politics, markets, and entertainment.",
+          "From the Grand National to the FOMC, Prophiq forecasts every upcoming event worth following. Ask anything.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },

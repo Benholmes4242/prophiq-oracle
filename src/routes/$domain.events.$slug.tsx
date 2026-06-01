@@ -1,8 +1,7 @@
 // Event detail page. SSR-rendered for SEO with JSON-LD Event structured
 // data. Loader fetches the event row up-front so head() can produce
 // per-event meta + JSON-LD. The current prediction is fetched client-side
-// because mode (prediction|odds) is a client toggle for events with
-// mode='both'.
+// because it may stream in after the page shell renders.
 
 import { useEffect, useMemo, useState } from "react";
 import { createFileRoute, notFound, useRouter } from "@tanstack/react-router";
@@ -30,7 +29,7 @@ export const Route = createFileRoute("/$domain/events/$slug")({
     const title = `${event.title} — Prophiq`;
     const description =
       event.description ??
-      `Multi-model consensus prediction for ${event.title}. ${DOMAIN_LABEL[event.domain]} on Prophiq.`;
+      `Calibrated prediction for ${event.title}. ${DOMAIN_LABEL[event.domain]} on Prophiq.`;
     const url = `https://prophiq-opinion-nexus.lovable.app/${params.domain}/events/${params.slug}`;
     const jsonLd = {
       "@context": "https://schema.org",

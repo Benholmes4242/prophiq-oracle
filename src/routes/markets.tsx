@@ -6,7 +6,7 @@ export const Route = createFileRoute("/markets")({
   head: () => ({
     meta: [
       { title: "Markets predictions — Prophiq" },
-      { name: "description", content: "Informational consensus forecasts for upcoming earnings, central bank decisions, and macro events." },
+      { name: "description", content: "Informational forecasts for upcoming earnings, central bank decisions, and macro events." },
     ],
   }),
   component: () => (

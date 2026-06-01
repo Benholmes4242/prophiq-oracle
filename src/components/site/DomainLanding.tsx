@@ -24,7 +24,7 @@ export function DomainLanding({ domain }: { domain: DomainId }) {
           {DOMAIN_TAGLINE[domain]}
         </h1>
         <p className="mt-3 max-w-2xl text-sm text-slate-600 sm:text-base">
-          Upcoming {DOMAIN_LABEL[domain].toLowerCase()} events with multi-model consensus
+          Upcoming {DOMAIN_LABEL[domain].toLowerCase()} events with calibrated
           predictions, refreshed automatically.
         </p>
         <div className="mt-5 flex flex-wrap items-center gap-3">
