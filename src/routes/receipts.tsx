@@ -10,6 +10,7 @@ import {
   useRecentResolved,
   useNotableCalls,
 } from "@/hooks/useEvents";
+import type { RecentResolved, NotableCall } from "@/lib/queries";
 
 export const Route = createFileRoute("/receipts")({
   head: () => ({
@@ -136,7 +137,7 @@ function ReceiptsPage() {
           label="RECENT CALLS"
           trailing={
             recent.data
-              ? `${recent.data.filter((r) => r.correct).length}/${recent.data.length} correct`
+              ? `${recent.data.filter((r: RecentResolved) => r.correct).length}/${recent.data.length} correct`
               : undefined
           }
         />
@@ -147,7 +148,7 @@ function ReceiptsPage() {
         {/* Notable */}
         <SectionHeader label="NOTABLE" />
         <section className="space-y-3 px-5 pb-10 pt-3">
-          {(notable.data ?? []).map((c) => (
+          {(notable.data ?? []).map((c: NotableCall) => (
             <NotableCallCard key={c.event_id} call={c} />
           ))}
           {notable.data && notable.data.length === 0 && (
