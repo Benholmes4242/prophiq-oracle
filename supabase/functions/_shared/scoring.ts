@@ -74,7 +74,12 @@ export function scorePrediction(
     best_pick_actual_rank,
     average_predicted_rank,
     average_actual_rank,
-    accuracy_grade: gradeAccuracy(top_pick_correct, best_pick_actual_rank, average_actual_rank),
+    accuracy_grade: gradeAccuracy(
+      top_pick_correct,
+      inTop(3),
+      inTop(5),
+      inTop(10),
+    ),
   };
 }
 
@@ -85,11 +90,12 @@ function avg(xs: number[]): number {
 
 function gradeAccuracy(
   topCorrect: boolean,
-  bestActualRank: number | null,
-  avgActual: number | null,
+  picksInTop3: number,
+  picksInTop5: number,
+  picksInTop10: number,
 ): AccuracyGrade {
-  if (topCorrect) return "excellent";
-  if (bestActualRank !== null && bestActualRank <= 3) return "good";
-  if (avgActual !== null && avgActual <= 10) return "mixed";
+  if (topCorrect || picksInTop3 >= 3) return "excellent";
+  if (picksInTop5 >= 3) return "good";
+  if (picksInTop10 >= 2) return "mixed";
   return "poor";
 }
