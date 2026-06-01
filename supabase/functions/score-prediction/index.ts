@@ -14,7 +14,7 @@ import type { DomainEvent, EventOutcome } from "../_shared/domain.ts";
 
 registerAllDomains();
 
-interface Body { event_id?: string; }
+interface Body { event_id?: string; mode?: "prediction" | "odds"; }
 
 Deno.serve(async (req) => {
   const cors = handleCorsPreflight(req); if (cors) return cors;
@@ -22,6 +22,7 @@ Deno.serve(async (req) => {
   let body: Body;
   try { body = await req.json(); } catch { return errorResponse("invalid JSON body"); }
   if (!body.event_id) return errorResponse("event_id required");
+  const mode: "prediction" | "odds" = body.mode === "odds" ? "odds" : "prediction";
 
   const supabase = getServiceClient();
 
@@ -34,9 +35,10 @@ Deno.serve(async (req) => {
   if (oErr || !outcomes) return errorResponse(`outcomes load failed: ${oErr?.message}`, 500);
 
   const { data: prediction, error: pErr } = await supabase
-    .from("predictions").select("*").eq("event_id", body.event_id).eq("is_current", true).maybeSingle();
+    .from("predictions").select("*")
+    .eq("event_id", body.event_id).eq("mode", mode).eq("is_current", true).maybeSingle();
   if (pErr) return errorResponse(`prediction load failed: ${pErr.message}`, 500);
-  if (!prediction) return errorResponse("no current prediction to score", 422);
+  if (!prediction) return errorResponse(`no current ${mode} prediction to score`, 422);
 
   // Get-or-create resolution
   let { data: resolution } = await supabase
