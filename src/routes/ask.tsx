@@ -36,8 +36,8 @@ const STAGES = [
   { id: "pre_filter", label: "Pre-filtering question" },
   { id: "moderation", label: "Classifying & moderating" },
   { id: "research", label: "Gathering context" },
-  { id: "models", label: "Running 3 LLMs" },
-  { id: "consensus", label: "Computing consensus" },
+  { id: "models", label: "Running engine" },
+  { id: "consensus", label: "Calibrating" },
   { id: "done", label: "Finalizing forecast" },
 ] as const;
 

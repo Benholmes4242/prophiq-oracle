@@ -6,7 +6,7 @@ export const Route = createFileRoute("/entertainment")({
   head: () => ({
     meta: [
       { title: "Entertainment predictions — Prophiq" },
-      { name: "description", content: "Consensus predictions for upcoming awards ceremonies, release weekends, and finales." },
+      { name: "description", content: "Prophiq forecasts for upcoming awards ceremonies, release weekends, and finales." },
     ],
   }),
   component: () => (
