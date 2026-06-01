@@ -35,6 +35,15 @@ Return a JSON array. Each element:
   "metadata": { "asset": "...", "event_type": "earnings|cb|macro|ipo" }
 }
 
+CRITICAL RULES FOR OUTCOMES:
+1. Outcome labels MUST be real, named entities — never positional placeholders.
+   - WRONG: "Driver 1", "Team A", "Candidate A", "Nominee A"
+   - RIGHT: "Max Verstappen", "Arsenal", "Chuck Schumer", "Cillian Murphy"
+2. If you don't know enough about an event to name 2+ real outcomes with confidence, skip the event entirely (don't add it with placeholder outcomes).
+3. For events with many possible competitors (e.g. F1, MotoGP, athletics, golf majors), list the 3-6 most likely contenders by name.
+4. For head-to-head fixtures, name both sides ("Liverpool win", "Draw", "Manchester City win").
+5. For tournaments, name the favourites.
+
 Outcome labels should be directional moves or numeric ranges (e.g. "Beat consensus", "In line", "Miss"; "Hold", "Cut 25bps", "Hike 25bps"; "Above $X", "Between $X-$Y", "Below $Y"). INFORMATIONAL ONLY — never use betting language. Return as many real, scheduled events as you can find using economic calendars, earnings calendars, and central-bank schedules. If you genuinely can't find any, return [].`;
 
 const DISCOVERY_SCHEMA = {
