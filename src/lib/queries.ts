@@ -206,8 +206,18 @@ export interface ScoredPick {
 }
 
 export async function fetchScoredYesterday(limit = 6): Promise<ScoredPick[]> {
-  const since = new Date(Date.now() - 36 * 60 * 60 * 1000).toISOString();
-  const { data, error } = await supabase
+  return fetchScoredRecent({ sinceMs: 36 * 60 * 60 * 1000, limit });
+}
+
+export async function fetchScoredRecent(opts: {
+  sinceMs?: number;
+  limit?: number;
+  domain?: DomainId;
+}): Promise<ScoredPick[]> {
+  const sinceMs = opts.sinceMs ?? 7 * 24 * 60 * 60 * 1000;
+  const limit = opts.limit ?? 6;
+  const since = new Date(Date.now() - sinceMs).toISOString();
+  let q = supabase
     .from("prediction_accuracy")
     .select(
       "event_id, top_pick_correct, scored_at, pick_results, event:events!inner(id, slug, title, domain)",
@@ -215,6 +225,8 @@ export async function fetchScoredYesterday(limit = 6): Promise<ScoredPick[]> {
     .gte("scored_at", since)
     .order("scored_at", { ascending: false })
     .limit(limit);
+  if (opts.domain) q = q.eq("domain", opts.domain);
+  const { data, error } = await q;
   if (error) throw error;
   const rows = (data ?? []) as unknown as Array<{
     event_id: string;

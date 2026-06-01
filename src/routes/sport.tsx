@@ -1,17 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { SiteShell } from "@/components/site/SiteShell";
-import { DomainLanding } from "@/components/site/DomainLanding";
+import { DomainPage } from "@/components/site/DomainPage";
 
 export const Route = createFileRoute("/sport")({
   head: () => ({
     meta: [
-      { title: "Sport predictions — Prophiq" },
+      { title: "Sport — Prophiq" },
       { name: "description", content: "Prophiq forecasts for upcoming fixtures, finals, and head-to-head sporting events." },
+      { property: "og:title", content: "Sport — Prophiq" },
+      { property: "og:description", content: "Prophiq forecasts for upcoming fixtures, finals, and head-to-head sporting events." },
     ],
   }),
-  component: () => (
-    <SiteShell>
-      <DomainLanding domain="sport" />
-    </SiteShell>
-  ),
+  component: () => <DomainPage domain="sport" />,
 });

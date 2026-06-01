@@ -186,3 +186,12 @@
   background: var(--amber);
   border-radius: 2px;
 }
+
+/* Horizontal chip scroll row — hide scrollbar but keep scrollable. */
+.chips-scroll {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.chips-scroll::-webkit-scrollbar {
+  display: none;
+}
