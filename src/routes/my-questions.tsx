@@ -74,7 +74,7 @@ function MyQuestionsPage() {
               You haven't asked anything yet.
             </p>
             <Link
-              to="/ask"
+              to="/"
               className="mt-3 inline-block font-body text-[13.5px] font-semibold underline"
               style={{ color: "var(--ink)" }}
             >
