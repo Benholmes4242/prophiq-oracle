@@ -216,7 +216,7 @@ export async function fetchScoredYesterday(limit = 6): Promise<ScoredPick[]> {
     .order("scored_at", { ascending: false })
     .limit(limit);
   if (error) throw error;
-  const rows = (data ?? []) as Array<{
+  const rows = (data ?? []) as unknown as Array<{
     event_id: string;
     top_pick_correct: boolean | null;
     scored_at: string;
