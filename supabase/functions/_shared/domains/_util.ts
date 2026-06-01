@@ -84,6 +84,7 @@ export function safeExtractJsonArray(content: string): unknown[] {
       // try next
     }
   }
+  console.warn(`[safeExtractJsonArray] all parse attempts failed; returning []`);
   return [];
 }
 
