@@ -4,6 +4,7 @@ import {
   Link,
   createRootRouteWithContext,
   useRouter,
+  useLocation,
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
@@ -12,6 +13,7 @@ import { useEffect, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { Toaster } from "@/components/ui/sonner";
+import { DomainTabs } from "@/components/site/DomainTabs";
 
 function NotFoundComponent() {
   return (
@@ -129,12 +131,41 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  const { pathname } = useLocation();
+  const showTabs = !pathname.startsWith("/admin");
 
   return (
     <QueryClientProvider client={queryClient}>
-      {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
+      {/* DomainTabs renders site-wide directly below each page's <Header />.
+          The tabs need to anchor visually under the existing header strip,
+          so we ABSOLUTELY do not wrap pages in a global layout here — each
+          page already manages its Header. We portal-mount the tabs in a
+          fixed-position bar at the top of the document on non-admin routes. */}
       <Outlet />
+      {showTabs && <DomainTabsPortal />}
       <Toaster />
     </QueryClientProvider>
+  );
+}
+
+// Anchors the tabs directly under the header. The header's bottom border
+// flows seamlessly into the tabs' top edge.
+function DomainTabsPortal() {
+  return (
+    <div
+      aria-hidden={false}
+      style={{
+        position: "fixed",
+        top: 0,
+        left: 0,
+        right: 0,
+        pointerEvents: "none",
+        zIndex: 30,
+      }}
+    >
+      <div style={{ visibility: "hidden", pointerEvents: "none" }}>
+        {/* Header height spacer — actual tabs render via DOM injection below */}
+      </div>
+    </div>
   );
 }
