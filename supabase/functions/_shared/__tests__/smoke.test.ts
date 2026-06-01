@@ -39,6 +39,53 @@ function assert(cond: unknown, msg: string) {
   assert(single.ranked_outcomes[0].outcome_id === "x", "single model picks first");
 }
 
+// ---- consensus: default weights, agreement, reasons, dark horse ----
+{
+  const result = computeConsensus(
+    [
+      { model: "claude", ranked_outcome_ids: ["a", "b", "c", "d", "e"], details: { a: { rank: 1, probability: 60, fitScore: 80, reasons: ["form", "h2h", "venue"] } } },
+      { model: "gpt", ranked_outcome_ids: ["a", "b", "d", "c", "e"], details: { a: { rank: 1, probability: 55, fitScore: 75 } } },
+      { model: "gemini", ranked_outcome_ids: ["b", "a", "c", "d", "e"], details: { a: { rank: 2, probability: 50 } } },
+    ],
+    ["a", "b", "c", "d", "e"],
+  );
+  assert(result.ranked_outcomes[0].outcome_id === "a", "weighted borda still picks a");
+  assert(result.agreement_score >= 80, `pairwise top-5 agreement should be high (got ${result.agreement_score})`);
+  assert(result.ranked_outcomes[0].probability !== null, "probability aggregated");
+  assert(Math.abs(result.ranked_outcomes[0].probability! - 55) < 1, `probability avg of (60,55,50)=55 (got ${result.ranked_outcomes[0].probability})`);
+  assert(result.ranked_outcomes[0].fit_score === 78 || result.ranked_outcomes[0].fit_score === 77, `fit_score avg of (80,75) ≈ 77.5 (got ${result.ranked_outcomes[0].fit_score})`);
+  assert(result.ranked_outcomes[0].reasons.length === 3, "best reasons carried through");
+}
+
+// ---- consensus: dark horse detection ----
+{
+  const result = computeConsensus(
+    [
+      { model: "claude", ranked_outcome_ids: ["z", "a", "b", "c", "d"] },
+      { model: "gpt", ranked_outcome_ids: ["a", "b", "c", "d", "e"] },
+      { model: "gemini", ranked_outcome_ids: ["a", "b", "c", "d", "e"] },
+    ],
+    ["a", "b", "c", "d", "e", "z"],
+  );
+  const z = result.ranked_outcomes.find((o) => o.outcome_id === "z");
+  assert(z !== undefined, "z is in results");
+  assert(z!.is_dark_horse === true, "z is flagged as dark horse");
+  const a = result.ranked_outcomes.find((o) => o.outcome_id === "a");
+  assert(a!.is_dark_horse === false, "a is NOT a dark horse (multiple models picked it)");
+}
+
+// ---- consensus: default weights actually used ----
+{
+  const result = computeConsensus(
+    [
+      { model: "claude", ranked_outcome_ids: ["q", "p"] },
+      { model: "gemini", ranked_outcome_ids: ["p", "q"] },
+    ],
+    ["p", "q"],
+  );
+  assert(result.ranked_outcomes[0].outcome_id === "q", `claude weight 0.40 should outweigh gemini 0.25 (got ${result.ranked_outcomes[0].outcome_id})`);
+}
+
 // ---- scoring ----
 {
   const s = scorePrediction(
