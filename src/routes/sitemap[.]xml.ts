@@ -4,7 +4,7 @@ import { getPublicBaseUrl } from "@/lib/publicUrl";
 const ROUTES = [
   "/",
   "/about",
-  "/ask",
+  
   "/predictions",
   "/receipts",
   "/sport",
