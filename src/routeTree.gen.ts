@@ -9,27 +9,54 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as TermsRouteImport } from './routes/terms'
 import { Route as SportRouteImport } from './routes/sport'
+import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
+import { Route as RobotsDottxtRouteImport } from './routes/robots[.]txt'
 import { Route as ReceiptsRouteImport } from './routes/receipts'
+import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as PredictionsRouteImport } from './routes/predictions'
 import { Route as PoliticsRouteImport } from './routes/politics'
 import { Route as MarketsRouteImport } from './routes/markets'
 import { Route as HealthcheckRouteImport } from './routes/healthcheck'
 import { Route as EntertainmentRouteImport } from './routes/entertainment'
+import { Route as ContactRouteImport } from './routes/contact'
 import { Route as AskRouteImport } from './routes/ask'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as DomainTrackRecordRouteImport } from './routes/$domain.track-record'
+import { Route as ApiOgHomeRouteImport } from './routes/api/og/home'
 import { Route as DomainEventsSlugRouteImport } from './routes/$domain.events.$slug'
+import { Route as ApiOgEventSlugRouteImport } from './routes/api/og/event/$slug'
 
+const TermsRoute = TermsRouteImport.update({
+  id: '/terms',
+  path: '/terms',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SportRoute = SportRouteImport.update({
   id: '/sport',
   path: '/sport',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
+  id: '/sitemap.xml',
+  path: '/sitemap.xml',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RobotsDottxtRoute = RobotsDottxtRouteImport.update({
+  id: '/robots.txt',
+  path: '/robots.txt',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ReceiptsRoute = ReceiptsRouteImport.update({
   id: '/receipts',
   path: '/receipts',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrivacyRoute = PrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PredictionsRoute = PredictionsRouteImport.update({
@@ -57,6 +84,11 @@ const EntertainmentRoute = EntertainmentRouteImport.update({
   path: '/entertainment',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ContactRoute = ContactRouteImport.update({
+  id: '/contact',
+  path: '/contact',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AskRoute = AskRouteImport.update({
   id: '/ask',
   path: '/ask',
@@ -77,9 +109,19 @@ const DomainTrackRecordRoute = DomainTrackRecordRouteImport.update({
   path: '/$domain/track-record',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiOgHomeRoute = ApiOgHomeRouteImport.update({
+  id: '/api/og/home',
+  path: '/api/og/home',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DomainEventsSlugRoute = DomainEventsSlugRouteImport.update({
   id: '/$domain/events/$slug',
   path: '/$domain/events/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiOgEventSlugRoute = ApiOgEventSlugRouteImport.update({
+  id: '/api/og/event/$slug',
+  path: '/api/og/event/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
 
@@ -87,44 +129,65 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/ask': typeof AskRoute
+  '/contact': typeof ContactRoute
   '/entertainment': typeof EntertainmentRoute
   '/healthcheck': typeof HealthcheckRoute
   '/markets': typeof MarketsRoute
   '/politics': typeof PoliticsRoute
   '/predictions': typeof PredictionsRoute
+  '/privacy': typeof PrivacyRoute
   '/receipts': typeof ReceiptsRoute
+  '/robots.txt': typeof RobotsDottxtRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/sport': typeof SportRoute
+  '/terms': typeof TermsRoute
   '/$domain/track-record': typeof DomainTrackRecordRoute
   '/$domain/events/$slug': typeof DomainEventsSlugRoute
+  '/api/og/home': typeof ApiOgHomeRoute
+  '/api/og/event/$slug': typeof ApiOgEventSlugRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/ask': typeof AskRoute
+  '/contact': typeof ContactRoute
   '/entertainment': typeof EntertainmentRoute
   '/healthcheck': typeof HealthcheckRoute
   '/markets': typeof MarketsRoute
   '/politics': typeof PoliticsRoute
   '/predictions': typeof PredictionsRoute
+  '/privacy': typeof PrivacyRoute
   '/receipts': typeof ReceiptsRoute
+  '/robots.txt': typeof RobotsDottxtRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/sport': typeof SportRoute
+  '/terms': typeof TermsRoute
   '/$domain/track-record': typeof DomainTrackRecordRoute
   '/$domain/events/$slug': typeof DomainEventsSlugRoute
+  '/api/og/home': typeof ApiOgHomeRoute
+  '/api/og/event/$slug': typeof ApiOgEventSlugRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/ask': typeof AskRoute
+  '/contact': typeof ContactRoute
   '/entertainment': typeof EntertainmentRoute
   '/healthcheck': typeof HealthcheckRoute
   '/markets': typeof MarketsRoute
   '/politics': typeof PoliticsRoute
   '/predictions': typeof PredictionsRoute
+  '/privacy': typeof PrivacyRoute
   '/receipts': typeof ReceiptsRoute
+  '/robots.txt': typeof RobotsDottxtRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/sport': typeof SportRoute
+  '/terms': typeof TermsRoute
   '/$domain/track-record': typeof DomainTrackRecordRoute
   '/$domain/events/$slug': typeof DomainEventsSlugRoute
+  '/api/og/home': typeof ApiOgHomeRoute
+  '/api/og/event/$slug': typeof ApiOgEventSlugRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -132,62 +195,97 @@ export interface FileRouteTypes {
     | '/'
     | '/about'
     | '/ask'
+    | '/contact'
     | '/entertainment'
     | '/healthcheck'
     | '/markets'
     | '/politics'
     | '/predictions'
+    | '/privacy'
     | '/receipts'
+    | '/robots.txt'
+    | '/sitemap.xml'
     | '/sport'
+    | '/terms'
     | '/$domain/track-record'
     | '/$domain/events/$slug'
+    | '/api/og/home'
+    | '/api/og/event/$slug'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/about'
     | '/ask'
+    | '/contact'
     | '/entertainment'
     | '/healthcheck'
     | '/markets'
     | '/politics'
     | '/predictions'
+    | '/privacy'
     | '/receipts'
+    | '/robots.txt'
+    | '/sitemap.xml'
     | '/sport'
+    | '/terms'
     | '/$domain/track-record'
     | '/$domain/events/$slug'
+    | '/api/og/home'
+    | '/api/og/event/$slug'
   id:
     | '__root__'
     | '/'
     | '/about'
     | '/ask'
+    | '/contact'
     | '/entertainment'
     | '/healthcheck'
     | '/markets'
     | '/politics'
     | '/predictions'
+    | '/privacy'
     | '/receipts'
+    | '/robots.txt'
+    | '/sitemap.xml'
     | '/sport'
+    | '/terms'
     | '/$domain/track-record'
     | '/$domain/events/$slug'
+    | '/api/og/home'
+    | '/api/og/event/$slug'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AboutRoute: typeof AboutRoute
   AskRoute: typeof AskRoute
+  ContactRoute: typeof ContactRoute
   EntertainmentRoute: typeof EntertainmentRoute
   HealthcheckRoute: typeof HealthcheckRoute
   MarketsRoute: typeof MarketsRoute
   PoliticsRoute: typeof PoliticsRoute
   PredictionsRoute: typeof PredictionsRoute
+  PrivacyRoute: typeof PrivacyRoute
   ReceiptsRoute: typeof ReceiptsRoute
+  RobotsDottxtRoute: typeof RobotsDottxtRoute
+  SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   SportRoute: typeof SportRoute
+  TermsRoute: typeof TermsRoute
   DomainTrackRecordRoute: typeof DomainTrackRecordRoute
   DomainEventsSlugRoute: typeof DomainEventsSlugRoute
+  ApiOgHomeRoute: typeof ApiOgHomeRoute
+  ApiOgEventSlugRoute: typeof ApiOgEventSlugRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/terms': {
+      id: '/terms'
+      path: '/terms'
+      fullPath: '/terms'
+      preLoaderRoute: typeof TermsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/sport': {
       id: '/sport'
       path: '/sport'
@@ -195,11 +293,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SportRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/sitemap.xml': {
+      id: '/sitemap.xml'
+      path: '/sitemap.xml'
+      fullPath: '/sitemap.xml'
+      preLoaderRoute: typeof SitemapDotxmlRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/robots.txt': {
+      id: '/robots.txt'
+      path: '/robots.txt'
+      fullPath: '/robots.txt'
+      preLoaderRoute: typeof RobotsDottxtRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/receipts': {
       id: '/receipts'
       path: '/receipts'
       fullPath: '/receipts'
       preLoaderRoute: typeof ReceiptsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/privacy': {
+      id: '/privacy'
+      path: '/privacy'
+      fullPath: '/privacy'
+      preLoaderRoute: typeof PrivacyRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/predictions': {
@@ -237,6 +356,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof EntertainmentRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/contact': {
+      id: '/contact'
+      path: '/contact'
+      fullPath: '/contact'
+      preLoaderRoute: typeof ContactRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/ask': {
       id: '/ask'
       path: '/ask'
@@ -265,11 +391,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DomainTrackRecordRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/og/home': {
+      id: '/api/og/home'
+      path: '/api/og/home'
+      fullPath: '/api/og/home'
+      preLoaderRoute: typeof ApiOgHomeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/$domain/events/$slug': {
       id: '/$domain/events/$slug'
       path: '/$domain/events/$slug'
       fullPath: '/$domain/events/$slug'
       preLoaderRoute: typeof DomainEventsSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/og/event/$slug': {
+      id: '/api/og/event/$slug'
+      path: '/api/og/event/$slug'
+      fullPath: '/api/og/event/$slug'
+      preLoaderRoute: typeof ApiOgEventSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
@@ -279,16 +419,33 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AboutRoute: AboutRoute,
   AskRoute: AskRoute,
+  ContactRoute: ContactRoute,
   EntertainmentRoute: EntertainmentRoute,
   HealthcheckRoute: HealthcheckRoute,
   MarketsRoute: MarketsRoute,
   PoliticsRoute: PoliticsRoute,
   PredictionsRoute: PredictionsRoute,
+  PrivacyRoute: PrivacyRoute,
   ReceiptsRoute: ReceiptsRoute,
+  RobotsDottxtRoute: RobotsDottxtRoute,
+  SitemapDotxmlRoute: SitemapDotxmlRoute,
   SportRoute: SportRoute,
+  TermsRoute: TermsRoute,
   DomainTrackRecordRoute: DomainTrackRecordRoute,
   DomainEventsSlugRoute: DomainEventsSlugRoute,
+  ApiOgHomeRoute: ApiOgHomeRoute,
+  ApiOgEventSlugRoute: ApiOgEventSlugRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}

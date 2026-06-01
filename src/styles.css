@@ -195,3 +195,31 @@
 .chips-scroll::-webkit-scrollbar {
   display: none;
 }
+
+/* Legal page long-form prose */
+.legal-prose h2 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 22px;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+  margin-top: 28px;
+  margin-bottom: 8px;
+}
+.legal-prose p {
+  font-family: var(--font-body);
+  font-size: 15.5px;
+  line-height: 1.55;
+  color: var(--ink-soft);
+  margin-bottom: 12px;
+}
+.legal-prose a {
+  color: var(--ink);
+  text-decoration: underline;
+  text-decoration-color: var(--amber);
+  text-underline-offset: 3px;
+}
+.legal-prose .not-prose h2,
+.legal-prose .not-prose p {
+  all: revert;
+}

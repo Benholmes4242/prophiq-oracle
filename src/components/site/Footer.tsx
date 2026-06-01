@@ -1,13 +1,33 @@
 import { Link } from "@tanstack/react-router";
 
+const FOOTER_LINKS = {
+  Product: [
+    { label: "Ask", to: "/ask" },
+    { label: "Receipts", to: "/receipts" },
+    { label: "All predictions", to: "/predictions" },
+  ],
+  Domains: [
+    { label: "Sport", to: "/sport" },
+    { label: "Politics", to: "/politics" },
+    { label: "Markets", to: "/markets" },
+    { label: "Entertainment", to: "/entertainment" },
+  ],
+  About: [
+    { label: "How it works", to: "/about" },
+    { label: "Privacy", to: "/privacy" },
+    { label: "Terms", to: "/terms" },
+    { label: "Contact", to: "/contact" },
+  ],
+} as const;
+
 export function Footer() {
   return (
     <footer
       className="mt-16 border-t"
       style={{ borderColor: "var(--border-soft)" }}
     >
-      <div className="mx-auto max-w-2xl px-5 py-8">
-        <div className="mb-3 flex items-center gap-2">
+      <div className="mx-auto max-w-2xl px-5 py-10">
+        <div className="mb-6 flex items-center gap-2">
           <span
             aria-hidden
             className="grid h-5 w-5 place-items-center rounded text-white"
@@ -28,28 +48,59 @@ export function Footer() {
             Prophiq
           </span>
         </div>
-        <nav
-          aria-label="Footer"
-          className="mb-3 flex flex-wrap gap-x-4 gap-y-1 font-body text-[12.5px]"
+
+        <p
+          className="mb-7 font-body text-[13px] leading-relaxed"
           style={{ color: "var(--ink-soft)" }}
         >
-          <Link to="/about" className="hover:text-[var(--ink)]">
-            How it works
-          </Link>
-          <Link to="/receipts" className="hover:text-[var(--ink)]">
-            Receipts
-          </Link>
-          <Link to="/predictions" className="hover:text-[var(--ink)]">
-            All predictions
-          </Link>
-        </nav>
-        <p
-          className="font-body text-[11.5px] leading-relaxed"
-          style={{ color: "var(--ink-faint)" }}
-        >
-          Forecasts are informational only. Markets coverage is not financial
-          advice. We do not endorse any candidate or party. 18+ where applicable.
+          Calibrated forecasts for every upcoming event.
         </p>
+
+        <div className="mb-8 grid grid-cols-1 gap-7 sm:grid-cols-3">
+          {Object.entries(FOOTER_LINKS).map(([heading, items]) => (
+            <div key={heading}>
+              <h3
+                className="mb-3 font-mono text-[10px] uppercase tracking-[0.2em]"
+                style={{ color: "var(--ink-faint)", fontWeight: 600 }}
+              >
+                {heading}
+              </h3>
+              <ul className="space-y-1.5">
+                {items.map((it) => (
+                  <li key={it.to}>
+                    <Link
+                      to={it.to}
+                      className="font-body text-[13px] hover:text-[var(--ink)]"
+                      style={{ color: "var(--ink-soft)" }}
+                    >
+                      {it.label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+
+        <div
+          className="border-t pt-5"
+          style={{ borderColor: "var(--border-soft)" }}
+        >
+          <p
+            className="mb-2 font-body text-[12px]"
+            style={{ color: "var(--ink-faint)" }}
+          >
+            © {new Date().getFullYear()} Prophiq.
+          </p>
+          <p
+            className="font-body text-[11.5px] leading-relaxed"
+            style={{ color: "var(--ink-faint)" }}
+          >
+            Forecasts are informational only. Markets coverage is not financial
+            advice. We do not endorse any candidate or party. 18+ where
+            applicable.
+          </p>
+        </div>
       </div>
     </footer>
   );
