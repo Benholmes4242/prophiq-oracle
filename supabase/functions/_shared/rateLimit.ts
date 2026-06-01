@@ -23,8 +23,8 @@ export interface RateLimitWindow {
 }
 
 export const DEFAULT_WINDOWS: Record<Endpoint, RateLimitWindow> = {
-  submit_question: { endpoint: "submit_question", perFingerprint: 3, perIp: 10, windowMs: 60 * 60 * 1000 }, // 1h
-  chat_message:    { endpoint: "chat_message",    perFingerprint: 30, perIp: 100, windowMs: 60 * 60 * 1000 },
+  submit_question: { endpoint: "submit_question", perFingerprint: 3, perIp: 10, windowMs: 24 * 60 * 60 * 1000 }, // 24h
+  chat_message:    { endpoint: "chat_message",    perFingerprint: 30, perIp: 100, windowMs: 60 * 60 * 1000 },    // 1h
 };
 
 export interface RateLimitChecker {

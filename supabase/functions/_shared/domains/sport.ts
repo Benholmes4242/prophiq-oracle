@@ -100,9 +100,9 @@ export const sportAdapter: DomainAdapter = {
     return parseResolution(response.content, outcomes);
   },
 
-  buildPrompt(event: DomainEvent, outcomes: EventOutcome[]): string {
-    const oddsHint = event.mode === "odds" || event.mode === "both"
-      ? "You may reason about implied probabilities and bookmaker odds where relevant."
+  buildPrompt(event: DomainEvent, outcomes: EventOutcome[], mode: "prediction" | "odds" = "prediction"): string {
+    const oddsHint = mode === "odds"
+      ? "Frame your analysis in terms of bookmaker-style implied probabilities and fair odds. Justify each rank with what the market should price."
       : "";
     return `Sports analysis task.
 

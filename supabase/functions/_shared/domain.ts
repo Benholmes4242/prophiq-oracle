@@ -54,8 +54,10 @@ export interface DomainAdapter {
   discover(now: Date): Promise<DiscoveredEvent[]>;
   /** Resolve a finished event into final rankings. Return null if not yet resolvable. */
   resolve(event: DomainEvent, outcomes: EventOutcome[]): Promise<ResolutionResult | null>;
-  /** Build the per-domain research prompt for the AI consensus engine. */
-  buildPrompt(event: DomainEvent, outcomes: EventOutcome[]): string;
+  /** Build the per-domain research prompt for the AI consensus engine.
+   * `mode` selects "prediction" framing (default) or "odds" framing (only
+   * supported by adapters whose events have mode === "odds" | "both"). */
+  buildPrompt(event: DomainEvent, outcomes: EventOutcome[], mode?: "prediction" | "odds"): string;
 }
 
 export interface ResolutionResult {
