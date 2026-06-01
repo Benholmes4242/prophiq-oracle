@@ -16,8 +16,8 @@ function methodLabel(method: PredictionRow["consensus_method"]): string {
 
 function agreementLabel(score: number | null): string {
   if (score == null) return "—";
-  if (score >= 0.8) return "Strong agreement";
-  if (score >= 0.5) return "Moderate agreement";
+  if (score >= 80) return "Strong agreement";
+  if (score >= 50) return "Moderate agreement";
   return "Low agreement";
 }
 
