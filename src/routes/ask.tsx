@@ -12,16 +12,16 @@ import { getBrowserFingerprint } from "@/hooks/useBrowserFingerprint";
 export const Route = createFileRoute("/ask")({
   head: () => ({
     meta: [
-      { title: "Ask Prophiq — Live consensus forecast" },
+      { title: "Ask Prophiq" },
       {
         name: "description",
         content:
-          "Submit any future-event question and watch three AI models run a live consensus forecast end-to-end.",
+          "Pose a question about an upcoming event. Get a calibrated forecast with the reasoning behind it — live.",
       },
-      { property: "og:title", content: "Ask Prophiq — Live consensus forecast" },
+      { property: "og:title", content: "Ask Prophiq" },
       {
         property: "og:description",
-        content: "Submit a question and watch the consensus pipeline run live.",
+        content: "Pose a question. Get a calibrated forecast, live.",
       },
     ],
   }),
@@ -239,14 +239,14 @@ function AskPage() {
       <div className="mx-auto max-w-2xl px-4 py-12 sm:px-6 sm:py-16">
         <header className="text-center">
           <div className="mx-auto inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1 text-xs text-slate-600">
-            <Sparkles className="h-3.5 w-3.5" /> Live consensus pipeline
+            <Sparkles className="h-3.5 w-3.5" /> The Prophiq engine
           </div>
           <h1 className="mt-4 text-3xl font-bold tracking-tight text-[var(--brand-ink)] sm:text-4xl">
             Ask Prophiq
           </h1>
           <p className="mx-auto mt-3 max-w-md text-sm text-slate-600">
-            Pose a question about a future public event. Three frontier models will research,
-            forecast, and reach consensus — live, in front of you.
+            Pose a question about an upcoming event. The Prophiq engine will research,
+            forecast, and arrive at a calibrated answer — live, in front of you.
           </p>
         </header>
 

@@ -1,8 +1,7 @@
 // Event detail page. SSR-rendered for SEO with JSON-LD Event structured
 // data. Loader fetches the event row up-front so head() can produce
 // per-event meta + JSON-LD. The current prediction is fetched client-side
-// because mode (prediction|odds) is a client toggle for events with
-// mode='both'.
+// because it may stream in after the page shell renders.
 
 import { useEffect, useMemo, useState } from "react";
 import { createFileRoute, notFound, useRouter } from "@tanstack/react-router";
