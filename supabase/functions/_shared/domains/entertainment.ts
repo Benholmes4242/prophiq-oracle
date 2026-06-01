@@ -1,0 +1,136 @@
+// Entertainment domain adapter. Prediction-only. Covers awards shows,
+// box-office openings, album/single chart debuts, reality-show finales.
+// No betting/odds framing.
+
+import type {
+  DiscoveredEvent,
+  DomainAdapter,
+  DomainEvent,
+  EventOutcome,
+  ResolutionResult,
+} from "../domain.ts";
+import { perplexityChat } from "../perplexity.ts";
+import { coerceDiscoveredEvent, logSkip, safeExtractJsonArray } from "./_util.ts";
+
+const DOMAIN_ID = "entertainment";
+
+const DISCOVERY_SYSTEM = `You are an entertainment-industry research assistant. Return STRICT JSON only — no prose, no markdown. Identify upcoming entertainment events in the next 30 days: awards ceremonies (Oscars, Grammys, Emmys, etc.), major film openings, album releases, reality-show finales, and high-profile cultural events. Do NOT use betting or odds language.`;
+
+const DISCOVERY_USER = (now: Date) => `List upcoming scheduled entertainment events between ${now.toISOString()} and ${new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString()}.
+
+Return a JSON array. Each element:
+{
+  "title": "Short event title",
+  "question": "Predictive question (e.g. 'Who will win Best Picture at the 2026 Oscars?')",
+  "description": "Context (ceremony, category, frontrunners)",
+  "starts_at": "ISO 8601 UTC",
+  "resolves_at": "ISO 8601 UTC",
+  "outcomes": [
+    { "label": "Nominee A" },
+    { "label": "Nominee B" }
+  ],
+  "metadata": { "category": "...", "event_type": "awards|release|finale" }
+}
+
+Only include events you have high confidence are scheduled. Return [] if nothing reliable.`;
+
+export const entertainmentAdapter: DomainAdapter = {
+  id: DOMAIN_ID,
+  displayName: "Entertainment",
+
+  async discover(now: Date): Promise<DiscoveredEvent[]> {
+    let response;
+    try {
+      response = await perplexityChat(
+        [
+          { role: "system", content: DISCOVERY_SYSTEM },
+          { role: "user", content: DISCOVERY_USER(now) },
+        ],
+        { model: "sonar", temperature: 0.1, searchRecencyFilter: "month", maxTokens: 2000 },
+      );
+    } catch (err) {
+      console.warn(`[domain:${DOMAIN_ID}] discover failed:`, (err as Error).message);
+      return [];
+    }
+
+    const items = safeExtractJsonArray(response.content);
+    const out: DiscoveredEvent[] = [];
+    for (const item of items) {
+      try {
+        const ev = await coerceDiscoveredEvent(item, {
+          defaultMode: "prediction",
+          slugPrefix: "ent",
+        });
+        if (!ev) {
+          logSkip(DOMAIN_ID, "invalid shape", item);
+          continue;
+        }
+        out.push(ev);
+      } catch (err) {
+        logSkip(DOMAIN_ID, `coerce error: ${(err as Error).message}`, item);
+      }
+    }
+    return out;
+  },
+
+  async resolve(event: DomainEvent, outcomes: EventOutcome[]): Promise<ResolutionResult | null> {
+    const labels = outcomes.map((o, i) => `${i + 1}. ${o.label}`).join("\n");
+    let response;
+    try {
+      response = await perplexityChat(
+        [
+          {
+            role: "system",
+            content: `You are an entertainment results verifier. Return STRICT JSON only. Look up the official outcome of the event below and rank the outcomes from most-correct (rank 1) to least-correct.`,
+          },
+          {
+            role: "user",
+            content: `Event: ${event.title}\nQuestion: ${event.question}\nScheduled: ${event.starts_at}\n\nOutcomes:\n${labels}\n\nReturn JSON:\n{ "rankings": [ { "label": "<exact label>", "rank": 1 } ], "context": "Brief verification with source" }\n\nIf unresolved, return { "rankings": [], "context": "unresolved" }.`,
+          },
+        ],
+        { model: "sonar", temperature: 0.0, maxTokens: 600 },
+      );
+    } catch (err) {
+      console.warn(`[domain:${DOMAIN_ID}] resolve failed:`, (err as Error).message);
+      return null;
+    }
+    return parseResolution(response.content, outcomes);
+  },
+
+  buildPrompt(event: DomainEvent, outcomes: EventOutcome[]): string {
+    return `Entertainment analysis task. Do NOT use betting or odds framing.
+
+Event: ${event.title}
+Question: ${event.question}
+Scheduled: ${event.starts_at}
+
+Outcomes:
+${outcomes.map((o, i) => `${i + 1}. ${o.label}`).join("\n")}
+
+Rank every outcome from most likely (rank 1) to least likely. For each, provide a probability (0-1), a fit_score (0-1), and 1-3 short reasons grounded in critic reception, precursor awards, industry buzz, and historical base rates.`;
+  },
+};
+
+function parseResolution(content: string, outcomes: EventOutcome[]): ResolutionResult | null {
+  try {
+    const match = content.match(/\{[\s\S]*\}/);
+    if (!match) return null;
+    const parsed = JSON.parse(match[0]) as {
+      rankings?: Array<{ label?: string; rank?: number }>;
+      context?: string;
+    };
+    if (!Array.isArray(parsed.rankings) || parsed.rankings.length === 0) return null;
+    const byLabel = new Map(outcomes.map((o) => [o.label.toLowerCase(), o]));
+    const rankings: Array<{ outcome_id: string; rank: number }> = [];
+    for (const r of parsed.rankings) {
+      if (!r.label || typeof r.rank !== "number") continue;
+      const o = byLabel.get(r.label.toLowerCase());
+      if (!o) continue;
+      rankings.push({ outcome_id: o.id, rank: r.rank });
+    }
+    if (rankings.length === 0) return null;
+    return { outcome_rankings: rankings, source: "perplexity", resolution_context: parsed.context };
+  } catch {
+    return null;
+  }
+}
