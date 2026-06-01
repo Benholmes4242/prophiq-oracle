@@ -6,6 +6,8 @@ import { FilterChips } from "@/components/site/FilterChips";
 import { TodaysLeadCard } from "@/components/site/TodaysLeadCard";
 import { DomainUpcomingList } from "@/components/site/DomainUpcomingList";
 import { DomainResolvedStrip } from "@/components/site/DomainResolvedStrip";
+import { AskInput } from "@/components/site/AskInput";
+import { AskSheet } from "@/components/site/AskSheet";
 import { useDomainEvents, useDomainResolvedEvents } from "@/hooks/useEvents";
 import { getChipsForDomain, classifyEvent } from "@/lib/subcategory";
 import type { DomainId, EventWithPrediction } from "@/lib/types";
@@ -28,11 +30,27 @@ function toHomepagePick(ep: EventWithPrediction): HomepagePick | null {
   };
 }
 
+const DOMAIN_PLACEHOLDER: Record<DomainId, string> = {
+  sport: "Will Sinner win Wimbledon?",
+  politics: "Who wins the next UK election?",
+  markets: "Will the Fed hike in July?",
+  entertainment: "Who wins Best Picture next year?",
+};
+
 export function DomainPage({ domain }: { domain: DomainId }) {
   const [chip, setChip] = useState("All");
   const chips = useMemo(() => getChipsForDomain(domain), [domain]);
   const { data: events = [], isLoading } = useDomainEvents(domain);
   const { data: resolved = [] } = useDomainResolvedEvents(domain, 5);
+
+  const [askOpen, setAskOpen] = useState(false);
+  const [askQ, setAskQ] = useState("");
+  function ask(q: string) {
+    const trimmed = q.trim();
+    if (!trimmed) return;
+    setAskQ(trimmed);
+    setAskOpen(true);
+  }
 
   const lead = events[0] ?? null;
   const rest = lead ? events.slice(1) : events;
@@ -48,6 +66,10 @@ export function DomainPage({ domain }: { domain: DomainId }) {
       <Header />
       <main className="mx-auto max-w-2xl">
         <DomainHero domain={domain} />
+
+        <section className="px-5 pb-5">
+          <AskInput placeholder={DOMAIN_PLACEHOLDER[domain]} onSubmit={ask} />
+        </section>
 
         <section className="px-5 pb-4">
           <FilterChips chips={chips} active={chip} onChange={setChip} />
@@ -105,6 +127,12 @@ export function DomainPage({ domain }: { domain: DomainId }) {
         </section>
       </main>
       <Footer />
+      <AskSheet
+        open={askOpen}
+        question={askQ}
+        topic={domain}
+        onClose={() => setAskOpen(false)}
+      />
     </div>
   );
 }

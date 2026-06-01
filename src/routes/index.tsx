@@ -1,10 +1,12 @@
-import { useEffect, useRef, useState, type FormEvent } from "react";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useState } from "react";
+import { createFileRoute } from "@tanstack/react-router";
 import { Header } from "@/components/site/Header";
 import { Footer } from "@/components/site/Footer";
 import { TodaysLeadCard } from "@/components/site/TodaysLeadCard";
 import { AlsoTodayList } from "@/components/site/AlsoTodayList";
 import { WhatWeAnalyseSection } from "@/components/site/WhatWeAnalyseSection";
+import { AskInput } from "@/components/site/AskInput";
+import { AskSheet } from "@/components/site/AskSheet";
 import {
   ScoredYesterday,
   ScoredYesterdayHeader,
@@ -54,11 +56,21 @@ function HomePage() {
   const lead = picks.data?.[0];
   const rest = picks.data?.slice(1, 4) ?? [];
 
+  const [askOpen, setAskOpen] = useState(false);
+  const [askQ, setAskQ] = useState("");
+
+  function ask(q: string) {
+    const trimmed = q.trim();
+    if (!trimmed) return;
+    setAskQ(trimmed);
+    setAskOpen(true);
+  }
+
   return (
     <div style={{ background: "var(--bg)", color: "var(--ink)" }}>
       <Header />
       <main className="mx-auto max-w-2xl">
-        <Hero />
+        <Hero onAsk={ask} />
 
         {/* Today's Lead */}
         <section className="px-5 pb-6">
@@ -104,6 +116,12 @@ function HomePage() {
         </section>
       </main>
       <Footer />
+      <AskSheet
+        open={askOpen}
+        question={askQ}
+        topic="any"
+        onClose={() => setAskOpen(false)}
+      />
     </div>
   );
 }
@@ -139,27 +157,7 @@ function SectionHeader({
   );
 }
 
-function Hero() {
-  const navigate = useNavigate();
-  const [question, setQuestion] = useState("");
-  const [phIdx, setPhIdx] = useState(0);
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    const id = setInterval(
-      () => setPhIdx((i) => (i + 1) % EXAMPLES.length),
-      2400,
-    );
-    return () => clearInterval(id);
-  }, []);
-
-  function onSubmit(e: FormEvent) {
-    e.preventDefault();
-    const q = question.trim();
-    if (!q) return;
-    void navigate({ to: "/ask", search: { q } as never });
-  }
-
+function Hero({ onAsk }: { onAsk: (q: string) => void }) {
   return (
     <section className="px-5 pb-7 pt-9">
       <h1
@@ -183,64 +181,18 @@ function Hero() {
         worth following. Ask anything.
       </p>
 
-      {/* Ask input */}
-      <form
-        onSubmit={onSubmit}
-        className="mt-7 flex items-center gap-3 rounded-2xl px-4 py-3 focus-within:ring-2 focus-within:ring-[var(--amber)]/30"
-        style={{
-          background: "var(--bg-card)",
-          border: "1.5px solid var(--border-strong)",
-          boxShadow:
-            "0 1px 0 var(--border-soft), 0 10px 24px -14px rgba(11,18,32,0.18)",
-        }}
-      >
-        <label htmlFor="ask" className="sr-only">
-          Ask a question
-        </label>
-        <input
-          id="ask"
-          ref={inputRef}
-          value={question}
-          onChange={(e) => setQuestion(e.target.value)}
-          placeholder={EXAMPLES[phIdx]}
-          maxLength={500}
-          className="font-body flex-1 bg-transparent text-[15px] outline-none placeholder:transition-opacity"
-          style={{ color: "var(--ink)" }}
-          aria-label="Ask Prophiq a question"
-        />
-        <button
-          type="submit"
-          aria-label="Submit question"
-          className="grid h-9 w-9 shrink-0 place-items-center rounded-xl transition-transform hover:scale-[1.04]"
-          style={{ background: "var(--amber)" }}
-        >
-          <svg
-            width="15"
-            height="15"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="white"
-            strokeWidth="2.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden
-          >
-            <polyline points="9 18 15 12 9 6" />
-          </svg>
-        </button>
-      </form>
+      <div className="mt-7">
+        <AskInput placeholders={EXAMPLES} onSubmit={onAsk} />
+      </div>
 
-      {/* Example chips */}
+      {/* Example chips — tap to ask directly */}
       <div className="-mx-5 mt-4 overflow-x-auto px-5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         <div className="flex w-max gap-2">
           {EXAMPLES.map((q) => (
             <button
               key={q}
               type="button"
-              onClick={() => {
-                setQuestion(q);
-                inputRef.current?.focus();
-              }}
+              onClick={() => onAsk(q)}
               className="whitespace-nowrap rounded-full px-3 py-1.5 font-body text-[12.5px]"
               style={{
                 border: "1px solid var(--border-strong)",
@@ -284,3 +236,4 @@ function EmptyLead() {
     </div>
   );
 }
+

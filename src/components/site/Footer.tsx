@@ -3,7 +3,6 @@ import { DigestSignup } from "./DigestSignup";
 
 const FOOTER_LINKS = {
   Product: [
-    { label: "Ask", to: "/ask" },
     { label: "Receipts", to: "/receipts" },
     { label: "All predictions", to: "/predictions" },
     { label: "Your questions", to: "/my-questions" },
