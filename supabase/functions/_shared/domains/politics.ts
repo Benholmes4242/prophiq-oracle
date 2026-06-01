@@ -34,6 +34,15 @@ Return a JSON array. Each element:
   "metadata": { "country": "...", "type": "election|vote|leadership" }
 }
 
+CRITICAL RULES FOR OUTCOMES:
+1. Outcome labels MUST be real, named entities — never positional placeholders.
+   - WRONG: "Driver 1", "Team A", "Candidate A", "Nominee A"
+   - RIGHT: "Max Verstappen", "Arsenal", "Chuck Schumer", "Cillian Murphy"
+2. If you don't know enough about an event to name 2+ real outcomes with confidence, skip the event entirely (don't add it with placeholder outcomes).
+3. For events with many possible competitors (e.g. F1, MotoGP, athletics, golf majors), list the 3-6 most likely contenders by name.
+4. For head-to-head fixtures, name both sides ("Liverpool win", "Draw", "Manchester City win").
+5. For tournaments, name the favourites.
+
 Return as many real, scheduled events as you can find. Use official schedules, parliamentary calendars, election commissions, and reputable political reporting. If you genuinely can't find any, return [].`;
 
 const DISCOVERY_SCHEMA = {

@@ -28,12 +28,21 @@ Return a JSON array. Each element:
   "starts_at": "ISO 8601 UTC",
   "resolves_at": "ISO 8601 UTC (typically start + 3-4h)",
   "outcomes": [
-    { "label": "Team A win" },
-    { "label": "Draw" },
-    { "label": "Team B win" }
+    // Head-to-head: { "label": "Liverpool win" }, { "label": "Draw" }, { "label": "Manchester City win" }
+    // Race/tournament: { "label": "Max Verstappen" }, { "label": "Lando Norris" }, { "label": "Charles Leclerc" }, { "label": "Lewis Hamilton" }
+    // Athletics: { "label": "Noah Lyles" }, { "label": "Letsile Tebogo" }, { "label": "Kishane Thompson" }
   ],
   "metadata": { "league": "...", "sport": "..." }
 }
+
+CRITICAL RULES FOR OUTCOMES:
+1. Outcome labels MUST be real, named entities — never positional placeholders.
+   - WRONG: "Driver 1", "Team A", "Candidate A", "Nominee A"
+   - RIGHT: "Max Verstappen", "Arsenal", "Chuck Schumer", "Cillian Murphy"
+2. If you don't know enough about an event to name 2+ real outcomes with confidence, skip the event entirely (don't add it with placeholder outcomes).
+3. For events with many possible competitors (e.g. F1, MotoGP, athletics, golf majors), list the 3-6 most likely contenders by name.
+4. For head-to-head fixtures, name both sides ("Liverpool win", "Draw", "Manchester City win").
+5. For tournaments, name the favourites.
 
 Return as many real, scheduled events as you can find in this window. Use fixture lists, official league schedules, and pre-event coverage. If you genuinely can't find any, return [].`;
 
