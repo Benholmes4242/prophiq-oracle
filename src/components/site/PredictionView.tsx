@@ -125,7 +125,7 @@ export function PredictionView({ prediction }: { prediction: PredictionRow }) {
           >
             Top pick
           </h2>
-          <ConfidenceLabel score={prediction.agreement_score} />
+          <ConfidenceLabel tier={prediction.confidence} />
         </div>
         <OutcomeCard outcome={top} rank={1} highlight />
       </section>
