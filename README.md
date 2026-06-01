@@ -94,15 +94,12 @@ Cron is one timestamped migration: `db/migrations/20260601010000_cron.sql`.
 It enables `pg_cron` + `pg_net`, defines three helper functions, and
 schedules three jobs that POST to the deployed edge functions.
 
-**One-time operator setup** — run in the Supabase SQL editor as a superuser
-BEFORE deploying the cron migration (otherwise the helpers raise a clear
-error when fired):
+**One-time operator setup** — store these in Supabase Vault via
+Dashboard → Project Settings → Vault BEFORE deploying the cron migration
+(otherwise the helpers raise a clear error when fired):
 
-```sql
-ALTER DATABASE postgres SET app.prophiq.supabase_url     = 'https://rkktqrqsmoumnklvsahg.supabase.co';
-ALTER DATABASE postgres SET app.prophiq.service_role_key = '<service role key>';
--- Reconnect (close + reopen SQL editor tab) so the GUCs are visible.
-```
+- `prophiq_supabase_url` — your project URL (`https://rkktqrqsmoumnklvsahg.supabase.co`)
+- `prophiq_service_role_key` — the service-role key
 
 Then push the migration the usual way (`supabase db push`).
 
