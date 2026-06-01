@@ -5,6 +5,7 @@
 import { Link } from "@tanstack/react-router";
 import { useEvents } from "@/hooks/useEvents";
 import { EventCard } from "./EventCard";
+import { DomainDisclaimer } from "./DisclaimerBanner";
 import { DOMAIN_LABEL, DOMAIN_TAGLINE, type DomainId } from "@/lib/types";
 
 export function DomainLanding({ domain }: { domain: DomainId }) {
@@ -12,18 +13,8 @@ export function DomainLanding({ domain }: { domain: DomainId }) {
 
   return (
     <>
-      {domain === "markets" && (
-        <DisclaimerBanner tone="info">
-          <strong>Informational only.</strong> Markets coverage is not financial advice. Do
-          your own research before making any investment decisions.
-        </DisclaimerBanner>
-      )}
-      {domain === "politics" && (
-        <DisclaimerBanner tone="neutral">
-          <strong>Non-partisan.</strong> Prophiq publishes neutral, model-generated forecasts.
-          We do not endorse any candidate, party, or political outcome.
-        </DisclaimerBanner>
-      )}
+      <DomainDisclaimer domain={domain} />
+
 
       <section className="mx-auto max-w-6xl px-4 pt-12 sm:px-6 sm:pt-16">
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--brand-amber)]">
