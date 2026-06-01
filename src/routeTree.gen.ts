@@ -12,16 +12,19 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as SportRouteImport } from './routes/sport'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
+import { Route as SearchRouteImport } from './routes/search'
 import { Route as RobotsDottxtRouteImport } from './routes/robots[.]txt'
 import { Route as ReceiptsRouteImport } from './routes/receipts'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as PredictionsRouteImport } from './routes/predictions'
 import { Route as PoliticsRouteImport } from './routes/politics'
+import { Route as MyQuestionsRouteImport } from './routes/my-questions'
 import { Route as MarketsRouteImport } from './routes/markets'
 import { Route as HealthcheckRouteImport } from './routes/healthcheck'
 import { Route as EntertainmentRouteImport } from './routes/entertainment'
 import { Route as ContactRouteImport } from './routes/contact'
 import { Route as AskRouteImport } from './routes/ask'
+import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as DomainTrackRecordRouteImport } from './routes/$domain.track-record'
@@ -42,6 +45,11 @@ const SportRoute = SportRouteImport.update({
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
   id: '/sitemap.xml',
   path: '/sitemap.xml',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SearchRoute = SearchRouteImport.update({
+  id: '/search',
+  path: '/search',
   getParentRoute: () => rootRouteImport,
 } as any)
 const RobotsDottxtRoute = RobotsDottxtRouteImport.update({
@@ -69,6 +77,11 @@ const PoliticsRoute = PoliticsRouteImport.update({
   path: '/politics',
   getParentRoute: () => rootRouteImport,
 } as any)
+const MyQuestionsRoute = MyQuestionsRouteImport.update({
+  id: '/my-questions',
+  path: '/my-questions',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const MarketsRoute = MarketsRouteImport.update({
   id: '/markets',
   path: '/markets',
@@ -92,6 +105,11 @@ const ContactRoute = ContactRouteImport.update({
 const AskRoute = AskRouteImport.update({
   id: '/ask',
   path: '/ask',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminRoute = AdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AboutRoute = AboutRouteImport.update({
@@ -128,16 +146,19 @@ const ApiOgEventSlugRoute = ApiOgEventSlugRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
+  '/admin': typeof AdminRoute
   '/ask': typeof AskRoute
   '/contact': typeof ContactRoute
   '/entertainment': typeof EntertainmentRoute
   '/healthcheck': typeof HealthcheckRoute
   '/markets': typeof MarketsRoute
+  '/my-questions': typeof MyQuestionsRoute
   '/politics': typeof PoliticsRoute
   '/predictions': typeof PredictionsRoute
   '/privacy': typeof PrivacyRoute
   '/receipts': typeof ReceiptsRoute
   '/robots.txt': typeof RobotsDottxtRoute
+  '/search': typeof SearchRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/sport': typeof SportRoute
   '/terms': typeof TermsRoute
@@ -149,16 +170,19 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
+  '/admin': typeof AdminRoute
   '/ask': typeof AskRoute
   '/contact': typeof ContactRoute
   '/entertainment': typeof EntertainmentRoute
   '/healthcheck': typeof HealthcheckRoute
   '/markets': typeof MarketsRoute
+  '/my-questions': typeof MyQuestionsRoute
   '/politics': typeof PoliticsRoute
   '/predictions': typeof PredictionsRoute
   '/privacy': typeof PrivacyRoute
   '/receipts': typeof ReceiptsRoute
   '/robots.txt': typeof RobotsDottxtRoute
+  '/search': typeof SearchRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/sport': typeof SportRoute
   '/terms': typeof TermsRoute
@@ -171,16 +195,19 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
+  '/admin': typeof AdminRoute
   '/ask': typeof AskRoute
   '/contact': typeof ContactRoute
   '/entertainment': typeof EntertainmentRoute
   '/healthcheck': typeof HealthcheckRoute
   '/markets': typeof MarketsRoute
+  '/my-questions': typeof MyQuestionsRoute
   '/politics': typeof PoliticsRoute
   '/predictions': typeof PredictionsRoute
   '/privacy': typeof PrivacyRoute
   '/receipts': typeof ReceiptsRoute
   '/robots.txt': typeof RobotsDottxtRoute
+  '/search': typeof SearchRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/sport': typeof SportRoute
   '/terms': typeof TermsRoute
@@ -194,16 +221,19 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/about'
+    | '/admin'
     | '/ask'
     | '/contact'
     | '/entertainment'
     | '/healthcheck'
     | '/markets'
+    | '/my-questions'
     | '/politics'
     | '/predictions'
     | '/privacy'
     | '/receipts'
     | '/robots.txt'
+    | '/search'
     | '/sitemap.xml'
     | '/sport'
     | '/terms'
@@ -215,16 +245,19 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/about'
+    | '/admin'
     | '/ask'
     | '/contact'
     | '/entertainment'
     | '/healthcheck'
     | '/markets'
+    | '/my-questions'
     | '/politics'
     | '/predictions'
     | '/privacy'
     | '/receipts'
     | '/robots.txt'
+    | '/search'
     | '/sitemap.xml'
     | '/sport'
     | '/terms'
@@ -236,16 +269,19 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/about'
+    | '/admin'
     | '/ask'
     | '/contact'
     | '/entertainment'
     | '/healthcheck'
     | '/markets'
+    | '/my-questions'
     | '/politics'
     | '/predictions'
     | '/privacy'
     | '/receipts'
     | '/robots.txt'
+    | '/search'
     | '/sitemap.xml'
     | '/sport'
     | '/terms'
@@ -258,16 +294,19 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AboutRoute: typeof AboutRoute
+  AdminRoute: typeof AdminRoute
   AskRoute: typeof AskRoute
   ContactRoute: typeof ContactRoute
   EntertainmentRoute: typeof EntertainmentRoute
   HealthcheckRoute: typeof HealthcheckRoute
   MarketsRoute: typeof MarketsRoute
+  MyQuestionsRoute: typeof MyQuestionsRoute
   PoliticsRoute: typeof PoliticsRoute
   PredictionsRoute: typeof PredictionsRoute
   PrivacyRoute: typeof PrivacyRoute
   ReceiptsRoute: typeof ReceiptsRoute
   RobotsDottxtRoute: typeof RobotsDottxtRoute
+  SearchRoute: typeof SearchRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   SportRoute: typeof SportRoute
   TermsRoute: typeof TermsRoute
@@ -298,6 +337,13 @@ declare module '@tanstack/react-router' {
       path: '/sitemap.xml'
       fullPath: '/sitemap.xml'
       preLoaderRoute: typeof SitemapDotxmlRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/search': {
+      id: '/search'
+      path: '/search'
+      fullPath: '/search'
+      preLoaderRoute: typeof SearchRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/robots.txt': {
@@ -335,6 +381,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PoliticsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/my-questions': {
+      id: '/my-questions'
+      path: '/my-questions'
+      fullPath: '/my-questions'
+      preLoaderRoute: typeof MyQuestionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/markets': {
       id: '/markets'
       path: '/markets'
@@ -368,6 +421,13 @@ declare module '@tanstack/react-router' {
       path: '/ask'
       fullPath: '/ask'
       preLoaderRoute: typeof AskRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin': {
+      id: '/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/about': {
@@ -418,16 +478,19 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AboutRoute: AboutRoute,
+  AdminRoute: AdminRoute,
   AskRoute: AskRoute,
   ContactRoute: ContactRoute,
   EntertainmentRoute: EntertainmentRoute,
   HealthcheckRoute: HealthcheckRoute,
   MarketsRoute: MarketsRoute,
+  MyQuestionsRoute: MyQuestionsRoute,
   PoliticsRoute: PoliticsRoute,
   PredictionsRoute: PredictionsRoute,
   PrivacyRoute: PrivacyRoute,
   ReceiptsRoute: ReceiptsRoute,
   RobotsDottxtRoute: RobotsDottxtRoute,
+  SearchRoute: SearchRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   SportRoute: SportRoute,
   TermsRoute: TermsRoute,
@@ -439,13 +502,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

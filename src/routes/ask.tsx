@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { cn } from "@/lib/utils";
 import { getBrowserFingerprint } from "@/hooks/useBrowserFingerprint";
+import { addToHistory, updateHistory } from "@/lib/questionHistory";
 
 export const Route = createFileRoute("/ask")({
   head: () => ({
@@ -89,6 +90,7 @@ function AskPage() {
       if (!canSubmit) return;
       reset();
       setStreaming(true);
+      const historyEntry = addToHistory({ question: question.trim() });
 
       const fingerprint = await getBrowserFingerprint();
       const ctrl = new AbortController();
@@ -178,6 +180,10 @@ function AskPage() {
                 const slug = (evt.data as { slug?: string }).slug;
                 const domain = (evt.data as { domain?: string }).domain;
                 if (slug && domain) {
+                  updateHistory(historyEntry.id, {
+                    eventSlug: slug,
+                    eventDomain: domain,
+                  });
                   setSuccess({ slug, domain });
                   setTimeout(() => {
                     void navigate({

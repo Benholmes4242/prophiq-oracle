@@ -1,10 +1,12 @@
 import { Link } from "@tanstack/react-router";
+import { DigestSignup } from "./DigestSignup";
 
 const FOOTER_LINKS = {
   Product: [
     { label: "Ask", to: "/ask" },
     { label: "Receipts", to: "/receipts" },
     { label: "All predictions", to: "/predictions" },
+    { label: "Your questions", to: "/my-questions" },
   ],
   Domains: [
     { label: "Sport", to: "/sport" },
@@ -55,6 +57,11 @@ export function Footer() {
         >
           Calibrated forecasts for every upcoming event.
         </p>
+
+        <div className="mb-8">
+          <DigestSignup source="footer" />
+        </div>
+
 
         <div className="mb-8 grid grid-cols-1 gap-7 sm:grid-cols-3">
           {Object.entries(FOOTER_LINKS).map(([heading, items]) => (
