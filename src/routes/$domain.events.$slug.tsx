@@ -5,8 +5,6 @@
 // mode='both'.
 
 import { useEffect, useMemo, useState } from "react";
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const _unused = useState;
 import { createFileRoute, notFound, useRouter } from "@tanstack/react-router";
 import { SiteShell } from "@/components/site/SiteShell";
 import { SourceBadge } from "@/components/site/SourceBadge";
