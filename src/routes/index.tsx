@@ -1,10 +1,12 @@
-import { useEffect, useRef, useState, type FormEvent } from "react";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useState } from "react";
+import { createFileRoute } from "@tanstack/react-router";
 import { Header } from "@/components/site/Header";
 import { Footer } from "@/components/site/Footer";
 import { TodaysLeadCard } from "@/components/site/TodaysLeadCard";
 import { AlsoTodayList } from "@/components/site/AlsoTodayList";
 import { WhatWeAnalyseSection } from "@/components/site/WhatWeAnalyseSection";
+import { AskInput } from "@/components/site/AskInput";
+import { AskSheet } from "@/components/site/AskSheet";
 import {
   ScoredYesterday,
   ScoredYesterdayHeader,

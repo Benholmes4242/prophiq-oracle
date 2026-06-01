@@ -32,7 +32,7 @@ function AdminPage() {
 
   return (
     <div style={{ background: "var(--bg)", color: "var(--ink)" }}>
-      <Header />
+      <Header showTabs={false} />
       <main className="mx-auto max-w-2xl px-5 pb-12 pt-9">
         {!authed ? (
           <div
