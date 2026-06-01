@@ -99,7 +99,12 @@ Deno.serve(async (req) => {
         await recordOutcome("rejected_moderation");
         sse.close(); return;
       }
-      const domainId = mod.domain && tryGetDomain(mod.domain) ? mod.domain : "other";
+      const domainId = mod.domain && tryGetDomain(mod.domain) ? mod.domain : null;
+      if (!domainId) {
+        sse.send({ stage: "moderation", status: "error", message: "We couldn't categorise this question. Try one more specific to sport, politics, markets, or entertainment.", data: mod });
+        await recordOutcome("rejected_moderation");
+        sse.close(); return;
+      }
       const normalized = mod.normalized_question ?? question;
       const startsAt = mod.starts_at ?? today.toISOString();
       const resolvesAt = defaultResolvesAt(mod, today);
@@ -198,7 +203,7 @@ Deno.serve(async (req) => {
 
       // ----- 7. DONE -----
       await recordOutcome("accepted");
-      sse.send({ stage: "done", status: "done", data: { event_id: event.id, prediction_id: prediction.id, slug: event.slug } });
+      sse.send({ stage: "done", status: "done", data: { event_id: event.id, prediction_id: prediction.id, slug: event.slug, domain: domainId } });
       sse.close();
     } catch (err) {
       sse.send({ stage: "done", status: "error", message: (err as Error).message });
