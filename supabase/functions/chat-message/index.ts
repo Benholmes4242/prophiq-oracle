@@ -7,6 +7,7 @@
 import { perplexityChat } from "../_shared/perplexity.ts";
 import { check, truncateQuestion, type RateLimitChecker } from "../_shared/rateLimit.ts";
 import { getServiceClient } from "../_shared/supabaseClient.ts";
+import { scoreToConfidence } from "../_shared/confidence.ts";
 import {
   handleCorsPreflight, jsonResponse, errorResponse,
   getFingerprint, getClientIp, hashIp,
@@ -58,7 +59,7 @@ Deno.serve(async (req) => {
     .from("events").select("id, title, question, domain, mode, starts_at").eq("id", body.event_id).single();
   if (evErr || !event) return errorResponse("event not found", 404);
   const { data: prediction } = await supabase
-    .from("predictions").select("ranked_outcomes, consensus_method, agreement_score")
+    .from("predictions").select("ranked_outcomes, agreement_score")
     .eq("event_id", body.event_id).eq("is_current", true).maybeSingle();
 
   // Get or create thread
@@ -90,10 +91,10 @@ Deno.serve(async (req) => {
   ];
   if (prediction) {
     contextLines.push(`Current top picks: ${JSON.stringify(prediction.ranked_outcomes)}`);
-    contextLines.push(`Consensus method: ${prediction.consensus_method}, agreement: ${prediction.agreement_score}`);
+    contextLines.push(`Confidence: ${scoreToConfidence(prediction.agreement_score)}`);
   }
 
-  const system = `You are a concise prediction-analysis assistant. Answer the user's follow-up about the event below. Use neutral language; if the event is in the markets domain, prepend "[Informational only — not financial advice] ". Cite sources where possible. Do not use betting/odds framing unless this is a sport event in odds mode.`;
+  const system = `You are a concise prediction-analysis assistant. Answer the user's follow-up about the event below. Use neutral language; if the event is in the markets domain, prepend "[Informational only — not financial advice] ". Cite sources where possible. Do not use betting/odds framing unless this is a sport event in odds mode. You must never mention "Borda", "consensus method", "multi-model", "LLM", or the specific number of models that contributed. Refer to model confidence only as "high", "medium", or "mixed".`;
   const history = (priorMsgs ?? []).map((m) => `${m.role.toUpperCase()}: ${m.content}`).join("\n");
   const userPrompt = `${contextLines.join("\n")}\n\nConversation so far:\n${history}\n\nUSER: ${message}`;
 

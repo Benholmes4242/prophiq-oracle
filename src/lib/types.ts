@@ -57,21 +57,27 @@ export interface RankedOutcome {
   is_dark_horse?: boolean;
 }
 
-export interface PredictionRow {
+export type ConfidenceTier = "high" | "medium" | "mixed";
+
+/**
+ * Public prediction shape — what clients receive. No raw scoring fields,
+ * model count, or aggregation method. The server maps internal scores to
+ * the {@link ConfidenceTier} enum via the `v_predictions_public` view.
+ */
+export interface PredictionPublic {
   id: string;
   event_id: string;
   mode: "prediction" | "odds";
   ranked_outcomes: RankedOutcome[];
   alternates: RankedOutcome[] | null;
-  consensus_method: "weighted_borda_count" | "single_model_fallback";
-  consensus_score: number | null;
-  /** 0-100 scale representing how much models agree (higher = more agreement). */
-  agreement_score: number | null;
-  model_results: unknown[];
+  confidence: ConfidenceTier;
   prompt_version: string;
   is_current: boolean;
   generated_at: string;
 }
+
+/** Back-compat alias. Public shape only — do not add internal fields here. */
+export type PredictionRow = PredictionPublic;
 
 export interface EventWithPrediction {
   event: EventRow;

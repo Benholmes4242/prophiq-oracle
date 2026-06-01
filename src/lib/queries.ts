@@ -3,6 +3,7 @@
 
 import { supabase } from "./supabase";
 import type {
+  ConfidenceTier,
   DomainId,
   EventMode,
   EventRow,
@@ -63,7 +64,7 @@ export async function fetchEventsWithPredictions(
   const q = applyEventFilters(
     supabase
       .from("events")
-      .select(`${EVENT_COLS}, predictions!left(*)`)
+      .select(`${EVENT_COLS}, predictions:v_predictions_public!left(*)`)
       .eq("predictions.is_current", true)
       .eq("predictions.mode", mode),
     filter,
@@ -92,7 +93,7 @@ export async function fetchCurrentPrediction(
   mode: "prediction" | "odds" = "prediction",
 ): Promise<PredictionRow | null> {
   const { data, error } = await supabase
-    .from("predictions")
+    .from("v_predictions_public")
     .select("*")
     .eq("event_id", eventId)
     .eq("mode", mode)
@@ -104,7 +105,7 @@ export async function fetchCurrentPrediction(
 
 export async function fetchRecentPicks(limit = 6): Promise<EventWithPrediction[]> {
   const { data, error } = await supabase
-    .from("predictions")
+    .from("v_predictions_public")
     .select(`*, event:events!inner(${EVENT_COLS})`)
     .eq("is_current", true)
     .order("generated_at", { ascending: false })
@@ -179,8 +180,7 @@ export interface HomepagePick {
   starts_at: string;
   top_pick_label: string | null;
   top_pick_pct: number | null;
-  agreement_score: number | null;
-  model_count: number;
+  confidence: ConfidenceTier;
   reasoning_excerpt: string | null;
   is_marquee: boolean;
 }

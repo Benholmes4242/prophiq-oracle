@@ -1,50 +1,28 @@
-// Public-facing confidence indicator. Hides "X of N models agree" math
-// behind a calibrated-sounding HIGH / MEDIUM / MIXED label.
+// Public-facing confidence indicator. Accepts a server-mapped tier; the
+// 0–100 → tier mapping lives in SQL (public.score_to_confidence) and is
+// no longer recomputed on the client.
 
-type Tier = "high" | "medium" | "mixed";
+import type { ConfidenceTier } from "@/lib/types";
 
-const LABELS: Record<Tier, string> = {
+const LABELS: Record<ConfidenceTier, string> = {
   high: "HIGH",
   medium: "MEDIUM",
   mixed: "MIXED",
 };
 
-const COLORS: Record<Tier, string> = {
+const COLORS: Record<ConfidenceTier, string> = {
   high: "var(--green)",
   medium: "var(--amber)",
   mixed: "var(--amber-strong)",
 };
 
-function nToTier(n: number): Tier {
-  if (n >= 3) return "high";
-  if (n === 2) return "medium";
-  return "mixed";
-}
-
-/**
- * Map internal 0-100 agreement_score → public tier.
- * 80+ = HIGH, 50-79 = MEDIUM, anything else (or null) = MIXED.
- */
-export function tierFromScore(score: number | null | undefined): Tier {
-  if (score == null) return "mixed";
-  if (score >= 80) return "high";
-  if (score >= 50) return "medium";
-  return "mixed";
-}
-
 interface Props {
-  /** Number of models in agreement (1–3). If you have an agreement_score
-   *  (0–100), pass `score` instead. */
-  n?: number;
-  /** Internal agreement_score on a 0–100 scale. */
-  score?: number | null;
+  tier: ConfidenceTier;
   compact?: boolean;
   className?: string;
 }
 
-export function ConfidenceLabel({ n, score, compact = false, className }: Props) {
-  const tier: Tier =
-    typeof n === "number" ? nToTier(n) : tierFromScore(score ?? null);
+export function ConfidenceLabel({ tier, compact = false, className }: Props) {
   const color = COLORS[tier];
   const label = LABELS[tier];
 

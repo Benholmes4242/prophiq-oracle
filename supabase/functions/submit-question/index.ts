@@ -17,6 +17,7 @@ import { preFilter, runModeration, defaultResolvesAt } from "../_shared/moderati
 import { stableEventId } from "../_shared/domains/_util.ts";
 import { runConsensus } from "../_shared/runConsensus.ts";
 import { getServiceClient } from "../_shared/supabaseClient.ts";
+import { scoreToConfidence } from "../_shared/confidence.ts";
 import {
   handleCorsPreflight, errorResponse, jsonResponse,
   SseStream, getFingerprint, getClientIp, hashIp,
@@ -199,7 +200,7 @@ Deno.serve(async (req) => {
         sse.send({ stage: "consensus", status: "error", message: `prediction insert failed: ${pErr.message}` });
         await recordOutcome("failed"); sse.close(); return;
       }
-      sse.send({ stage: "consensus", status: "done", data: { agreement_score: consensusOut.consensus.agreement_score, consensus_score: consensusOut.consensus.consensus_score } });
+      sse.send({ stage: "consensus", status: "done", data: { confidence: scoreToConfidence(consensusOut.consensus.agreement_score) } });
 
       // ----- 7. DONE -----
       await recordOutcome("accepted");
