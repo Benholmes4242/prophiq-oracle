@@ -63,7 +63,7 @@ export function AlsoTodayList({ picks }: { picks: HomepagePick[] }) {
                 </div>
               )}
               <div className="mt-1.5 flex justify-end">
-                <ConfidenceLabel score={p.agreement_score} compact />
+                <ConfidenceLabel tier={p.confidence} compact />
               </div>
             </div>
           </Link>
