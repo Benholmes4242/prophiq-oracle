@@ -9,12 +9,56 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SportRouteImport } from './routes/sport'
+import { Route as PredictionsRouteImport } from './routes/predictions'
+import { Route as PoliticsRouteImport } from './routes/politics'
+import { Route as MarketsRouteImport } from './routes/markets'
 import { Route as HealthcheckRouteImport } from './routes/healthcheck'
+import { Route as EntertainmentRouteImport } from './routes/entertainment'
+import { Route as AskRouteImport } from './routes/ask'
+import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as DomainTrackRecordRouteImport } from './routes/$domain.track-record'
+import { Route as DomainEventsSlugRouteImport } from './routes/$domain.events.$slug'
 
+const SportRoute = SportRouteImport.update({
+  id: '/sport',
+  path: '/sport',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PredictionsRoute = PredictionsRouteImport.update({
+  id: '/predictions',
+  path: '/predictions',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PoliticsRoute = PoliticsRouteImport.update({
+  id: '/politics',
+  path: '/politics',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MarketsRoute = MarketsRouteImport.update({
+  id: '/markets',
+  path: '/markets',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const HealthcheckRoute = HealthcheckRouteImport.update({
   id: '/healthcheck',
   path: '/healthcheck',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EntertainmentRoute = EntertainmentRouteImport.update({
+  id: '/entertainment',
+  path: '/entertainment',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AskRoute = AskRouteImport.update({
+  id: '/ask',
+  path: '/ask',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AboutRoute = AboutRouteImport.update({
+  id: '/about',
+  path: '/about',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -22,40 +66,169 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DomainTrackRecordRoute = DomainTrackRecordRouteImport.update({
+  id: '/$domain/track-record',
+  path: '/$domain/track-record',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DomainEventsSlugRoute = DomainEventsSlugRouteImport.update({
+  id: '/$domain/events/$slug',
+  path: '/$domain/events/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/about': typeof AboutRoute
+  '/ask': typeof AskRoute
+  '/entertainment': typeof EntertainmentRoute
   '/healthcheck': typeof HealthcheckRoute
+  '/markets': typeof MarketsRoute
+  '/politics': typeof PoliticsRoute
+  '/predictions': typeof PredictionsRoute
+  '/sport': typeof SportRoute
+  '/$domain/track-record': typeof DomainTrackRecordRoute
+  '/$domain/events/$slug': typeof DomainEventsSlugRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/about': typeof AboutRoute
+  '/ask': typeof AskRoute
+  '/entertainment': typeof EntertainmentRoute
   '/healthcheck': typeof HealthcheckRoute
+  '/markets': typeof MarketsRoute
+  '/politics': typeof PoliticsRoute
+  '/predictions': typeof PredictionsRoute
+  '/sport': typeof SportRoute
+  '/$domain/track-record': typeof DomainTrackRecordRoute
+  '/$domain/events/$slug': typeof DomainEventsSlugRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/about': typeof AboutRoute
+  '/ask': typeof AskRoute
+  '/entertainment': typeof EntertainmentRoute
   '/healthcheck': typeof HealthcheckRoute
+  '/markets': typeof MarketsRoute
+  '/politics': typeof PoliticsRoute
+  '/predictions': typeof PredictionsRoute
+  '/sport': typeof SportRoute
+  '/$domain/track-record': typeof DomainTrackRecordRoute
+  '/$domain/events/$slug': typeof DomainEventsSlugRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/healthcheck'
+  fullPaths:
+    | '/'
+    | '/about'
+    | '/ask'
+    | '/entertainment'
+    | '/healthcheck'
+    | '/markets'
+    | '/politics'
+    | '/predictions'
+    | '/sport'
+    | '/$domain/track-record'
+    | '/$domain/events/$slug'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/healthcheck'
-  id: '__root__' | '/' | '/healthcheck'
+  to:
+    | '/'
+    | '/about'
+    | '/ask'
+    | '/entertainment'
+    | '/healthcheck'
+    | '/markets'
+    | '/politics'
+    | '/predictions'
+    | '/sport'
+    | '/$domain/track-record'
+    | '/$domain/events/$slug'
+  id:
+    | '__root__'
+    | '/'
+    | '/about'
+    | '/ask'
+    | '/entertainment'
+    | '/healthcheck'
+    | '/markets'
+    | '/politics'
+    | '/predictions'
+    | '/sport'
+    | '/$domain/track-record'
+    | '/$domain/events/$slug'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AboutRoute: typeof AboutRoute
+  AskRoute: typeof AskRoute
+  EntertainmentRoute: typeof EntertainmentRoute
   HealthcheckRoute: typeof HealthcheckRoute
+  MarketsRoute: typeof MarketsRoute
+  PoliticsRoute: typeof PoliticsRoute
+  PredictionsRoute: typeof PredictionsRoute
+  SportRoute: typeof SportRoute
+  DomainTrackRecordRoute: typeof DomainTrackRecordRoute
+  DomainEventsSlugRoute: typeof DomainEventsSlugRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/sport': {
+      id: '/sport'
+      path: '/sport'
+      fullPath: '/sport'
+      preLoaderRoute: typeof SportRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/predictions': {
+      id: '/predictions'
+      path: '/predictions'
+      fullPath: '/predictions'
+      preLoaderRoute: typeof PredictionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/politics': {
+      id: '/politics'
+      path: '/politics'
+      fullPath: '/politics'
+      preLoaderRoute: typeof PoliticsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/markets': {
+      id: '/markets'
+      path: '/markets'
+      fullPath: '/markets'
+      preLoaderRoute: typeof MarketsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/healthcheck': {
       id: '/healthcheck'
       path: '/healthcheck'
       fullPath: '/healthcheck'
       preLoaderRoute: typeof HealthcheckRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/entertainment': {
+      id: '/entertainment'
+      path: '/entertainment'
+      fullPath: '/entertainment'
+      preLoaderRoute: typeof EntertainmentRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ask': {
+      id: '/ask'
+      path: '/ask'
+      fullPath: '/ask'
+      preLoaderRoute: typeof AskRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/about': {
+      id: '/about'
+      path: '/about'
+      fullPath: '/about'
+      preLoaderRoute: typeof AboutRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -65,12 +238,35 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/$domain/track-record': {
+      id: '/$domain/track-record'
+      path: '/$domain/track-record'
+      fullPath: '/$domain/track-record'
+      preLoaderRoute: typeof DomainTrackRecordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/$domain/events/$slug': {
+      id: '/$domain/events/$slug'
+      path: '/$domain/events/$slug'
+      fullPath: '/$domain/events/$slug'
+      preLoaderRoute: typeof DomainEventsSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AboutRoute: AboutRoute,
+  AskRoute: AskRoute,
+  EntertainmentRoute: EntertainmentRoute,
   HealthcheckRoute: HealthcheckRoute,
+  MarketsRoute: MarketsRoute,
+  PoliticsRoute: PoliticsRoute,
+  PredictionsRoute: PredictionsRoute,
+  SportRoute: SportRoute,
+  DomainTrackRecordRoute: DomainTrackRecordRoute,
+  DomainEventsSlugRoute: DomainEventsSlugRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
