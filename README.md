@@ -13,6 +13,26 @@ are run manually with the Supabase CLI from your machine.
   supabase link --project-ref rkktqrqsmoumnklvsahg
   ```
 
+## Why migrations live under `db/migrations/`, not `supabase/migrations/`
+
+The Lovable agent is sandboxed away from `supabase/migrations/` (that path is
+reserved for Lovable Cloud's managed migrations, which we are NOT using).
+All schema SQL is authored under `db/migrations/` instead. Before running
+`supabase db push` for the first time on a new clone, mirror it:
+
+```bash
+mkdir -p supabase/migrations
+cp db/migrations/*.sql supabase/migrations/
+```
+
+Or symlink (Linux/macOS):
+```bash
+mkdir -p supabase
+ln -s ../db/migrations supabase/migrations
+```
+
+The `supabase/migrations/` path itself is gitignored to avoid confusion.
+
 ## Environment variables
 
 ### Frontend — `.env.local` (already created locally, gitignored)
@@ -38,9 +58,10 @@ Run each step from the repo root. Verify the previous step before moving on.
 
 ### 1. Schema (Phase 1)
 ```bash
+mkdir -p supabase/migrations
+cp -n db/migrations/*.sql supabase/migrations/   # first time only / when new migrations land
 supabase db push
 ```
-Pushes everything under `supabase/migrations/` to the linked project.
 
 **Verify:** in Supabase SQL editor:
 ```sql
@@ -68,7 +89,7 @@ curl -i -X POST https://rkktqrqsmoumnklvsahg.supabase.co/functions/v1/discover-e
 ```
 
 ### 3. Cron (Phase 5)
-Open `supabase/cron.sql` in the Supabase SQL editor and run it as one transaction.
+Open `db/cron.sql` in the Supabase SQL editor and run it as one transaction.
 Verify:
 ```sql
 SELECT jobname, schedule, active FROM cron.job ORDER BY jobname;
