@@ -23,6 +23,8 @@ export interface EventsFilter {
   limit?: number;
   /** Sort: 'starts_at_asc' (default, upcoming first) or 'created_at_desc'. */
   order?: "starts_at_asc" | "starts_at_desc" | "created_at_desc";
+  /** Filter to events whose starts_at is strictly before this ISO timestamp. */
+  startedBefore?: string;
 }
 
 function applyEventFilters(q: any, filter: EventsFilter): any {
@@ -31,12 +33,16 @@ function applyEventFilters(q: any, filter: EventsFilter): any {
     if (Array.isArray(filter.domain)) out = out.in("domain", filter.domain);
     else out = out.eq("domain", filter.domain);
   }
-  if (filter.mode) out = out.eq("mode", filter.mode);
+  // Mode filter: events with mode='both' support either prediction or odds,
+  // so include them when the user picks a specific mode.
+  if (filter.mode === "odds") out = out.in("mode", ["odds", "both"]);
+  else if (filter.mode === "prediction") out = out.in("mode", ["prediction", "both"]);
   if (filter.source) out = out.eq("source", filter.source);
   if (filter.status) {
     if (Array.isArray(filter.status)) out = out.in("status", filter.status);
     else out = out.eq("status", filter.status);
   }
+  if (filter.startedBefore) out = out.lt("starts_at", filter.startedBefore);
   const order = filter.order ?? "starts_at_asc";
   if (order === "starts_at_asc") out = out.order("starts_at", { ascending: true });
   else if (order === "starts_at_desc") out = out.order("starts_at", { ascending: false });
@@ -44,6 +50,7 @@ function applyEventFilters(q: any, filter: EventsFilter): any {
   if (filter.limit) out = out.limit(filter.limit);
   return out;
 }
+
 
 export async function fetchEvents(filter: EventsFilter = {}): Promise<EventRow[]> {
   const q = applyEventFilters(supabase.from("events").select(EVENT_COLS), filter);
