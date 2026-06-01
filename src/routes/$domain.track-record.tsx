@@ -9,7 +9,7 @@ export const Route = createFileRoute("/$domain/track-record")({
   head: () => ({
     meta: [
       { title: "Track record — Prophiq" },
-      { name: "description", content: "Historical accuracy of Prophiq consensus predictions in this domain." },
+      { name: "description", content: "Historical accuracy of Prophiq forecasts in this domain." },
     ],
   }),
   beforeLoad: ({ params }) => {

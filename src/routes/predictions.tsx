@@ -57,7 +57,7 @@ export const Route = createFileRoute("/predictions")({
       {
         name: "description",
         content:
-          "Browse every consensus prediction across sport, politics, markets, and entertainment.",
+          "Browse every Prophiq forecast across sport, politics, markets, and entertainment.",
       },
     ],
   }),
@@ -114,7 +114,7 @@ function PredictionsPage() {
             All predictions
           </h1>
           <p className="mt-2 text-sm text-slate-600">
-            Filter the consensus feed by domain, mode, source, and status.
+            Filter the feed by domain, source, and status.
           </p>
         </header>
 

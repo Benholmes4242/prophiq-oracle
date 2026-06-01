@@ -6,7 +6,7 @@ export const Route = createFileRoute("/sport")({
   head: () => ({
     meta: [
       { title: "Sport predictions — Prophiq" },
-      { name: "description", content: "Consensus predictions for upcoming fixtures, finals, and head-to-head sporting events." },
+      { name: "description", content: "Prophiq forecasts for upcoming fixtures, finals, and head-to-head sporting events." },
     ],
   }),
   component: () => (

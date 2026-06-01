@@ -6,7 +6,7 @@ export const Route = createFileRoute("/politics")({
   head: () => ({
     meta: [
       { title: "Politics predictions — Prophiq" },
-      { name: "description", content: "Non-partisan consensus predictions for upcoming elections, votes, and political contests." },
+      { name: "description", content: "Non-partisan Prophiq forecasts for upcoming elections, votes, and political contests." },
     ],
   }),
   component: () => (
