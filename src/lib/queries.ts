@@ -180,8 +180,7 @@ export interface HomepagePick {
   starts_at: string;
   top_pick_label: string | null;
   top_pick_pct: number | null;
-  agreement_score: number | null;
-  model_count: number;
+  confidence: ConfidenceTier;
   reasoning_excerpt: string | null;
   is_marquee: boolean;
 }
