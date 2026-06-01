@@ -89,12 +89,68 @@ curl -i -X POST https://rkktqrqsmoumnklvsahg.supabase.co/functions/v1/discover-e
 ```
 
 ### 3. Cron (Phase 5)
-Open `db/cron.sql` in the Supabase SQL editor and run it as one transaction.
-Verify:
+
+Cron is one timestamped migration: `db/migrations/20260601010000_cron.sql`.
+It enables `pg_cron` + `pg_net`, defines three helper functions, and
+schedules three jobs that POST to the deployed edge functions.
+
+**One-time operator setup** — run in the Supabase SQL editor as a superuser
+BEFORE deploying the cron migration (otherwise the helpers raise a clear
+error when fired):
+
 ```sql
-SELECT jobname, schedule, active FROM cron.job ORDER BY jobname;
+ALTER DATABASE postgres SET app.prophiq.supabase_url     = 'https://rkktqrqsmoumnklvsahg.supabase.co';
+ALTER DATABASE postgres SET app.prophiq.service_role_key = '<service role key>';
+-- Reconnect (close + reopen SQL editor tab) so the GUCs are visible.
 ```
-All scheduled jobs should be `active = true`.
+
+Then push the migration the usual way (`supabase db push`).
+
+**Confirm jobs are scheduled:**
+```sql
+SELECT jobname, schedule, active FROM cron.job
+WHERE jobname LIKE 'prophiq_%' ORDER BY jobname;
+```
+Expect three rows, all `active = true`:
+- `prophiq_discover_events`        — `0 */4 * * *`
+- `prophiq_generate_predictions`   — `5 * * * *`
+- `prophiq_score_predictions`      — `15 * * * *`
+
+**Fire each job manually** (smoke test without waiting for the schedule):
+```sql
+-- discover-events (single async POST)
+SELECT public.cron_discover_events();
+
+-- generate-prediction (returns one row per dispatched (event, mode) pair)
+SELECT * FROM public.cron_generate_pending_predictions(50);
+
+-- score-prediction (same shape)
+SELECT * FROM public.cron_score_pending_events(100);
+
+-- inspect the resulting net.http requests + responses (newest first)
+SELECT id, status_code, content
+FROM net._http_response
+ORDER BY id DESC
+LIMIT 20;
+
+-- inspect cron run history
+SELECT jobid, runid, start_time, status, return_message
+FROM cron.job_run_details
+WHERE jobid IN (SELECT jobid FROM cron.job WHERE jobname LIKE 'prophiq_%')
+ORDER BY start_time DESC LIMIT 20;
+```
+
+**Disable a misbehaving job** (keeps the job row + history, just stops it firing):
+```sql
+UPDATE cron.job SET active = false WHERE jobname = 'prophiq_generate_predictions';
+-- re-enable
+UPDATE cron.job SET active = true  WHERE jobname = 'prophiq_generate_predictions';
+-- remove entirely
+SELECT cron.unschedule('prophiq_generate_predictions');
+```
+
+For `events.mode = 'both'`, the generate + score loops dispatch BOTH the
+`prediction` and `odds` variants per event automatically.
 
 ## Notes
 
