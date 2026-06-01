@@ -24,7 +24,7 @@ export function TodaysLeadCard({ pick }: { pick: HomepagePick }) {
         >
           {eyebrow} · {label.toUpperCase()}
         </span>
-        <ConfidenceLabel score={pick.agreement_score} />
+        <ConfidenceLabel tier={pick.confidence} />
       </div>
 
       <div className="px-5 pt-2">
