@@ -58,8 +58,6 @@ export const MODEL_IDS = {
 } as const;
 
 interface RawRanking {
-
-interface RawRanking {
   outcome_id?: string;
   rank?: number;
   probability?: number;
