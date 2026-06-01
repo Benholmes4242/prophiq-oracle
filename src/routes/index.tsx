@@ -6,7 +6,7 @@ import { TodaysLeadCard } from "@/components/site/TodaysLeadCard";
 import { AlsoTodayList } from "@/components/site/AlsoTodayList";
 import { WhatWeAnalyseSection } from "@/components/site/WhatWeAnalyseSection";
 import { AskInput } from "@/components/site/AskInput";
-import { AskSheet } from "@/components/site/AskSheet";
+import { AskInlinePanel } from "@/components/site/AskInlinePanel";
 import {
   ScoredYesterday,
   ScoredYesterdayHeader,
