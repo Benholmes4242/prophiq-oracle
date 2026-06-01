@@ -2,6 +2,13 @@ import { Link } from "@tanstack/react-router";
 import type { DomainId } from "@/lib/types";
 import { DOMAIN_LABEL, DOMAIN_TAGLINE } from "@/lib/types";
 
+const DOMAIN_TO: Record<DomainId, "/sport" | "/politics" | "/markets" | "/entertainment"> = {
+  sport: "/sport",
+  politics: "/politics",
+  markets: "/markets",
+  entertainment: "/entertainment",
+};
+
 export function DomainCard({
   domain,
   upcomingCount,
@@ -11,7 +18,7 @@ export function DomainCard({
 }) {
   return (
     <Link
-      to={`/${domain}` as "/sport"}
+      to={DOMAIN_TO[domain]}
       className="group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-[var(--brand-border)] bg-white p-5 transition-all hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md"
     >
       <div>
