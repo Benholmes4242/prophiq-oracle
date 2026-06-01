@@ -26,7 +26,7 @@ function assert(cond: unknown, msg: string) {
   );
   assert(result.method === "weighted_borda_count", "consensus uses borda when multi-model");
   assert(result.ranked_outcomes[0].outcome_id === "a", "consensus picks a as winner");
-  assert(result.agreement_score === 67, `agreement = 2/3 of models picked a (got ${result.agreement_score})`);
+  assert(result.agreement_score === 100, `pairwise top-5 overlap is total here (got ${result.agreement_score})`);
   assert(result.models_used.length === 3, "3 models used");
 }
 
