@@ -8,6 +8,8 @@ import {
   preFilter, coerceModerationResult, defaultResolvesAt, buildModerationPrompt,
 } from "../moderation.ts";
 import { hashIp, getClientIp, getFingerprint } from "../http.ts";
+import { sportAdapter } from "../domains/sport.ts";
+import type { DomainEvent, EventOutcome } from "../domain.ts";
 
 let pass = 0, fail = 0;
 function assert(cond: unknown, msg: string) {
