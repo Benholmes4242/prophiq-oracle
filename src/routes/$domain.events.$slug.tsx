@@ -151,38 +151,7 @@ function EventHeader({ event }: { event: EventRow }) {
   );
 }
 
-function ModeTabs({
-  mode,
-  onChange,
-}: {
-  mode: "prediction" | "odds";
-  onChange: (m: "prediction" | "odds") => void;
-}) {
-  return (
-    <div
-      role="tablist"
-      aria-label="Prediction mode"
-      className="mt-5 inline-flex rounded-lg border border-[var(--brand-border)] bg-white p-1"
-    >
-      {(["prediction", "odds"] as const).map((m) => (
-        <button
-          key={m}
-          role="tab"
-          aria-selected={mode === m}
-          onClick={() => onChange(m)}
-          className={
-            "rounded-md px-3 py-1.5 text-sm font-medium transition-colors " +
-            (mode === m
-              ? "bg-[var(--brand-ink)] text-white"
-              : "text-slate-600 hover:text-[var(--brand-ink)]")
-          }
-        >
-          {m === "prediction" ? "Prediction" : "Odds"}
-        </button>
-      ))}
-    </div>
-  );
-}
+// ModeTabs removed — no user-facing mode/odds switcher.
 
 function GamblingBanner() {
   return (
