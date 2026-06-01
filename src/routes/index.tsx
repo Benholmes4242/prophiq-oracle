@@ -10,36 +10,35 @@ import {
   ScoredYesterdayHeader,
 } from "@/components/site/ScoredYesterday";
 import { useHomepagePicks, useScoredYesterday } from "@/hooks/useEvents";
+import { getPublicBaseUrl } from "@/lib/publicUrl";
 
 export const Route = createFileRoute("/")({
-  head: () => ({
-    meta: [
-      { title: "Prophiq — What happens next?" },
-      {
-        name: "description",
-        content:
-          "From the Grand National to the FOMC, Prophiq forecasts every upcoming event worth following. Ask anything.",
-      },
-      { property: "og:title", content: "Prophiq — What happens next?" },
-      {
-        property: "og:description",
-        content: "Calibrated forecasts for every upcoming event. Ask anything.",
-      },
-      {
-        property: "og:image",
-        content: "https://prophiq-opinion-nexus.lovable.app/api/og/home",
-      },
-      { property: "og:image:width", content: "1200" },
-      { property: "og:image:height", content: "630" },
-      { property: "twitter:card", content: "summary_large_image" },
-      {
-        property: "twitter:image",
-        content: "https://prophiq-opinion-nexus.lovable.app/api/og/home",
-      },
-    ],
-  }),
+  head: () => {
+    const ogImage = `${getPublicBaseUrl()}/api/og/home`;
+    return {
+      meta: [
+        { title: "Prophiq — What happens next?" },
+        {
+          name: "description",
+          content:
+            "From the Grand National to the FOMC, Prophiq forecasts every upcoming event worth following. Ask anything.",
+        },
+        { property: "og:title", content: "Prophiq — What happens next?" },
+        {
+          property: "og:description",
+          content: "Calibrated forecasts for every upcoming event. Ask anything.",
+        },
+        { property: "og:image", content: ogImage },
+        { property: "og:image:width", content: "1200" },
+        { property: "og:image:height", content: "630" },
+        { property: "twitter:card", content: "summary_large_image" },
+        { property: "twitter:image", content: ogImage },
+      ],
+    };
+  },
   component: HomePage,
 });
+
 
 const EXAMPLES = [
   "Who'll win the Monaco GP?",

@@ -1,5 +1,6 @@
 import { Link, createFileRoute } from "@tanstack/react-router";
 import { Header } from "@/components/site/Header";
+import { getPublicBaseUrl } from "@/lib/publicUrl";
 import { Footer } from "@/components/site/Footer";
 import { ReceiptsHero } from "@/components/site/ReceiptsHero";
 import { AccuracyChart } from "@/components/site/AccuracyChart";
@@ -28,13 +29,13 @@ export const Route = createFileRoute("/receipts")({
       },
       {
         property: "og:url",
-        content: "https://prophiq-opinion-nexus.lovable.app/receipts",
+        content: `${getPublicBaseUrl()}/receipts`,
       },
     ],
     links: [
       {
         rel: "canonical",
-        href: "https://prophiq-opinion-nexus.lovable.app/receipts",
+        href: `${getPublicBaseUrl()}/receipts`,
       },
     ],
   }),

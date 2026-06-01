@@ -15,6 +15,7 @@ import { EventResolvedBanner } from "@/components/site/EventResolvedBanner";
 import { RelatedEvents } from "@/components/site/RelatedEvents";
 import { useCurrentPrediction } from "@/hooks/usePrediction";
 import { fetchEventBySlug, fetchEventResolution } from "@/lib/queries";
+import { getPublicBaseUrl } from "@/lib/publicUrl";
 import { DOMAINS, DOMAIN_LABEL } from "@/lib/types";
 import type { DomainId, EventRow, PredictionRow } from "@/lib/types";
 
@@ -33,8 +34,9 @@ export const Route = createFileRoute("/$domain/events/$slug")({
     const description =
       event.description ??
       `Calibrated prediction for ${event.title}. ${DOMAIN_LABEL[event.domain]} on Prophiq.`;
-    const url = `https://prophiq-opinion-nexus.lovable.app/${params.domain}/events/${params.slug}`;
-    const ogImage = `https://prophiq-opinion-nexus.lovable.app/api/og/event/${params.slug}`;
+    const base = getPublicBaseUrl();
+    const url = `${base}/${params.domain}/events/${params.slug}`;
+    const ogImage = `${base}/api/og/event/${params.slug}`;
     const jsonLd = {
       "@context": "https://schema.org",
       "@type": "Event",

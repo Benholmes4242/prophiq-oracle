@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { LegalPage } from "@/components/site/LegalPage";
+import { getPublicBaseUrl } from "@/lib/publicUrl";
 
 export const Route = createFileRoute("/contact")({
   head: () => ({
@@ -15,7 +16,7 @@ export const Route = createFileRoute("/contact")({
     links: [
       {
         rel: "canonical",
-        href: "https://prophiq-opinion-nexus.lovable.app/contact",
+        href: `${getPublicBaseUrl()}/contact`,
       },
     ],
   }),

@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { createClient } from "@supabase/supabase-js";
-import { renderOgSvg } from "@/lib/og";
+import { renderOgPng, transparentPngFallback } from "@/lib/og";
 
 export const Route = createFileRoute("/api/og/event/$slug")({
   server: {
@@ -26,23 +26,25 @@ export const Route = createFileRoute("/api/og/event/$slug")({
             .maybeSingle();
 
           if (!event) {
-            const svg = renderOgSvg({
+            const png = await renderOgPng({
               eyebrow: "Prophiq",
               title: "Event not found",
             });
-            return new Response(svg, {
+            return new Response(png as unknown as BodyInit, {
               status: 200,
               headers: {
-                "Content-Type": "image/svg+xml; charset=utf-8",
+                "Content-Type": "image/png",
                 "Cache-Control": "public, max-age=300",
               },
             });
           }
 
+          const ev = event as { id: string; title: string; domain: string };
+
           const { data: pred } = await sb
             .from("v_predictions_public")
             .select("ranked_outcomes")
-            .eq("event_id", (event as { id: string }).id)
+            .eq("event_id", ev.id)
             .eq("is_current", true)
             .eq("mode", "prediction")
             .maybeSingle();
@@ -50,35 +52,35 @@ export const Route = createFileRoute("/api/og/event/$slug")({
           const top =
             (
               pred as {
-                ranked_outcomes?: Array<{ label?: string; probability?: number }>;
+                ranked_outcomes?: Array<{
+                  outcome_label?: string;
+                  label?: string;
+                  probability?: number;
+                }>;
               } | null
             )?.ranked_outcomes?.[0] ?? null;
 
-          const svg = renderOgSvg({
-            eyebrow: `${(event as { domain: string }).domain} · Call`,
-            title: (event as { title: string }).title,
-            topPickLabel: top?.label ?? null,
+          const png = await renderOgPng({
+            eyebrow: `${ev.domain.toUpperCase()} · CALL`,
+            title: ev.title,
+            topPickLabel: top?.outcome_label ?? top?.label ?? null,
             topPickPct: top?.probability ?? null,
           });
 
-          return new Response(svg, {
+          return new Response(png as unknown as BodyInit, {
             status: 200,
             headers: {
-              "Content-Type": "image/svg+xml; charset=utf-8",
+              "Content-Type": "image/png",
               "Cache-Control":
                 "public, max-age=3600, s-maxage=86400, stale-while-revalidate=86400",
             },
           });
         } catch (err) {
-          const svg = renderOgSvg({
-            eyebrow: "Prophiq",
-            title: "What happens next?",
-          });
-          return new Response(svg, {
-            status: 200,
+          console.error("OG event render failed:", err);
+          return new Response(transparentPngFallback() as unknown as BodyInit, {
+            status: 503,
             headers: {
-              "Content-Type": "image/svg+xml; charset=utf-8",
-              "Cache-Control": "public, max-age=60",
+              "Content-Type": "image/png",
               "X-Og-Error": String((err as Error).message ?? err).slice(0, 120),
             },
           });
