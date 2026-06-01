@@ -78,7 +78,14 @@ export function useChat(eventId: string | undefined) {
             fingerprint,
           }),
         });
-        if (!res.ok) throw new Error(`Chat failed (${res.status})`);
+        if (!res.ok) {
+          if (res.status === 429) {
+            const err = new Error("rate_limited");
+            (err as Error & { status?: number }).status = 429;
+            throw err;
+          }
+          throw new Error(`Chat failed (${res.status})`);
+        }
         const json = (await res.json()) as {
           thread_id: string;
           assistant_message?: ChatMessage;
