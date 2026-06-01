@@ -16,7 +16,7 @@ const EVENT_COLS =
   "id, domain, slug, title, description, question, starts_at, resolves_at, status, mode, source, metadata, created_at";
 
 export interface EventsFilter {
-  domain?: DomainId;
+  domain?: DomainId | DomainId[];
   status?: EventStatus | EventStatus[];
   mode?: EventMode;
   source?: EventSource;
@@ -25,24 +25,56 @@ export interface EventsFilter {
   order?: "starts_at_asc" | "starts_at_desc" | "created_at_desc";
 }
 
-export async function fetchEvents(filter: EventsFilter = {}): Promise<EventRow[]> {
-  let q = supabase.from("events").select(EVENT_COLS);
-  if (filter.domain) q = q.eq("domain", filter.domain);
-  if (filter.mode) q = q.eq("mode", filter.mode);
-  if (filter.source) q = q.eq("source", filter.source);
+function applyEventFilters(q: any, filter: EventsFilter): any {
+  let out = q;
+  if (filter.domain) {
+    if (Array.isArray(filter.domain)) out = out.in("domain", filter.domain);
+    else out = out.eq("domain", filter.domain);
+  }
+  if (filter.mode) out = out.eq("mode", filter.mode);
+  if (filter.source) out = out.eq("source", filter.source);
   if (filter.status) {
-    if (Array.isArray(filter.status)) q = q.in("status", filter.status);
-    else q = q.eq("status", filter.status);
+    if (Array.isArray(filter.status)) out = out.in("status", filter.status);
+    else out = out.eq("status", filter.status);
   }
   const order = filter.order ?? "starts_at_asc";
-  if (order === "starts_at_asc") q = q.order("starts_at", { ascending: true });
-  else if (order === "starts_at_desc") q = q.order("starts_at", { ascending: false });
-  else q = q.order("created_at", { ascending: false });
-  if (filter.limit) q = q.limit(filter.limit);
+  if (order === "starts_at_asc") out = out.order("starts_at", { ascending: true });
+  else if (order === "starts_at_desc") out = out.order("starts_at", { ascending: false });
+  else out = out.order("created_at", { ascending: false });
+  if (filter.limit) out = out.limit(filter.limit);
+  return out;
+}
 
+export async function fetchEvents(filter: EventsFilter = {}): Promise<EventRow[]> {
+  const q = applyEventFilters(supabase.from("events").select(EVENT_COLS), filter);
   const { data, error } = await q;
   if (error) throw error;
   return (data ?? []) as EventRow[];
+}
+
+/**
+ * Events + their current prediction (left-joined). Used by the predictions
+ * feed so each card can show its top pick without a per-card round trip.
+ */
+export async function fetchEventsWithPredictions(
+  filter: EventsFilter = {},
+  mode: "prediction" | "odds" = "prediction",
+): Promise<EventWithPrediction[]> {
+  const q = applyEventFilters(
+    supabase
+      .from("events")
+      .select(`${EVENT_COLS}, predictions!left(*)`)
+      .eq("predictions.is_current", true)
+      .eq("predictions.mode", mode),
+    filter,
+  );
+  const { data, error } = await q;
+  if (error) throw error;
+  const rows = (data ?? []) as Array<EventRow & { predictions: PredictionRow[] }>;
+  return rows.map((r) => {
+    const { predictions, ...event } = r;
+    return { event: event as EventRow, prediction: predictions?.[0] ?? null };
+  });
 }
 
 export async function fetchEventBySlug(slug: string): Promise<EventRow | null> {
