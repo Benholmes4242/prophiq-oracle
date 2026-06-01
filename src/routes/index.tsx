@@ -125,12 +125,6 @@ function HomePage() {
         </section>
       </main>
       <Footer />
-      <AskSheet
-        open={askOpen}
-        question={askQ}
-        topic="any"
-        onClose={() => setAskOpen(false)}
-      />
     </div>
   );
 }
