@@ -72,13 +72,14 @@ export function Drawer({ open, onClose }: DrawerProps) {
   return (
     <>
       <div
-        className={`fixed inset-0 z-[100] transition-opacity duration-[280ms] ease-out ${
+        className={`fixed inset-0 z-[100] ${
           open ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0"
         }`}
         style={{
           background: "rgba(11, 18, 32, 0.4)",
           backdropFilter: "blur(10px)",
           WebkitBackdropFilter: "blur(10px)",
+          transition: "opacity 280ms var(--ease-ios)",
         }}
         onClick={onClose}
         aria-hidden="true"
