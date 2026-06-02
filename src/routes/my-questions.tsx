@@ -30,9 +30,7 @@ function MyQuestionsPage() {
   }, []);
 
   return (
-    <div style={{ background: "var(--bg)", color: "var(--ink)" }}>
-      <Header />
-      <main className="mx-auto max-w-2xl px-5 pb-12 pt-9">
+    <main className="mx-auto max-w-2xl px-5 pb-12 pt-9">
         <div className="mb-6">
           <p
             className="font-mono text-[10px] uppercase tracking-[0.2em]"
