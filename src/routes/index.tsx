@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { AskInput } from "@/components/site/AskInput";
-import { AskInlinePanel } from "@/components/site/AskInlinePanel";
+import { AskInlinePanel, type AskPanelState } from "@/components/site/AskInlinePanel";
+import { LoadingOrb } from "@/components/site/LoadingOrb";
 import { FeatureCard } from "@/components/site/FeatureCard";
 import { SupportingTilesGrid } from "@/components/site/SupportingTilesGrid";
 import { TrackRecord } from "@/components/site/TrackRecord";
@@ -45,6 +46,7 @@ const CHIPS: Array<{ label: string; question: string }> = [
 function HomePage() {
   const picks = useHomepagePicks();
   const [askQ, setAskQ] = useState<string | null>(null);
+  const [askState, setAskState] = useState<AskPanelState>("loading");
   const [draft, setDraft] = useState("");
 
   const all = picks.data ?? [];
@@ -68,9 +70,10 @@ function HomePage() {
               question={askQ}
               topic="any"
               onDismiss={() => setAskQ(null)}
+              onStateChange={setAskState}
             />
           </section>
-          <div />
+          {askState === "loading" ? <LoadingOrb /> : <div />}
           <BottomCTA
             showChips={false}
             inputDisabled

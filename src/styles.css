@@ -349,3 +349,127 @@
   transform: translateY(-1px);
   border-color: var(--line-2) !important;
 }
+
+/* ============================================================
+ * Brief I — Ask flow polish
+ * ============================================================ */
+.loading-orb-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  min-height: 140px;
+  padding: 24px 0;
+  animation: orb-fade-in 400ms var(--ease-ios) backwards;
+}
+
+.loading-orb {
+  position: relative;
+  width: 88px;
+  height: 88px;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 35% 30%, rgba(255, 255, 255, 0.55) 0%, transparent 38%),
+    radial-gradient(circle at 50% 50%, #FFB066 0%, #F4731A 55%, #E25E0F 100%);
+  box-shadow:
+    0 0 32px rgba(244, 115, 26, 0.35),
+    0 0 64px rgba(244, 115, 26, 0.18),
+    inset 0 2px 4px rgba(255, 255, 255, 0.3);
+  animation: orb-breathe 2.4s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+.loading-orb-halo {
+  position: absolute;
+  inset: -20px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(244, 115, 26, 0.22) 0%, transparent 60%);
+  animation: orb-halo 2.4s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  pointer-events: none;
+}
+
+@keyframes orb-breathe {
+  0%, 100% { transform: scale(0.96); }
+  50%      { transform: scale(1.04); }
+}
+@keyframes orb-halo {
+  0%, 100% { opacity: 0.55; transform: scale(0.92); }
+  50%      { opacity: 1.0;  transform: scale(1.10); }
+}
+@keyframes orb-fade-in {
+  from { opacity: 0; transform: scale(0.9); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+.evidence-ticks {
+  list-style: none;
+  margin: 14px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.evidence-tick {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ink-3);
+  animation: evidence-tick-in 360ms var(--ease-ios) backwards;
+}
+.evidence-tick svg {
+  flex-shrink: 0;
+  color: var(--amber);
+  opacity: 0.7;
+}
+@keyframes evidence-tick-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.result-stagger {
+  animation: result-fade-up 360ms var(--ease-ios) backwards;
+}
+.result-stagger[data-r-stagger="0"] { animation-delay:   0ms; }
+.result-stagger[data-r-stagger="1"] { animation-delay:  80ms; }
+.result-stagger[data-r-stagger="2"] { animation-delay: 160ms; }
+.result-stagger[data-r-stagger="3"] { animation-delay: 240ms; }
+.result-stagger[data-r-stagger="4"] { animation-delay: 360ms; }
+@keyframes result-fade-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.ask-input {
+  position: relative;
+  overflow: hidden;
+}
+.ask-input::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 32px;
+  background: linear-gradient(to right, var(--bg-card), transparent);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 200ms var(--ease-ios);
+  z-index: 2;
+  border-top-left-radius: 999px;
+  border-bottom-left-radius: 999px;
+}
+.ask-input[data-scrolled="true"]::before {
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .loading-orb,
+  .loading-orb-halo,
+  .loading-orb-wrapper,
+  .evidence-tick,
+  .result-stagger {
+    animation: none !important;
+  }
+}
