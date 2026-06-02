@@ -88,35 +88,67 @@ export async function renderOgPng(opts: OgCardOpts): Promise<Uint8Array> {
         },
       },
     },
-    // brand mark
+    // brand mark — Phi + lowercase wordmark
     {
       type: "div",
       props: {
-        style: { display: "flex", alignItems: "center", gap: 14 },
+        style: { display: "flex", alignItems: "center", gap: 18 },
         children: [
           {
-            type: "div",
+            type: "svg",
             props: {
-              style: {
-                width: 44,
-                height: 44,
-                background: "#D97706",
-                borderRadius: 8,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                color: "white",
-                fontSize: 24,
-                fontWeight: 700,
-              },
-              children: "P",
+              width: 64,
+              height: 64,
+              viewBox: "0 0 200 200",
+              xmlns: "http://www.w3.org/2000/svg",
+              children: [
+                {
+                  type: "circle",
+                  props: {
+                    cx: 100,
+                    cy: 100,
+                    r: 54,
+                    fill: "none",
+                    stroke: "#F4731A",
+                    "stroke-width": 11,
+                    "stroke-linecap": "round",
+                  },
+                },
+                {
+                  type: "line",
+                  props: {
+                    x1: 100,
+                    y1: 18,
+                    x2: 100,
+                    y2: 182,
+                    stroke: "#F4731A",
+                    "stroke-width": 11,
+                    "stroke-linecap": "round",
+                  },
+                },
+              ],
             },
           },
           {
             type: "div",
             props: {
-              style: { fontSize: 28, fontWeight: 700, letterSpacing: -1 },
-              children: "Prophiq",
+              style: {
+                fontSize: 40,
+                fontWeight: 700,
+                letterSpacing: -1.2,
+                color: "#0A1117",
+                display: "flex",
+              },
+              children: [
+                "prophiq",
+                {
+                  type: "span",
+                  props: {
+                    style: { color: "#F4731A" },
+                    children: ".",
+                  },
+                },
+              ],
             },
           },
         ],

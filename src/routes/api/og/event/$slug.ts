@@ -27,7 +27,7 @@ export const Route = createFileRoute("/api/og/event/$slug")({
 
           if (!event) {
             const png = await renderOgPng({
-              eyebrow: "Prophiq",
+              eyebrow: "prophiq",
               title: "Event not found",
             });
             return new Response(png as unknown as BodyInit, {

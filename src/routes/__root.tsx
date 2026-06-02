@@ -81,27 +81,35 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Prophiq — Predict what happens next" },
+      { title: "prophiq." },
       {
         name: "description",
         content:
-          "From the Grand National to the FOMC, Prophiq forecasts every upcoming event worth following. Ask anything.",
+          "Calibrated predictions across sport, politics, markets, and entertainment.",
       },
-      { name: "author", content: "Prophiq" },
-      { property: "og:title", content: "Prophiq — Predict what happens next" },
+      { name: "author", content: "prophiq" },
+      { name: "theme-color", content: "#F4731A" },
+      { property: "og:site_name", content: "prophiq" },
+      { property: "og:title", content: "prophiq. — Predict what happens next" },
       {
         property: "og:description",
         content:
-          "From the Grand National to the FOMC, Prophiq forecasts every upcoming event worth following. Ask anything.",
+          "Calibrated predictions across sport, politics, markets, and entertainment.",
       },
       { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary" },
+      { property: "og:image", content: "/api/og/home" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
     links: [
       {
         rel: "stylesheet",
         href: appCss,
       },
+      { rel: "icon", type: "image/svg+xml", href: "/favicon.svg" },
+      { rel: "icon", type: "image/png", sizes: "32x32", href: "/favicon-32-amber.png" },
+      { rel: "icon", type: "image/png", sizes: "192x192", href: "/favicon-192-amber.png" },
+      { rel: "apple-touch-icon", sizes: "180x180", href: "/apple-touch-icon.png" },
+      { rel: "manifest", href: "/manifest.json" },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       {

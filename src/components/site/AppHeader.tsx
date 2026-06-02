@@ -1,4 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
+import { PhiMark } from "@/components/brand/PhiMark";
 
 interface AppHeaderProps {
   onMenuClick: () => void;
@@ -36,16 +37,9 @@ export function AppHeader({ onMenuClick }: AppHeaderProps) {
       <Link
         to="/"
         aria-label="Prophiq home"
-        className="grid h-[38px] w-[38px] place-items-center rounded-[11px] text-white"
-        style={{
-          background: "var(--amber)",
-          fontFamily: "var(--font-display)",
-          fontWeight: 800,
-          fontSize: 20,
-          letterSpacing: "-0.05em",
-        }}
+        className="grid h-[38px] w-[38px] place-items-center"
       >
-        P
+        <PhiMark size={32} strokeWidth={11} ariaLabel="Prophiq home" />
       </Link>
 
       <Link
