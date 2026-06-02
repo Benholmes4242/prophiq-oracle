@@ -1,5 +1,4 @@
 import { Link, createFileRoute } from "@tanstack/react-router";
-import { Header } from "@/components/site/Header";
 import { getPublicBaseUrl } from "@/lib/publicUrl";
 import { Footer } from "@/components/site/Footer";
 import { ReceiptsHero } from "@/components/site/ReceiptsHero";
@@ -7,9 +6,14 @@ import { AccuracyChart } from "@/components/site/AccuracyChart";
 import { NotableCallCard } from "@/components/site/NotableCallCard";
 import { RecentResolvedList } from "@/components/site/RecentResolvedList";
 import {
+  ScoredYesterday,
+  ScoredYesterdayHeader,
+} from "@/components/site/ScoredYesterday";
+import {
   useReceiptsStats,
   useRecentResolved,
   useNotableCalls,
+  useScoredYesterday,
 } from "@/hooks/useEvents";
 import type { RecentResolved, NotableCall } from "@/lib/queries";
 
