@@ -12,15 +12,15 @@ export function PicksCarousel({ picks }: PicksCarouselProps) {
   if (picks.length < 2) return null;
 
   return (
-    <section className="pb-2 pt-5">
+    <section className="pb-1">
       <div className="mb-3 flex items-center gap-2.5 px-4">
         <div
           className="font-mono text-[10px] font-semibold uppercase"
-          style={{ letterSpacing: "0.22em", color: "var(--amber-strong)" }}
+          style={{ letterSpacing: "0.22em", color: "var(--amber-2)" }}
         >
           More forecasts
         </div>
-        <div className="h-px flex-1" style={{ background: "var(--border-soft)" }} />
+        <div className="h-px flex-1" style={{ background: "var(--line)" }} />
       </div>
 
       <div
