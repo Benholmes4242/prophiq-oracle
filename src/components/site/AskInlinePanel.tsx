@@ -74,15 +74,17 @@ export function AskInlinePanel({
     <div
       role="region"
       aria-label="Your forecast"
-      className="relative rounded-xl"
+      className="relative"
       style={{
         background: "var(--bg-card)",
         border: "1px solid var(--amber)",
+        borderRadius: 18,
         padding: "22px",
         marginTop: 16,
         marginBottom: 24,
-        boxShadow: "0 2px 12px rgba(11, 18, 32, 0.04)",
-        animation: "panel-in 360ms cubic-bezier(0.32, 0.72, 0, 1)",
+        boxShadow:
+          "0 8px 32px rgba(244, 115, 26, 0.12), 0 1px 0 rgba(10, 17, 23, 0.02)",
+        animation: "panel-in 380ms var(--ease-ios)",
       }}
     >
       <button
