@@ -1,6 +1,13 @@
--- Extend search_events to match against the top pick's outcome label too.
--- Searching "France" now finds the "Who will win the FIFA World Cup?" event
--- even though "France" isn't in the title.
+-- Extend search_events to ALSO match the top pick's outcome_label.
+-- Previously the deployed function only matched event titles via FTS, so
+-- searches like "France" couldn't find the World Cup event (France isn't
+-- in the title).
+--
+-- Signature unchanged: keeps resolved_at via event_resolutions LEFT JOIN,
+-- keeps FTS-based title matching with ts_rank ordering, keeps
+-- v_predictions_public for the predictions join. Adds ILIKE on
+-- outcome_label as an OR condition, plus a defensive moderation filter
+-- and empty-query guard.
 
 create or replace function public.search_events(
   _q text,
@@ -18,28 +25,29 @@ returns table (
   top_pick_pct    numeric,
   confidence      public.confidence_tier
 )
-language sql stable
-security invoker
+language sql
+stable
 set search_path = public
 as $$
-  with q as (select '%' || coalesce(_q, '') || '%' as pat)
   select
-    e.id, e.domain, e.slug, e.title, e.status, e.starts_at, e.resolved_at,
-    (p.ranked_outcomes->0->>'label') as top_pick_label,
+    e.id, e.domain, e.slug, e.title, e.status, e.starts_at,
+    er.resolved_at,
+    (p.ranked_outcomes->0->>'outcome_label')          as top_pick_label,
     ((p.ranked_outcomes->0->>'probability')::numeric) as top_pick_pct,
     p.confidence
   from public.events e
   left join public.v_predictions_public p
     on p.event_id = e.id and p.is_current = true
+  left join public.event_resolutions er
+    on er.event_id = e.id
   where e.moderation_status = 'approved'
+    and coalesce(_q, '') <> ''
     and (
-      e.title ilike (select pat from q)
-      or (p.ranked_outcomes->0->>'label') ilike (select pat from q)
+      e.title_search @@ plainto_tsquery('english', _q)
+      or (p.ranked_outcomes->0->>'outcome_label') ilike '%' || _q || '%'
     )
   order by
-    case when e.status = 'scheduled' then 0 else 1 end,
-    e.starts_at asc nulls last
+    ts_rank(e.title_search, plainto_tsquery('english', _q)) desc,
+    e.starts_at desc
   limit greatest(_limit, 1);
 $$;
-
-grant execute on function public.search_events(text, int) to anon, authenticated;
