@@ -74,7 +74,7 @@ export async function runForecast(opts: RunForecastOpts): Promise<void> {
       return;
     }
 
-    onStage?.("reading");
+    onStage?.("rate_limit");
 
     const reader = res.body.getReader();
     const decoder = new TextDecoder();
@@ -114,8 +114,9 @@ export async function runForecast(opts: RunForecastOpts): Promise<void> {
         }
 
         if (evt.status === "start") {
-          const mapped = mapStage(evt.stage);
-          if (mapped) onStage?.(mapped);
+          if (KNOWN_STAGES.includes(evt.stage as WireStage)) {
+            onStage?.(evt.stage as WireStage);
+          }
         } else if (evt.status === "done") {
           if (evt.stage === "consensus" && evt.data) {
             const c = (evt.data as { confidence?: ConfidenceTier }).confidence;
