@@ -1,5 +1,4 @@
 import { useNavigate } from "@tanstack/react-router";
-import { ConfidenceLabel } from "@/components/site/ConfidenceLabel";
 import type { HomepagePick } from "@/lib/queries";
 
 interface Props {
