@@ -13,8 +13,7 @@ export function LegalPage({
   children: ReactNode;
 }) {
   return (
-    <div style={{ background: "var(--bg)", color: "var(--ink)" }}>
-      <Header />
+    <>
       <main className="mx-auto max-w-2xl">
         <section className="px-5 pb-6 pt-9">
           <h1
