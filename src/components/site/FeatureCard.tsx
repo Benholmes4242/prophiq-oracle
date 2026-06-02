@@ -1,5 +1,4 @@
 import { useNavigate } from "@tanstack/react-router";
-import { ConfidenceLabel } from "@/components/site/ConfidenceLabel";
 import type { HomepagePick } from "@/lib/queries";
 
 interface Props {
@@ -37,33 +36,22 @@ export function FeatureCard({ pick, stagger = 1 }: Props) {
         style={{
           display: "flex",
           justifyContent: "space-between",
-          alignItems: "flex-start",
+          alignItems: "center",
           gap: 12,
           minWidth: 0,
         }}
       >
         <div
+          className="font-mono"
           style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: 8,
-            minWidth: 0,
-            flex: 1,
+            fontSize: 10,
+            fontWeight: 700,
+            letterSpacing: "0.22em",
+            color: "var(--amber-2)",
+            textTransform: "uppercase",
           }}
         >
-          <div
-            className="font-mono"
-            style={{
-              fontSize: 10,
-              fontWeight: 700,
-              letterSpacing: "0.22em",
-              color: "var(--amber-2)",
-              textTransform: "uppercase",
-            }}
-          >
-            FEATURED · {pick.domain.toUpperCase()}
-          </div>
-          <ConfidenceLabel tier={pick.confidence} />
+          FEATURED · {pick.domain.toUpperCase()}
         </div>
         {pct != null && (
           <div
