@@ -255,7 +255,7 @@ function ResultBody({
         data-r-stagger="4"
         style={{ background: "var(--amber)", color: "white" }}
       >
-        Open full view →
+        Full prediction →
       </button>
     </div>
   );
