@@ -1,23 +1,24 @@
 // Event detail page. SSR-rendered for SEO with JSON-LD Event structured
-// data. Loader fetches the event row up-front so head() can produce
-// per-event meta + JSON-LD.
+// data. AppHeader comes from __root.tsx; this page provides its own bottom
+// UX (disclaimer + sticky CTA + chat sheet) and does NOT render SiteShell.
 
-import { useEffect, useMemo, useState } from "react";
+import { useState } from "react";
 import { createFileRoute, notFound, useRouter } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { SiteShell } from "@/components/site/SiteShell";
-import { SourceBadge } from "@/components/site/SourceBadge";
 import { DomainDisclaimer } from "@/components/site/DisclaimerBanner";
-import { PredictionView } from "@/components/site/PredictionView";
-import { ChatPanel } from "@/components/site/ChatPanel";
-import { ConfidenceLabel } from "@/components/site/ConfidenceLabel";
 import { EventResolvedBanner } from "@/components/site/EventResolvedBanner";
+import { EventHero } from "@/components/site/EventHero";
+import { ReasoningCard } from "@/components/site/ReasoningCard";
+import { OtherContenders } from "@/components/site/OtherContenders";
+import { MethodologyCard } from "@/components/site/MethodologyCard";
 import { RelatedEvents } from "@/components/site/RelatedEvents";
+import { StickyBottomCTA } from "@/components/site/StickyBottomCTA";
+import { ChatSheet } from "@/components/site/ChatSheet";
 import { useCurrentPrediction } from "@/hooks/usePrediction";
 import { fetchEventBySlug, fetchEventResolution } from "@/lib/queries";
 import { getPublicBaseUrl } from "@/lib/publicUrl";
 import { DOMAINS, DOMAIN_LABEL } from "@/lib/types";
-import type { DomainId, EventRow, PredictionRow } from "@/lib/types";
+import type { DomainId } from "@/lib/types";
 
 export const Route = createFileRoute("/$domain/events/$slug")({
   loader: async ({ params }) => {
@@ -79,50 +80,46 @@ export const Route = createFileRoute("/$domain/events/$slug")({
 function EventNotFound() {
   const { domain, slug } = Route.useParams();
   return (
-    <SiteShell>
-      <div className="mx-auto max-w-xl px-4 py-24 text-center sm:px-6">
-        <h1 className="font-display text-2xl tracking-tight" style={{ fontWeight: 700 }}>
-          Event not found
-        </h1>
-        <p className="mt-3 font-body text-sm" style={{ color: "var(--ink-soft)" }}>
-          We couldn't find an event at <span className="font-mono">/{domain}/events/{slug}</span>.
-        </p>
-      </div>
-    </SiteShell>
+    <div className="mx-auto max-w-xl px-4 py-24 text-center sm:px-6">
+      <h1 className="font-sans text-2xl tracking-tight" style={{ fontWeight: 700 }}>
+        Event not found
+      </h1>
+      <p className="mt-3 font-body text-sm" style={{ color: "var(--ink-soft)" }}>
+        We couldn't find an event at <span className="font-mono">/{domain}/events/{slug}</span>.
+      </p>
+    </div>
   );
 }
 
 function EventError({ error, reset }: { error: Error; reset: () => void }) {
   const router = useRouter();
   return (
-    <SiteShell>
-      <div className="mx-auto max-w-xl px-4 py-24 text-center sm:px-6">
-        <h1 className="font-display text-2xl tracking-tight" style={{ fontWeight: 700 }}>
-          This event didn't load
-        </h1>
-        <p className="mt-3 font-body text-sm" style={{ color: "var(--ink-soft)" }}>
-          {error.message}
-        </p>
-        <button
-          type="button"
-          onClick={() => {
-            router.invalidate();
-            reset();
-          }}
-          className="mt-6 rounded-md px-4 py-2 font-body text-sm font-medium text-white"
-          style={{ background: "var(--ink)" }}
-        >
-          Try again
-        </button>
-      </div>
-    </SiteShell>
+    <div className="mx-auto max-w-xl px-4 py-24 text-center sm:px-6">
+      <h1 className="font-sans text-2xl tracking-tight" style={{ fontWeight: 700 }}>
+        This event didn't load
+      </h1>
+      <p className="mt-3 font-body text-sm" style={{ color: "var(--ink-soft)" }}>
+        {error.message}
+      </p>
+      <button
+        type="button"
+        onClick={() => {
+          router.invalidate();
+          reset();
+        }}
+        className="mt-6 rounded-md px-4 py-2 font-body text-sm font-medium text-white"
+        style={{ background: "var(--ink)" }}
+      >
+        Try again
+      </button>
+    </div>
   );
 }
 
 function EventDetailPage() {
   const { event } = Route.useLoaderData();
   const mode: "prediction" | "odds" = event.mode === "odds" ? "odds" : "prediction";
-  const { data: prediction, isLoading, error } = useCurrentPrediction(event.id, mode);
+  const { data: prediction, isLoading } = useCurrentPrediction(event.id, mode);
   const isResolved = event.status === "resolved";
   const { data: resolution } = useQuery({
     queryKey: ["event-resolution", event.id],
@@ -130,239 +127,69 @@ function EventDetailPage() {
     enabled: isResolved,
     staleTime: 5 * 60_000,
   });
+  const [sheetOpen, setSheetOpen] = useState(false);
 
   const domainId = (DOMAINS as string[]).includes(event.domain)
     ? (event.domain as DomainId)
     : null;
 
-  const top = prediction?.ranked_outcomes?.[0] ?? null;
-  const topPct =
-    top?.probability != null ? Math.round(top.probability) : null;
+  const ranked = prediction?.ranked_outcomes ?? [];
+  const top = ranked[0] ?? null;
+  const others = ranked.slice(1);
+  const topPct = top?.probability != null ? Math.round(top.probability) : null;
 
   return (
-    <SiteShell>
+    <div className="flex min-h-full flex-col" style={{ background: "var(--bg)" }}>
       {domainId && <DomainDisclaimer domain={domainId} />}
-      <div className="mx-auto grid max-w-6xl gap-6 px-4 py-8 sm:px-6 lg:grid-cols-[1fr_360px]">
-        <article className="min-w-0 space-y-6">
+      <div className="mx-auto w-full max-w-2xl flex-1 px-4 pt-3 pb-2 sm:px-6">
+        <article className="min-w-0">
           {isResolved && resolution && (
-            <EventResolvedBanner
-              correct={resolution.top_pick_correct === true}
-              actualOutcome={resolution.actual_outcome}
-              topPickAtTime={top?.outcome_label ?? null}
-              topPickPct={top?.probability ?? null}
-            />
+            <div className="mb-4">
+              <EventResolvedBanner
+                correct={resolution.top_pick_correct === true}
+                actualOutcome={resolution.actual_outcome}
+                topPickAtTime={top?.outcome_label ?? null}
+                topPickPct={top?.probability ?? null}
+              />
+            </div>
           )}
+
           <EventHero
             event={event}
-            prediction={prediction ?? null}
-            topPct={topPct}
-            topLabel={top?.outcome_label ?? null}
+            topPickLabel={top?.outcome_label ?? null}
+            topPickPct={topPct}
           />
-          {event.domain === "sport" && mode === "odds" && <GamblingBanner />}
-          <PredictionBlock prediction={prediction ?? null} isLoading={isLoading} error={error as Error | null} />
+
+          {top ? (
+            <ReasoningCard pick={top} rank={1} />
+          ) : isLoading ? (
+            <div className="h-32 animate-pulse rounded-2xl" style={{ background: "var(--bg-card)" }} />
+          ) : (
+            <p
+              className="rounded-lg p-4 font-body text-sm mb-6"
+              style={{ border: "1px dashed var(--border-soft)", color: "var(--ink-soft)" }}
+            >
+              Prophiq is thinking — check back in a few minutes.
+            </p>
+          )}
+
+          {others.length > 0 && <OtherContenders picks={others} />}
+
+          <MethodologyCard />
+
           {domainId && (
             <RelatedEvents domain={domainId} excludeId={event.id} limit={3} />
           )}
+
+          <p className="disclaimer">
+            Forecasts are informational only. Markets coverage is not financial
+            advice. We do not endorse any candidate or party. 18+ where applicable.
+          </p>
         </article>
-        <ChatPanel eventId={event.id} />
       </div>
-    </SiteShell>
-  );
-}
 
-function EventHero({
-  event,
-  prediction,
-  topPct,
-  topLabel,
-}: {
-  event: EventRow;
-  prediction: PredictionRow | null;
-  topPct: number | null;
-  topLabel: string | null;
-}) {
-  const countdown = useCountdown(event.starts_at);
-  return (
-    <header
-      className="rounded-2xl p-5"
-      style={{
-        background: "var(--bg-card)",
-        border: "1.5px solid var(--border-strong)",
-      }}
-    >
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <span
-            className="font-mono text-[10px] tracking-[0.2em]"
-            style={{ color: "var(--amber-strong)", fontWeight: 600 }}
-          >
-            {DOMAIN_LABEL[event.domain].toUpperCase()}
-          </span>
-          <SourceBadge source={event.source} />
-        </div>
-        {prediction && <ConfidenceLabel tier={prediction.confidence} />}
-      </div>
-      <h1
-        className="mt-3 font-display tracking-[-0.02em]"
-        style={{ fontWeight: 700, fontSize: 28, lineHeight: 1.1 }}
-      >
-        {event.question || event.title}
-      </h1>
-      <p
-        className="mt-2 font-mono text-[11px]"
-        style={{ color: "var(--ink-faint)" }}
-        suppressHydrationWarning
-      >
-        {countdown}
-      </p>
-
-      {topLabel && (
-        <>
-          <hr
-            className="my-4 border-0"
-            style={{ height: 1, background: "var(--border-soft)" }}
-          />
-          <div className="flex items-end justify-between gap-4">
-            <div className="min-w-0">
-              <div
-                className="mb-1 font-mono text-[10px] tracking-[0.18em]"
-                style={{ color: "var(--ink-faint)", fontWeight: 600 }}
-              >
-                TOP PICK
-              </div>
-              <div
-                className="font-display text-[22px] leading-tight"
-                style={{ fontWeight: 600 }}
-              >
-                {topLabel}
-              </div>
-            </div>
-            {topPct != null && (
-              <div
-                className="font-mono leading-none tracking-[-0.03em]"
-                style={{ color: "var(--amber)", fontWeight: 600, fontSize: 56 }}
-              >
-                {topPct}
-                <span className="text-[28px]">%</span>
-              </div>
-            )}
-          </div>
-          {topPct != null && (
-            <div className="mt-3 prob-bar">
-              <span style={{ width: `${topPct}%` }} />
-            </div>
-          )}
-        </>
-      )}
-    </header>
-  );
-}
-
-function GamblingBanner() {
-  return (
-    <div
-      className="rounded-lg px-3 py-2 font-body text-xs sm:text-sm"
-      style={{
-        background: "var(--bg-tint)",
-        border: "1px solid var(--amber)",
-        color: "var(--ink)",
-      }}
-    >
-      <strong>Gamble responsibly.</strong> Odds are model-generated and informational. 18+. If
-      gambling is affecting your life, visit{" "}
-      <a
-        href="https://www.begambleaware.org"
-        target="_blank"
-        rel="noopener noreferrer"
-        className="underline"
-      >
-        BeGambleAware.org
-      </a>
-      .
+      <StickyBottomCTA onAskClick={() => setSheetOpen(true)} />
+      {sheetOpen && <ChatSheet eventId={event.id} onClose={() => setSheetOpen(false)} />}
     </div>
   );
-}
-
-function PredictionBlock({
-  prediction,
-  isLoading,
-  error,
-}: {
-  prediction: PredictionRow | null;
-  isLoading: boolean;
-  error: Error | null;
-}) {
-  if (isLoading) return <PredictionSkeleton />;
-  if (error) {
-    return (
-      <p
-        className="rounded-lg p-4 font-body text-sm"
-        style={{
-          background: "var(--bg-card)",
-          border: "1px solid var(--amber)",
-          color: "var(--ink)",
-        }}
-      >
-        Couldn't load this prediction. Please refresh and try again.
-      </p>
-    );
-  }
-  if (!prediction) {
-    return (
-      <p
-        className="rounded-lg p-4 font-body text-sm"
-        style={{
-          border: "1px dashed var(--border-soft)",
-          color: "var(--ink-soft)",
-        }}
-      >
-        Prophiq is thinking — check back in a few minutes.
-      </p>
-    );
-  }
-  return <PredictionView prediction={prediction} />;
-}
-
-function PredictionSkeleton() {
-  return (
-    <div className="space-y-3">
-      <div
-        className="h-28 animate-pulse rounded-xl"
-        style={{ background: "var(--bg-card)" }}
-      />
-      <div
-        className="h-16 animate-pulse rounded-xl"
-        style={{ background: "var(--bg-card)" }}
-      />
-      <div
-        className="h-16 animate-pulse rounded-xl"
-        style={{ background: "var(--bg-card)" }}
-      />
-    </div>
-  );
-}
-
-function useCountdown(iso: string): string {
-  const target = useMemo(() => new Date(iso).getTime(), [iso]);
-  const [, force] = useState(0);
-  useEffect(() => {
-    const id = setInterval(() => force((v) => v + 1), 60_000);
-    return () => clearInterval(id);
-  }, []);
-  const diff = target - Date.now();
-  const abs = Math.abs(diff);
-  const minutes = Math.floor(abs / 60_000);
-  const hours = Math.floor(minutes / 60);
-  const days = Math.floor(hours / 24);
-  let label: string;
-  if (days > 1) label = `${days} days`;
-  else if (hours >= 1) label = `${hours}h ${minutes % 60}m`;
-  else label = `${minutes}m`;
-  const when = new Date(iso).toLocaleString(undefined, {
-    month: "short",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  });
-  return diff > 0 ? `Starts in ${label} · ${when}` : `Started ${label} ago · ${when}`;
 }
