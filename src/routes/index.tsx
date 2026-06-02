@@ -155,7 +155,7 @@ function BottomCTA({
           color: "var(--ink)",
         }}
       >
-        What happens <span style={{ color: "var(--amber)" }}>next?</span>
+        Predict what happens <span style={{ color: "var(--amber)" }}>next</span>
       </div>
 
       {showChips && (
