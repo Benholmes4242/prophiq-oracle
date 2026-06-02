@@ -149,6 +149,8 @@ function HomePage() {
             <EmptyMarquee />
           )}
 
+          <PicksCarousel picks={restPicks} />
+
           <Link
             to="/predictions"
             className="mt-3.5 block py-2 text-center font-body text-[13px] font-semibold"
