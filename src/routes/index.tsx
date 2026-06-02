@@ -86,21 +86,18 @@ function HomePage() {
             </section>
 
             {restPicks.length >= 2 && (
-              <section className="pt-5">
-                <div className="px-1">
-                  <SectionLabel>MORE FORECASTS</SectionLabel>
+              <div className="-mx-4">
+                <PicksCarousel picks={restPicks} />
+                <div className="px-4">
+                  <Link
+                    to="/predictions"
+                    className="mt-2 block py-2 text-center font-body text-[13px] font-semibold"
+                    style={{ color: "var(--amber-2)" }}
+                  >
+                    See all picks →
+                  </Link>
                 </div>
-                <div className="-mx-4">
-                  <PicksCarousel picks={restPicks} />
-                </div>
-                <Link
-                  to="/predictions"
-                  className="mt-2 block py-2 text-center font-body text-[13px] font-semibold"
-                  style={{ color: "var(--amber-2)" }}
-                >
-                  See all picks →
-                </Link>
-              </section>
+              </div>
             )}
           </div>
         )}
