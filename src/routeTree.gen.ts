@@ -23,6 +23,7 @@ import { Route as MarketsRouteImport } from './routes/markets'
 import { Route as HealthcheckRouteImport } from './routes/healthcheck'
 import { Route as EntertainmentRouteImport } from './routes/entertainment'
 import { Route as ContactRouteImport } from './routes/contact'
+import { Route as AskedRouteImport } from './routes/asked'
 import { Route as AskRouteImport } from './routes/ask'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AboutRouteImport } from './routes/about'
@@ -102,6 +103,11 @@ const ContactRoute = ContactRouteImport.update({
   path: '/contact',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AskedRoute = AskedRouteImport.update({
+  id: '/asked',
+  path: '/asked',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AskRoute = AskRouteImport.update({
   id: '/ask',
   path: '/ask',
@@ -148,6 +154,7 @@ export interface FileRoutesByFullPath {
   '/about': typeof AboutRoute
   '/admin': typeof AdminRoute
   '/ask': typeof AskRoute
+  '/asked': typeof AskedRoute
   '/contact': typeof ContactRoute
   '/entertainment': typeof EntertainmentRoute
   '/healthcheck': typeof HealthcheckRoute
@@ -172,6 +179,7 @@ export interface FileRoutesByTo {
   '/about': typeof AboutRoute
   '/admin': typeof AdminRoute
   '/ask': typeof AskRoute
+  '/asked': typeof AskedRoute
   '/contact': typeof ContactRoute
   '/entertainment': typeof EntertainmentRoute
   '/healthcheck': typeof HealthcheckRoute
@@ -197,6 +205,7 @@ export interface FileRoutesById {
   '/about': typeof AboutRoute
   '/admin': typeof AdminRoute
   '/ask': typeof AskRoute
+  '/asked': typeof AskedRoute
   '/contact': typeof ContactRoute
   '/entertainment': typeof EntertainmentRoute
   '/healthcheck': typeof HealthcheckRoute
@@ -223,6 +232,7 @@ export interface FileRouteTypes {
     | '/about'
     | '/admin'
     | '/ask'
+    | '/asked'
     | '/contact'
     | '/entertainment'
     | '/healthcheck'
@@ -247,6 +257,7 @@ export interface FileRouteTypes {
     | '/about'
     | '/admin'
     | '/ask'
+    | '/asked'
     | '/contact'
     | '/entertainment'
     | '/healthcheck'
@@ -271,6 +282,7 @@ export interface FileRouteTypes {
     | '/about'
     | '/admin'
     | '/ask'
+    | '/asked'
     | '/contact'
     | '/entertainment'
     | '/healthcheck'
@@ -296,6 +308,7 @@ export interface RootRouteChildren {
   AboutRoute: typeof AboutRoute
   AdminRoute: typeof AdminRoute
   AskRoute: typeof AskRoute
+  AskedRoute: typeof AskedRoute
   ContactRoute: typeof ContactRoute
   EntertainmentRoute: typeof EntertainmentRoute
   HealthcheckRoute: typeof HealthcheckRoute
@@ -416,6 +429,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ContactRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/asked': {
+      id: '/asked'
+      path: '/asked'
+      fullPath: '/asked'
+      preLoaderRoute: typeof AskedRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/ask': {
       id: '/ask'
       path: '/ask'
@@ -480,6 +500,7 @@ const rootRouteChildren: RootRouteChildren = {
   AboutRoute: AboutRoute,
   AdminRoute: AdminRoute,
   AskRoute: AskRoute,
+  AskedRoute: AskedRoute,
   ContactRoute: ContactRoute,
   EntertainmentRoute: EntertainmentRoute,
   HealthcheckRoute: HealthcheckRoute,
@@ -502,13 +523,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

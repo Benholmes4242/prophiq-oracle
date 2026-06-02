@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useSearch } from "@tanstack/react-router";
 import { AskInput } from "@/components/site/AskInput";
 import { AskInlinePanel, type AskPanelState } from "@/components/site/AskInlinePanel";
 
@@ -10,6 +10,9 @@ import { useHomepagePicks } from "@/hooks/useEvents";
 import { getPublicBaseUrl } from "@/lib/publicUrl";
 
 export const Route = createFileRoute("/")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    q: typeof search.q === "string" ? search.q : undefined,
+  }),
   head: () => {
     const ogImage = `${getPublicBaseUrl()}/api/og/home`;
     return {
@@ -44,10 +47,11 @@ const CHIPS: Array<{ label: string; question: string }> = [
 ];
 
 function HomePage() {
+  const { q: initialQ } = useSearch({ from: "/" });
   const picks = useHomepagePicks();
   const [askQ, setAskQ] = useState<string | null>(null);
   const [askState, setAskState] = useState<AskPanelState>("loading");
-  const [draft, setDraft] = useState("");
+  const [draft, setDraft] = useState(() => initialQ ?? "");
 
   const all = picks.data ?? [];
   const feature = all.find((p) => p.is_marquee) ?? all[0] ?? null;
