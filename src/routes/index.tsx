@@ -3,6 +3,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { AskInput } from "@/components/site/AskInput";
 import { AskInlinePanel } from "@/components/site/AskInlinePanel";
 import { ConfidenceLabel } from "@/components/site/ConfidenceLabel";
+import { PicksCarousel } from "@/components/site/PicksCarousel";
 import { useHomepagePicks } from "@/hooks/useEvents";
 import type { HomepagePick } from "@/lib/queries";
 import { getPublicBaseUrl } from "@/lib/publicUrl";
