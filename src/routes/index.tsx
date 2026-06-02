@@ -4,6 +4,7 @@ import { AskInput } from "@/components/site/AskInput";
 import { AskInlinePanel } from "@/components/site/AskInlinePanel";
 import { ConfidenceLabel } from "@/components/site/ConfidenceLabel";
 import { PicksCarousel } from "@/components/site/PicksCarousel";
+import { TrackRecord } from "@/components/site/TrackRecord";
 import { useHomepagePicks } from "@/hooks/useEvents";
 import type { HomepagePick } from "@/lib/queries";
 import { getPublicBaseUrl } from "@/lib/publicUrl";
@@ -81,7 +82,7 @@ function HomePage() {
         </>
       ) : (
         <>
-          <section className="pt-3">
+          <section className="entry-animate pt-3" data-stagger="0">
             <SectionLabel>TOP PICK TODAY</SectionLabel>
             {picks.isLoading ? (
               <MarqueeSkeleton />
@@ -98,23 +99,29 @@ function HomePage() {
               <div className="px-4">
                 <Link
                   to="/predictions"
-                  className="block py-1.5 text-center font-body text-[13px] font-semibold"
+                  className="entry-animate block py-1.5 text-center font-body text-[13px] font-semibold"
+                  data-stagger="5"
                   style={{ color: "var(--amber-2)" }}
                 >
                   See all picks →
                 </Link>
               </div>
+              <TrackRecord stagger={6} />
             </section>
           ) : (
-            <div />
+            <div>
+              <TrackRecord stagger={6} />
+            </div>
           )}
 
-          <BottomCTA
-            showChips
-            draft={draft}
-            onDraftChange={setDraft}
-            onSubmit={ask}
-          />
+          <div className="entry-animate" data-stagger="7">
+            <BottomCTA
+              showChips
+              draft={draft}
+              onDraftChange={setDraft}
+              onSubmit={ask}
+            />
+          </div>
         </>
       )}
     </div>
@@ -208,7 +215,7 @@ function MarqueeCard({ pick }: { pick: HomepagePick }) {
       onKeyDown={(e) => {
         if (e.key === "Enter") open();
       }}
-      className="marquee-card cursor-pointer"
+      className="marquee-card pressable cursor-pointer"
       style={{
         background: "var(--bg-card)",
         border: "1px solid var(--line)",
