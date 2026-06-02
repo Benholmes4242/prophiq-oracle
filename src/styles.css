@@ -55,25 +55,37 @@
   --radius: 0.75rem;
 
   /* Prophiq Confident palette — warm paper + brand amber + deep ink */
-  --bg: #F7F4EE;
+  --bg: #F8F4EC;
   --bg-card: #FFFFFF;
   --bg-tint: #FFEAD4;
-  --ink: #0B1220;
-  --ink-soft: rgba(11, 18, 32, 0.72);
-  --ink-faint: rgba(11, 18, 32, 0.5);
+  --ink: #0A1117;
+  --ink-2: #3D4654;
+  --ink-3: #7C8593;
   --ink-whisper: rgba(11, 18, 32, 0.28);
   --amber: #F4731A;
-  --amber-strong: #DC5A0B;
+  --amber-2: #E25E0F;
   --green: #15803D;
-  --border-soft: rgba(11, 18, 32, 0.1);
-  --border-strong: rgba(11, 18, 32, 0.2);
+  --line: rgba(11, 18, 32, 0.1);
+  --line-2: #D8CAB4;
+  --chip-bg: #EFE9DC;
+  --chip-hover: #E8DECC;
+  --shadow-card: 0 1px 0 rgba(10, 17, 23, 0.02), 0 2px 8px rgba(10, 17, 23, 0.03);
+  --shadow-sm: 0 1px 2px rgba(10, 17, 23, 0.04);
+  --ease-ios: cubic-bezier(0.32, 0.72, 0, 1);
+
+  /* Aliases — keep legacy token names working during migration */
+  --ink-soft: var(--ink-2);
+  --ink-faint: var(--ink-3);
+  --amber-strong: var(--amber-2);
+  --border-soft: var(--line);
+  --border-strong: var(--line-2);
 
   /* Back-compat brand aliases so existing components keep rendering. */
   --brand-amber: var(--amber);
-  --brand-amber-text: var(--amber-strong);
+  --brand-amber-text: var(--amber-2);
   --brand-ink: var(--ink);
   --brand-bg: var(--bg);
-  --brand-border: var(--border-soft);
+  --brand-border: var(--line);
 
   /* Typography */
   --font-display: 'Bricolage Grotesque', system-ui, -apple-system, 'Segoe UI', sans-serif;
@@ -196,6 +208,16 @@
   display: none;
 }
 
+.ask-input:focus-within {
+  border-color: var(--ink) !important;
+  box-shadow: 0 4px 16px rgba(10, 17, 23, 0.08) !important;
+}
+
+@keyframes panel-in {
+  from { opacity: 0; transform: translateY(8px) scale(0.985); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
 /* Legal page long-form prose */
 .legal-prose h2 {
   font-family: var(--font-display);
@@ -222,4 +244,16 @@
 .legal-prose .not-prose h2,
 .legal-prose .not-prose p {
   all: revert;
+}
+
+.pick-card:hover {
+  transform: translateY(-1px);
+  border-color: var(--line-2) !important;
+  box-shadow: 0 1px 0 rgba(10, 17, 23, 0.02), 0 6px 18px rgba(10, 17, 23, 0.05) !important;
+}
+
+.marquee-card:hover {
+  transform: translateY(-1px);
+  border-color: var(--line-2) !important;
+  box-shadow: 0 1px 0 rgba(10, 17, 23, 0.02), 0 8px 24px rgba(10, 17, 23, 0.06) !important;
 }

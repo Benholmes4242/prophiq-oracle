@@ -45,122 +45,144 @@ const CHIPS: Array<{ label: string; question: string }> = [
 function HomePage() {
   const picks = useHomepagePicks();
   const [askQ, setAskQ] = useState<string | null>(null);
+  const [draft, setDraft] = useState("");
 
   const marquee =
     picks.data?.find((p) => p.is_marquee) ?? picks.data?.[0] ?? null;
   const restPicks =
     picks.data?.filter((p) => p !== marquee).slice(0, 4) ?? [];
 
-
   function ask(q: string) {
     const trimmed = q.trim();
     if (!trimmed) return;
     setAskQ(trimmed);
+    setDraft("");
   }
 
   return (
-    <main className="mx-auto max-w-2xl">
-      <section className="px-[22px] pb-4 pt-5">
-        <h1
-          className="font-display tracking-[-0.03em]"
-          style={{
-            fontWeight: 700,
-            lineHeight: 0.94,
-            fontSize: "clamp(42px, 12vw, 56px)",
-          }}
-        >
-          What happens
-          <br />
-          <span style={{ color: "var(--amber)" }}>next?</span>
-        </h1>
-        <p
-          className="mt-3.5 max-w-[30ch] font-body text-[14.5px] leading-[1.5]"
-          style={{ color: "var(--ink-soft)" }}
-        >
-          From the Grand National to the FOMC, we forecast every upcoming event
-          worth following.
-        </p>
-      </section>
+    <main className="mx-auto flex min-h-[100dvh] max-w-2xl flex-col">
+      <div className="flex min-h-0 flex-1 flex-col justify-between px-4 pb-4">
+        {/* TOP: picks or ask panel */}
+        {askQ ? (
+          <section className="pt-2">
+            <AskInlinePanel
+              key={askQ}
+              question={askQ}
+              topic="any"
+              onDismiss={() => setAskQ(null)}
+            />
+          </section>
+        ) : (
+          <div>
+            <section className="pt-4">
+              <SectionLabel>TOP PICK TODAY</SectionLabel>
+              {picks.isLoading ? (
+                <MarqueeSkeleton />
+              ) : marquee ? (
+                <MarqueeCard pick={marquee} />
+              ) : (
+                <EmptyMarquee />
+              )}
+            </section>
 
-      <section className="px-4 pt-3.5">
-        <AskInput
-          placeholder="Who'll win the Monaco GP?"
+            {restPicks.length >= 2 && (
+              <div className="-mx-4">
+                <PicksCarousel picks={restPicks} />
+                <div className="px-4">
+                  <Link
+                    to="/predictions"
+                    className="mt-2 block py-2 text-center font-body text-[13px] font-semibold"
+                    style={{ color: "var(--amber-2)" }}
+                  >
+                    See all picks →
+                  </Link>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* BOTTOM: hero invitation + chips + input */}
+        <BottomCTA
+          showChips={!askQ}
+          draft={draft}
+          onDraftChange={setDraft}
           onSubmit={ask}
         />
-      </section>
+      </div>
+    </main>
+  );
+}
 
-      {!askQ && (
-        <section
-          className="-mx-1 mt-2.5 flex gap-1.5 overflow-x-auto px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-          style={{ transition: "opacity 200ms ease-out" }}
-        >
+function SectionLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="mb-3 flex items-center gap-2.5">
+      <div
+        className="font-mono text-[10px] font-semibold uppercase"
+        style={{ letterSpacing: "0.22em", color: "var(--amber-2)" }}
+      >
+        {children}
+      </div>
+      <div className="h-px flex-1" style={{ background: "var(--line)" }} />
+    </div>
+  );
+}
+
+function BottomCTA({
+  showChips,
+  draft,
+  onDraftChange,
+  onSubmit,
+}: {
+  showChips: boolean;
+  draft: string;
+  onDraftChange: (v: string) => void;
+  onSubmit: (q: string) => void;
+}) {
+  return (
+    <div className="pt-4" style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
+      <div
+        className="font-display mb-3.5 text-center"
+        style={{
+          fontSize: 22,
+          fontWeight: 600,
+          lineHeight: 1.15,
+          letterSpacing: "-0.02em",
+          color: "var(--ink)",
+        }}
+      >
+        What happens <span style={{ color: "var(--amber)" }}>next?</span>
+      </div>
+
+      {showChips && (
+        <div className="chips-scroll -mx-1 mb-2.5 flex gap-1.5 overflow-x-auto px-1">
           {CHIPS.map((c) => (
             <button
               key={c.label}
               type="button"
-              onClick={() => ask(c.question)}
-              className="shrink-0 whitespace-nowrap rounded-full px-3.5 py-1.5 font-body text-[12.5px] font-medium transition-colors hover:text-[var(--ink)]"
+              onClick={() => onSubmit(c.question)}
+              className="shrink-0 whitespace-nowrap rounded-full font-body text-[12.5px] font-medium active:scale-[0.96]"
               style={{
-                background: "var(--bg-card)",
-                border: "1px solid var(--border-strong)",
-                color: "var(--ink-soft)",
+                padding: "8px 13px",
+                background: "var(--chip-bg)",
+                color: "var(--ink-2)",
+                border: "none",
+                transition: "all 180ms var(--ease-ios)",
               }}
             >
               {c.label}
             </button>
           ))}
-        </section>
+        </div>
       )}
 
-      {askQ && (
-        <section className="px-4 pt-2">
-          <AskInlinePanel
-            key={askQ}
-            question={askQ}
-            topic="any"
-            onDismiss={() => setAskQ(null)}
-          />
-        </section>
-      )}
-
-      {!askQ && (
-        <section className="px-4 pb-8 pt-6">
-          <div className="mb-3 flex items-center gap-2.5">
-            <div
-              className="font-mono text-[10px] font-semibold uppercase"
-              style={{
-                letterSpacing: "0.22em",
-                color: "var(--amber-strong)",
-              }}
-            >
-              TOP PICK TODAY
-            </div>
-            <div
-              className="h-px flex-1"
-              style={{ background: "var(--border-soft)" }}
-            />
-          </div>
-
-          {picks.isLoading ? (
-            <MarqueeSkeleton />
-          ) : marquee ? (
-            <MarqueeCard pick={marquee} />
-          ) : (
-            <EmptyMarquee />
-          )}
-
-          <PicksCarousel picks={restPicks} />
-
-          <Link
-            to="/predictions"
-            className="mt-3.5 block py-2 text-center font-body text-[13px] font-semibold"
-            style={{ color: "var(--amber-strong)" }}
-          >
-            See all picks →
-          </Link>
-        </section>
-      )}
-    </main>
+      <AskInput
+        value={draft}
+        onChange={onDraftChange}
+        onSubmit={onSubmit}
+        placeholder="Ask anything…"
+      />
+    </div>
   );
 }
 
@@ -183,19 +205,20 @@ function MarqueeCard({ pick }: { pick: HomepagePick }) {
       onKeyDown={(e) => {
         if (e.key === "Enter") open();
       }}
-      className="cursor-pointer rounded-[14px] p-[18px] transition-all hover:-translate-y-[1px] hover:shadow-md"
+      className="marquee-card cursor-pointer"
       style={{
         background: "var(--bg-card)",
-        border: "1px solid var(--border-soft)",
+        border: "1px solid var(--line)",
+        borderRadius: 18,
+        padding: "18px 20px",
+        boxShadow: "var(--shadow-card)",
+        transition: "all 240ms var(--ease-ios)",
       }}
     >
       <div className="mb-2 flex items-center justify-between">
         <div
           className="font-mono text-[10px] font-semibold uppercase"
-          style={{
-            letterSpacing: "0.22em",
-            color: "var(--amber-strong)",
-          }}
+          style={{ letterSpacing: "0.22em", color: "var(--amber-2)" }}
         >
           {pick.domain.toUpperCase()}
         </div>
@@ -203,8 +226,14 @@ function MarqueeCard({ pick }: { pick: HomepagePick }) {
       </div>
 
       <div
-        className="font-display mb-3 text-[19px] font-semibold leading-[1.22]"
-        style={{ color: "var(--ink)", letterSpacing: "-0.01em" }}
+        className="font-display mb-3"
+        style={{
+          fontSize: 19,
+          fontWeight: 600,
+          lineHeight: 1.2,
+          color: "var(--ink)",
+          letterSpacing: "-0.02em",
+        }}
       >
         {pick.title}
       </div>
@@ -215,42 +244,54 @@ function MarqueeCard({ pick }: { pick: HomepagePick }) {
             <div className="min-w-0 flex-1">
               <div
                 className="mb-1 font-mono text-[9px] font-semibold uppercase"
-                style={{
-                  letterSpacing: "0.22em",
-                  color: "var(--ink-faint)",
-                }}
+                style={{ letterSpacing: "0.22em", color: "var(--ink-3)" }}
               >
                 TOP PICK
               </div>
               <div
-                className="font-display text-[20px] font-bold leading-[1.1]"
-                style={{ color: "var(--ink)", letterSpacing: "-0.02em" }}
+                className="font-display"
+                style={{
+                  fontSize: 20,
+                  fontWeight: 700,
+                  lineHeight: 1.1,
+                  color: "var(--ink)",
+                  letterSpacing: "-0.02em",
+                }}
               >
                 {pick.top_pick_label}
               </div>
             </div>
             <div
-              className="font-mono text-[40px] font-semibold leading-none"
-              style={{ color: "var(--amber)", letterSpacing: "-0.03em" }}
+              className="font-mono"
+              style={{
+                fontSize: 38,
+                fontWeight: 600,
+                lineHeight: 0.95,
+                color: "var(--amber)",
+                letterSpacing: "-0.04em",
+                fontFeatureSettings: "'tnum'",
+              }}
             >
               {pct}
-              <span className="text-[18px]">%</span>
+              <span style={{ fontSize: 18 }}>%</span>
             </div>
           </div>
           <div
             className="mt-3 h-1 overflow-hidden rounded-full"
-            style={{ background: "var(--border-soft)" }}
+            style={{ background: "var(--line)" }}
           >
             <div
               className="h-full rounded-full"
-              style={{ width: `${pct}%`, background: "var(--amber)" }}
+              style={{
+                width: `${pct}%`,
+                background:
+                  "linear-gradient(90deg, var(--amber), var(--amber-2))",
+                transition: "width 600ms var(--ease-ios)",
+              }}
             />
           </div>
         </>
       )}
-
-
-
     </div>
   );
 }
@@ -258,16 +299,13 @@ function MarqueeCard({ pick }: { pick: HomepagePick }) {
 function EmptyMarquee() {
   return (
     <div
-      className="rounded-[14px] p-8 text-center"
+      className="rounded-[18px] p-8 text-center"
       style={{
         background: "var(--bg-card)",
-        border: "1px dashed var(--border-strong)",
+        border: "1px dashed var(--line-2)",
       }}
     >
-      <div
-        className="font-body text-[14px]"
-        style={{ color: "var(--ink-soft)" }}
-      >
+      <div className="font-body text-[14px]" style={{ color: "var(--ink-2)" }}>
         Today's picks are calibrating. Check back shortly.
       </div>
     </div>
@@ -277,7 +315,7 @@ function EmptyMarquee() {
 function MarqueeSkeleton() {
   return (
     <div
-      className="h-[220px] animate-pulse rounded-[14px]"
+      className="h-[180px] animate-pulse rounded-[18px]"
       style={{ background: "var(--bg-card)" }}
     />
   );

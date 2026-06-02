@@ -77,8 +77,8 @@ export function Drawer({ open, onClose }: DrawerProps) {
         }`}
         style={{
           background: "rgba(11, 18, 32, 0.4)",
-          backdropFilter: "blur(8px)",
-          WebkitBackdropFilter: "blur(8px)",
+          backdropFilter: "blur(10px)",
+          WebkitBackdropFilter: "blur(10px)",
         }}
         onClick={onClose}
         aria-hidden="true"

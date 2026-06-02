@@ -36,13 +36,15 @@ export function PicksCarousel({ picks }: PicksCarouselProps) {
               key={pick.event_id}
               to="/$domain/events/$slug"
               params={{ domain: pick.domain, slug: pick.slug }}
-              className="flex shrink-0 flex-col rounded-[14px] transition-all hover:-translate-y-[1px] hover:shadow-md"
+              className="pick-card flex shrink-0 flex-col rounded-[14px]"
               style={{
                 width: 260,
                 background: "var(--bg-card)",
-                border: "1px solid var(--border-soft)",
+                border: "1px solid var(--line)",
                 padding: "14px 16px",
+                boxShadow: "var(--shadow-sm)",
                 scrollSnapAlign: "start",
+                transition: "all 220ms var(--ease-ios)",
               }}
             >
               <div className="mb-2 flex items-center justify-between">
@@ -50,7 +52,7 @@ export function PicksCarousel({ picks }: PicksCarouselProps) {
                   className="font-mono text-[9px] font-semibold uppercase"
                   style={{
                     letterSpacing: "0.2em",
-                    color: "var(--amber-strong)",
+                    color: "var(--amber-2)",
                   }}
                 >
                   {pick.domain.toUpperCase()} · {subcategory.toUpperCase()}
@@ -61,8 +63,8 @@ export function PicksCarousel({ picks }: PicksCarouselProps) {
               <div
                 className="font-display mb-3 flex-1 font-semibold"
                 style={{
-                  fontSize: 14.5,
-                  lineHeight: 1.25,
+                  fontSize: 14,
+                  lineHeight: 1.28,
                   color: "var(--ink)",
                   letterSpacing: "-0.01em",
                 }}
@@ -79,7 +81,7 @@ export function PicksCarousel({ picks }: PicksCarouselProps) {
                         fontSize: 8.5,
                         fontWeight: 600,
                         letterSpacing: "0.2em",
-                        color: "var(--ink-faint)",
+                        color: "var(--ink-3)",
                       }}
                     >
                       TOP PICK
@@ -102,9 +104,10 @@ export function PicksCarousel({ picks }: PicksCarouselProps) {
                     style={{
                       fontSize: 26,
                       fontWeight: 600,
-                      lineHeight: 1,
+                      lineHeight: 0.95,
                       color: "var(--amber)",
-                      letterSpacing: "-0.03em",
+                      letterSpacing: "-0.04em",
+                      fontFeatureSettings: "'tnum'",
                     }}
                   >
                     {pct}
