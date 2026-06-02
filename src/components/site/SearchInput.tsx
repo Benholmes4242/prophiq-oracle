@@ -25,7 +25,7 @@ export function SearchInput() {
         type="button"
         onClick={() => setExpanded(true)}
         aria-label="Search"
-        className="grid h-8 w-8 place-items-center rounded-full transition-colors hover:bg-[var(--bg-card)]"
+        className="grid h-8 w-8 place-items-center rounded-full transition-ios-colors hover:bg-[var(--bg-card)]"
         style={{ color: "var(--ink-soft)" }}
       >
         <svg

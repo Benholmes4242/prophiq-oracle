@@ -140,7 +140,7 @@ export function Drawer({ open, onClose }: DrawerProps) {
                   key={item.to}
                   to={item.to}
                   onClick={onClose}
-                  className="block px-5 py-2.5 font-body text-[15px] transition-colors hover:bg-[rgba(11,18,32,0.05)]"
+                  className="block px-5 py-2.5 font-body text-[15px] transition-ios-colors hover:bg-[rgba(11,18,32,0.05)]"
                   style={{
                     color: active ? "var(--amber-strong)" : "var(--ink)",
                     fontWeight: active ? 600 : 500,

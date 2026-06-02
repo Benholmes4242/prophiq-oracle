@@ -8,7 +8,7 @@ export function NotableCallCard({ call }: { call: NotableCall }) {
     <Link
       to="/$domain/events/$slug"
       params={{ domain: call.domain, slug: call.slug }}
-      className="block rounded-2xl p-5 transition-colors hover:bg-[var(--bg-tint)]/30"
+      className="block rounded-2xl p-5 transition-ios-colors hover:bg-[var(--bg-tint)]/30"
       style={{
         background: "var(--bg-card)",
         border: "1.5px solid var(--border-strong)",
