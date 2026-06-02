@@ -148,7 +148,7 @@ export function Drawer({ open, onClose }: DrawerProps) {
           className="mt-auto border-t px-5 pb-6 pt-4 font-body text-[11.5px] leading-[1.4]"
           style={{ borderColor: "var(--border-soft)", color: "var(--ink-faint)" }}
         >
-          © {new Date().getFullYear()} Prophiq. Calibrated forecasts for every
+          © {new Date().getFullYear()} prophiq. Calibrated forecasts for every
           upcoming event.
         </div>
       </aside>
