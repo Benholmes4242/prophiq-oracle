@@ -6,17 +6,21 @@ import type { ConfidenceTier } from "@/lib/types";
 
 export type AskTopic = "any" | "sport" | "politics" | "markets" | "entertainment";
 
-export type AskStageId =
-  | "reading"
-  | "researching"
-  | "considering"
-  | "calibrating";
+export type WireStage =
+  | "rate_limit"
+  | "pre_filter"
+  | "moderation"
+  | "research"
+  | "models"
+  | "consensus";
 
-export const ASK_STAGES: { id: AskStageId; label: string }[] = [
-  { id: "reading", label: "Reading the brief" },
-  { id: "researching", label: "Pulling fresh data" },
-  { id: "considering", label: "Considering the field" },
-  { id: "calibrating", label: "Calibrating" },
+const KNOWN_STAGES: WireStage[] = [
+  "rate_limit",
+  "pre_filter",
+  "moderation",
+  "research",
+  "models",
+  "consensus",
 ];
 
 export interface AskResult {
@@ -33,27 +37,9 @@ interface RunForecastOpts {
   question: string;
   topic: AskTopic;
   signal: AbortSignal;
-  onStage?: (id: AskStageId) => void;
+  onStage?: (stage: WireStage) => void;
   onResult?: (r: AskResult) => void;
   onError?: (message: string) => void;
-}
-
-// Map the wire-protocol stage ids onto the user-facing stage ids.
-function mapStage(stage: string): AskStageId | null {
-  switch (stage) {
-    case "rate_limit":
-    case "pre_filter":
-    case "moderation":
-      return "reading";
-    case "research":
-      return "researching";
-    case "models":
-      return "considering";
-    case "consensus":
-      return "calibrating";
-    default:
-      return null;
-  }
 }
 
 export async function runForecast(opts: RunForecastOpts): Promise<void> {
