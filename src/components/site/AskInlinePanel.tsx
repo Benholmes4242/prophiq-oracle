@@ -278,7 +278,7 @@ function ResultBody({
       )}
       <button
         onClick={onOpenFull}
-        className="mt-5 w-full rounded-full py-3.5 font-body text-[15px] font-semibold transition-transform hover:scale-[1.01]"
+        className="transition-ios mt-5 w-full rounded-full py-3.5 font-body text-[15px] font-semibold hover:scale-[1.01]"
         style={{ background: "var(--amber)", color: "white" }}
       >
         Open full view →
