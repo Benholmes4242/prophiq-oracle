@@ -208,6 +208,16 @@
   display: none;
 }
 
+.ask-input:focus-within {
+  border-color: var(--ink) !important;
+  box-shadow: 0 4px 16px rgba(10, 17, 23, 0.08) !important;
+}
+
+@keyframes panel-in {
+  from { opacity: 0; transform: translateY(8px) scale(0.985); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
 /* Legal page long-form prose */
 .legal-prose h2 {
   font-family: var(--font-display);
