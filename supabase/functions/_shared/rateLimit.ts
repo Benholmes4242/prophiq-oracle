@@ -34,7 +34,7 @@ export const DEFAULT_WINDOWS: Record<Endpoint, RateLimitWindow> = {
 };
 
 export interface RateLimitChecker {
-  countAccepted(opts: { fingerprint?: string; ipHash?: string; endpoint: Endpoint; sinceIso: string }): Promise<number>;
+  countAccepted(opts: { fingerprint?: string; ipHash?: string; endpoints: Endpoint[]; sinceIso: string }): Promise<number>;
   record(row: { fingerprint: string; ip_hash: string; endpoint: Endpoint; question: string; outcome: Outcome }): Promise<void>;
 }
 
@@ -61,10 +61,13 @@ export function decide(opts: { fingerprintCount: number; ipCount: number; window
 /** Check + return a decision. Caller is responsible for `record()` afterwards. */
 export async function check(checker: RateLimitChecker, cfg: RateLimitConfig, window?: RateLimitWindow): Promise<RateLimitDecision> {
   const w = window ?? DEFAULT_WINDOWS[cfg.endpoint];
+  const endpoints = cfg.countEndpoints && cfg.countEndpoints.length > 0
+    ? cfg.countEndpoints
+    : [cfg.endpoint];
   const sinceIso = new Date(Date.now() - w.windowMs).toISOString();
   const [fpCount, ipCount] = await Promise.all([
-    checker.countAccepted({ fingerprint: cfg.fingerprint, endpoint: cfg.endpoint, sinceIso }),
-    checker.countAccepted({ ipHash: cfg.ipHash, endpoint: cfg.endpoint, sinceIso }),
+    checker.countAccepted({ fingerprint: cfg.fingerprint, endpoints, sinceIso }),
+    checker.countAccepted({ ipHash: cfg.ipHash, endpoints, sinceIso }),
   ]);
   return decide({ fingerprintCount: fpCount, ipCount, window: w });
 }
