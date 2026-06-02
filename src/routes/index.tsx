@@ -3,6 +3,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { AskInput } from "@/components/site/AskInput";
 import { AskInlinePanel } from "@/components/site/AskInlinePanel";
 import { ConfidenceLabel } from "@/components/site/ConfidenceLabel";
+import { PicksCarousel } from "@/components/site/PicksCarousel";
 import { useHomepagePicks } from "@/hooks/useEvents";
 import type { HomepagePick } from "@/lib/queries";
 import { getPublicBaseUrl } from "@/lib/publicUrl";
@@ -47,6 +48,9 @@ function HomePage() {
 
   const marquee =
     picks.data?.find((p) => p.is_marquee) ?? picks.data?.[0] ?? null;
+  const restPicks =
+    picks.data?.filter((p) => p !== marquee).slice(0, 4) ?? [];
+
 
   function ask(q: string) {
     const trimmed = q.trim();
@@ -144,6 +148,8 @@ function HomePage() {
           ) : (
             <EmptyMarquee />
           )}
+
+          <PicksCarousel picks={restPicks} />
 
           <Link
             to="/predictions"
@@ -243,14 +249,8 @@ function MarqueeCard({ pick }: { pick: HomepagePick }) {
         </>
       )}
 
-      {pick.reasoning_excerpt && (
-        <div
-          className="mt-3 font-body text-[12.5px] leading-[1.4]"
-          style={{ color: "var(--ink-soft)" }}
-        >
-          {pick.reasoning_excerpt}
-        </div>
-      )}
+
+
     </div>
   );
 }
