@@ -147,7 +147,10 @@ function BottomCTA({
   onSubmit: (q: string) => void;
 }) {
   return (
-    <div className="pt-4" style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
+    <div
+      className="shrink-0 pt-3"
+      style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+    >
       <div
         className="font-display mb-3.5 text-center"
         style={{
@@ -168,14 +171,7 @@ function BottomCTA({
               key={c.label}
               type="button"
               onClick={() => onSubmit(c.question)}
-              className="shrink-0 whitespace-nowrap rounded-full font-body text-[12.5px] font-medium active:scale-[0.96]"
-              style={{
-                padding: "8px 13px",
-                background: "var(--chip-bg)",
-                color: "var(--ink-2)",
-                border: "none",
-                transition: "all 180ms var(--ease-ios)",
-              }}
+              className="chip shrink-0 whitespace-nowrap rounded-full font-body text-[12.5px] font-medium active:scale-[0.96]"
             >
               {c.label}
             </button>
