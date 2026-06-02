@@ -87,10 +87,10 @@
   --brand-bg: var(--bg);
   --brand-border: var(--line);
 
-  /* Typography */
+  /* Typography — Geist Sans body + mono, Bricolage reserved for homepage hero */
   --font-display: 'Bricolage Grotesque', system-ui, -apple-system, 'Segoe UI', sans-serif;
-  --font-body:    'DM Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
-  --font-mono:    'JetBrains Mono', 'SF Mono', ui-monospace, monospace;
+  --font-body:    'Geist', -apple-system, BlinkMacSystemFont, system-ui, 'Segoe UI', sans-serif;
+  --font-mono:    'Geist Mono', ui-monospace, 'SF Mono', Menlo, monospace;
 
   /* shadcn semantic tokens tuned to the warm-paper palette */
   --background: oklch(0.967 0.012 80);
@@ -279,4 +279,53 @@
 .chip:hover {
   background: var(--chip-hover);
   color: var(--ink);
+}
+
+/* ============================================================
+ * Entrance animation — Brief G
+ * Sequential fade-up on first paint of homepage content.
+ * `animation-fill-mode: backwards` holds the from-state during delay.
+ * ============================================================ */
+@keyframes entryFadeUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.entry-animate {
+  animation: entryFadeUp 360ms var(--ease-ios) backwards;
+}
+.entry-animate[data-stagger="0"] { animation-delay:   0ms; }
+.entry-animate[data-stagger="1"] { animation-delay:  80ms; }
+.entry-animate[data-stagger="2"] { animation-delay: 130ms; }
+.entry-animate[data-stagger="3"] { animation-delay: 180ms; }
+.entry-animate[data-stagger="4"] { animation-delay: 230ms; }
+.entry-animate[data-stagger="5"] { animation-delay: 280ms; }
+.entry-animate[data-stagger="6"] { animation-delay: 320ms; }
+.entry-animate[data-stagger="7"] { animation-delay: 360ms; }
+
+@media (prefers-reduced-motion: reduce) {
+  .entry-animate { animation: none !important; }
+}
+
+/* ============================================================
+ * Mobile press states — Brief G
+ * Tactile feedback on touch / click for tap targets.
+ * Marker class `.pressable` lets us override hover transforms
+ * without !important.
+ * ============================================================ */
+.pressable {
+  transition: transform 120ms var(--ease-ios),
+              box-shadow 240ms var(--ease-ios),
+              border-color 240ms var(--ease-ios),
+              background-color 180ms var(--ease-ios);
+}
+.marquee-card.pressable:active,
+.pick-card.pressable:active {
+  transform: scale(0.98);
+}
+.chip:active {
+  transform: scale(0.96);
+}
+.drawer-item:active {
+  background: rgba(10, 17, 23, 0.08);
 }

@@ -27,7 +27,7 @@ export function PicksCarousel({ picks }: PicksCarouselProps) {
         className="flex gap-2.5 overflow-x-auto px-4 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         style={{ scrollSnapType: "x mandatory", scrollPaddingLeft: 16 }}
       >
-        {picks.map((pick) => {
+        {picks.map((pick, i) => {
           const subcategory = classifyEvent(pick.title, pick.domain as DomainId);
           const pct =
             pick.top_pick_pct != null ? Math.round(pick.top_pick_pct) : null;
@@ -36,7 +36,8 @@ export function PicksCarousel({ picks }: PicksCarouselProps) {
               key={pick.event_id}
               to="/$domain/events/$slug"
               params={{ domain: pick.domain, slug: pick.slug }}
-              className="pick-card flex shrink-0 flex-col rounded-[14px]"
+              className="pick-card pressable entry-animate flex shrink-0 flex-col rounded-[14px]"
+              data-stagger={Math.min(i + 1, 4)}
               style={{
                 width: 260,
                 background: "var(--bg-card)",
