@@ -152,15 +152,15 @@ export function AskInlinePanel({
       {!result && !error && (
         <div
           className="mt-6 h-[3px] rounded-full overflow-hidden"
-          style={{ background: "var(--border-soft)" }}
+          style={{ background: "var(--line)" }}
         >
           <div
             style={{
               height: "100%",
               width: `${progressPct}%`,
-              background: "var(--amber)",
+              background: "linear-gradient(90deg, var(--amber), var(--amber-2))",
               borderRadius: 999,
-              transition: "width 400ms ease-out",
+              transition: "width 600ms var(--ease-ios)",
             }}
           />
         </div>
