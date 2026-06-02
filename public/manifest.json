@@ -1,0 +1,14 @@
+{
+  "name": "prophiq.",
+  "short_name": "prophiq",
+  "description": "Calibrated predictions across sport, politics, markets, and entertainment.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#F8F4EC",
+  "theme_color": "#F4731A",
+  "icons": [
+    { "src": "/favicon-192-amber.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/favicon-512-amber.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "/favicon-512-amber.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
