@@ -49,9 +49,18 @@ export function AskInput({
     setQ("");
   }
 
+  const [scrolled, setScrolled] = useState(false);
+
+  function handleScroll() {
+    if (inputRef.current) {
+      setScrolled(inputRef.current.scrollLeft > 0);
+    }
+  }
+
   return (
     <div
       className="ask-input flex w-full items-center gap-2.5 rounded-full"
+      data-scrolled={scrolled ? "true" : "false"}
       style={{
         background: "var(--bg-card)",
         border: "1px solid var(--line-2)",

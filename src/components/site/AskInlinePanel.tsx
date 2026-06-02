@@ -1,27 +1,31 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
-import { ConfidenceLabel } from "./ConfidenceLabel";
+import { EvidenceTicks } from "./EvidenceTicks";
+import { useLoadingStages } from "@/hooks/useLoadingStages";
 import { addToHistory, updateHistory } from "@/lib/questionHistory";
 import {
   runForecast,
-  ASK_STAGES,
-  type AskStageId,
   type AskResult,
   type AskTopic,
+  type WireStage,
 } from "@/lib/forecast";
+
+export type AskPanelState = "loading" | "result" | "error";
 
 interface AskInlinePanelProps {
   question: string;
   topic: AskTopic;
   onDismiss: () => void;
+  onStateChange?: (state: AskPanelState) => void;
 }
 
 export function AskInlinePanel({
   question,
   topic,
   onDismiss,
+  onStateChange,
 }: AskInlinePanelProps) {
-  const [stageIdx, setStageIdx] = useState(0);
+  const [currentStage, setCurrentStage] = useState<WireStage | null>(null);
   const [result, setResult] = useState<AskResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
@@ -29,7 +33,7 @@ export function AskInlinePanel({
 
   useEffect(() => {
     if (!question) return;
-    setStageIdx(0);
+    setCurrentStage(null);
     setResult(null);
     setError(null);
 
@@ -41,10 +45,7 @@ export function AskInlinePanel({
       question,
       topic,
       signal: abort.signal,
-      onStage: (id: AskStageId) => {
-        const i = ASK_STAGES.findIndex((s) => s.id === id);
-        if (i >= 0) setStageIdx(i);
-      },
+      onStage: (stage) => setCurrentStage(stage),
       onResult: (res) => {
         setResult(res);
         updateHistory(historyEntry.id, {
@@ -66,9 +67,24 @@ export function AskInlinePanel({
     return () => window.removeEventListener("keydown", onKey);
   }, [onDismiss]);
 
+  useEffect(() => {
+    if (result) onStateChange?.("result");
+    else if (error) onStateChange?.("error");
+    else onStateChange?.("loading");
+  }, [result, error, onStateChange]);
+
+  const stageOrder: WireStage[] = [
+    "rate_limit",
+    "pre_filter",
+    "moderation",
+    "research",
+    "models",
+    "consensus",
+  ];
+  const stageIdx = currentStage ? stageOrder.indexOf(currentStage) : 0;
   const progressPct = result
     ? 100
-    : Math.min(((stageIdx + 1) / (ASK_STAGES.length + 1)) * 100, 95);
+    : Math.min(((stageIdx + 1) / (stageOrder.length + 1)) * 100, 95);
 
   return (
     <div
@@ -122,7 +138,7 @@ export function AskInlinePanel({
         >
           YOUR QUESTION
         </div>
-        <div className="font-display text-[20px] font-semibold leading-snug">
+        <div className="font-sans text-[20px] font-semibold leading-snug">
           {question}
         </div>
       </div>
@@ -132,7 +148,7 @@ export function AskInlinePanel({
         style={{ borderColor: "var(--border-soft)" }}
       />
 
-      {!result && !error && <LoadingBody stageIdx={stageIdx} />}
+      {!result && !error && <LoadingBody currentStage={currentStage} />}
       {result && (
         <ResultBody
           result={result}
@@ -171,45 +187,27 @@ export function AskInlinePanel({
           from { opacity: 0; transform: translateY(12px); }
           to   { opacity: 1; transform: translateY(0); }
         }
-        @keyframes panel-breathe {
-          0%, 100% { opacity: 0.4; }
-          50%      { opacity: 1.0; }
-        }
         @keyframes panel-stage-in {
           0%   { opacity: 0; transform: translateY(4px); }
           100% { opacity: 1; transform: translateY(0); }
-        }
-        @keyframes panel-result-in {
-          from { opacity: 0; transform: translateY(8px); }
-          to   { opacity: 1; transform: translateY(0); }
         }
       `}</style>
     </div>
   );
 }
 
-function LoadingBody({ stageIdx }: { stageIdx: number }) {
-  const label = ASK_STAGES[stageIdx]?.label ?? "Calibrating";
+function LoadingBody({ currentStage }: { currentStage: WireStage | null }) {
+  const label = useLoadingStages(currentStage);
   return (
     <div className="pt-5 min-h-[64px]">
-      <div className="flex items-center gap-2.5">
-        <div
-          style={{
-            width: 8,
-            height: 8,
-            borderRadius: "50%",
-            background: "var(--amber)",
-            animation: "panel-breathe 1.4s var(--ease-ios) infinite",
-          }}
-        />
-        <div
-          key={label}
-          className="font-display text-[18px] font-semibold"
-          style={{ animation: "panel-stage-in 300ms var(--ease-ios)" }}
-        >
-          {label}
-        </div>
+      <div
+        key={label}
+        className="font-sans text-[18px] font-semibold"
+        style={{ animation: "panel-stage-in 300ms var(--ease-ios)" }}
+      >
+        {label}
       </div>
+      <EvidenceTicks />
     </div>
   );
 }
@@ -223,21 +221,21 @@ function ResultBody({
 }) {
   const pct = Math.round(result.topPickPct);
   return (
-    <div
-      className="pt-5"
-      style={{ animation: "panel-result-in 400ms var(--ease-ios)" }}
-    >
-      <div className="flex items-start justify-between mb-2">
+    <div className="pt-5">
+      <div className="result-stagger mb-2" data-r-stagger="0">
         <div
           className="font-mono text-[10px] tracking-[0.22em]"
           style={{ color: "var(--ink-faint)", fontWeight: 600 }}
         >
           TOP PICK
         </div>
-        <ConfidenceLabel tier={result.confidence} />
       </div>
-      <div className="flex items-end justify-between gap-3">
-        <div className="font-display text-[26px] font-bold leading-tight flex-1">
+
+      <div
+        className="result-stagger flex items-end justify-between gap-3"
+        data-r-stagger="1"
+      >
+        <div className="font-sans text-[26px] font-bold leading-tight flex-1">
           {result.topPickLabel}
         </div>
         <div
@@ -248,8 +246,10 @@ function ResultBody({
           <span style={{ fontSize: 24 }}>%</span>
         </div>
       </div>
+
       <div
-        className="mt-4 h-1.5 rounded-full overflow-hidden"
+        className="result-stagger mt-4 h-1.5 rounded-full overflow-hidden"
+        data-r-stagger="2"
         style={{ background: "var(--line)" }}
       >
         <div
@@ -258,17 +258,19 @@ function ResultBody({
             width: `${pct}%`,
             background: "linear-gradient(90deg, var(--amber), var(--amber-2))",
             borderRadius: 999,
-            transition: "width 600ms var(--ease-ios)",
+            transition: "width 800ms var(--ease-ios)",
           }}
         />
       </div>
+
       {result.reasoningExcerpt && (
         <p
-          className="mt-5 font-body text-[14px] leading-[1.5]"
+          className="result-stagger mt-5 font-body text-[14px] leading-[1.5]"
+          data-r-stagger="3"
           style={{
             color: "var(--ink-soft)",
             display: "-webkit-box",
-            WebkitLineClamp: 3,
+            WebkitLineClamp: 10,
             WebkitBoxOrient: "vertical",
             overflow: "hidden",
           }}
@@ -276,9 +278,11 @@ function ResultBody({
           {result.reasoningExcerpt}
         </p>
       )}
+
       <button
         onClick={onOpenFull}
-        className="transition-ios mt-5 w-full rounded-full py-3.5 font-body text-[15px] font-semibold hover:scale-[1.01]"
+        className="result-stagger transition-ios mt-5 w-full rounded-full py-3.5 font-body text-[15px] font-semibold hover:scale-[1.01]"
+        data-r-stagger="4"
         style={{ background: "var(--amber)", color: "white" }}
       >
         Open full view →
@@ -296,7 +300,7 @@ function ErrorBody({
 }) {
   return (
     <div className="pt-5">
-      <div className="font-display text-[16px] font-semibold mb-2">
+      <div className="font-sans text-[16px] font-semibold mb-2">
         Couldn't complete the forecast.
       </div>
       <div
