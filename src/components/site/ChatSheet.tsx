@@ -4,6 +4,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { useChat } from "@/hooks/useChat";
 import { useUsageQuota } from "@/hooks/useUsageQuota";
 
