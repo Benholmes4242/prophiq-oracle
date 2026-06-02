@@ -1,6 +1,8 @@
 import { Link } from "@tanstack/react-router";
 import { SearchInput } from "./SearchInput";
 import { DomainTabs } from "./DomainTabs";
+import { PhiMark } from "@/components/brand/PhiMark";
+import { Wordmark } from "@/components/brand/Wordmark";
 
 interface HeaderProps {
   showTabs?: boolean;
@@ -15,25 +17,8 @@ export function Header({ showTabs = true }: HeaderProps) {
       >
         <div className="mx-auto flex max-w-2xl items-center justify-between gap-4 px-5 py-4 sm:py-5">
           <Link to="/" className="flex items-center gap-2.5">
-            <span
-              aria-hidden
-              className="grid h-7 w-7 place-items-center rounded-md text-white"
-              style={{
-                background: "var(--amber)",
-                fontFamily: "var(--font-display)",
-                fontWeight: 800,
-                fontSize: 16,
-                letterSpacing: "-0.05em",
-              }}
-            >
-              P
-            </span>
-            <span
-              className="font-display tracking-[-0.02em]"
-              style={{ fontWeight: 700, fontSize: 20 }}
-            >
-              Prophiq
-            </span>
+            <PhiMark size={28} strokeWidth={11} />
+            <Wordmark size={18} />
           </Link>
           <div className="flex items-center gap-3">
             <SearchInput />

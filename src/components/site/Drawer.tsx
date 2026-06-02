@@ -1,5 +1,7 @@
 import { useEffect } from "react";
 import { Link, useLocation } from "@tanstack/react-router";
+import { PhiMark } from "@/components/brand/PhiMark";
+import { Wordmark } from "@/components/brand/Wordmark";
 
 interface DrawerProps {
   open: boolean;
@@ -98,27 +100,15 @@ export function Drawer({ open, onClose }: DrawerProps) {
         aria-label="Primary navigation"
         aria-hidden={!open}
       >
-        <div className="flex items-center gap-3 px-5 pb-6 pt-14">
-          <div
-            className="grid h-[38px] w-[38px] place-items-center rounded-[11px] text-white"
-            style={{
-              background: "var(--amber)",
-              fontFamily: "var(--font-display)",
-              fontWeight: 800,
-              fontSize: 20,
-              letterSpacing: "-0.05em",
-            }}
-            aria-hidden
-          >
-            P
-          </div>
-          <div
-            className="font-display tracking-tight"
-            style={{ color: "var(--ink)", fontWeight: 700, fontSize: 22 }}
-          >
-            Prophiq
-          </div>
-        </div>
+        <Link
+          to="/"
+          onClick={onClose}
+          className="flex items-center gap-2.5 px-5 pb-6 pt-14"
+          style={{ textDecoration: "none" }}
+        >
+          <PhiMark size={30} strokeWidth={11} />
+          <Wordmark size={26} />
+        </Link>
 
         {SECTIONS.map((section, i) => (
           <div

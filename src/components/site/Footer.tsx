@@ -1,3 +1,5 @@
+import { Wordmark } from "@/components/brand/Wordmark";
+
 export function Footer() {
   return (
     <footer
@@ -5,6 +7,9 @@ export function Footer() {
       style={{ borderColor: "var(--border-soft)" }}
     >
       <div className="mx-auto max-w-2xl">
+        <div className="mb-3">
+          <Wordmark size={20} />
+        </div>
         <p
           className="font-body text-[11.5px] leading-[1.5]"
           style={{ color: "var(--ink-faint)" }}
@@ -17,7 +22,7 @@ export function Footer() {
           className="mt-3 font-body text-[11.5px]"
           style={{ color: "var(--ink-faint)" }}
         >
-          © {new Date().getFullYear()} Prophiq.
+          © {new Date().getFullYear()} prophiq.
         </p>
       </div>
     </footer>
