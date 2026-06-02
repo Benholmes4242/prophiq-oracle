@@ -245,3 +245,15 @@
 .legal-prose .not-prose p {
   all: revert;
 }
+
+.pick-card:hover {
+  transform: translateY(-1px);
+  border-color: var(--line-2) !important;
+  box-shadow: 0 1px 0 rgba(10, 17, 23, 0.02), 0 6px 18px rgba(10, 17, 23, 0.05) !important;
+}
+
+.marquee-card:hover {
+  transform: translateY(-1px);
+  border-color: var(--line-2) !important;
+  box-shadow: 0 1px 0 rgba(10, 17, 23, 0.02), 0 8px 24px rgba(10, 17, 23, 0.06) !important;
+}
