@@ -140,8 +140,6 @@ function SearchPage() {
             </li>
           ))}
         </ul>
-      </main>
-      <Footer />
-    </div>
+    </main>
   );
 }
