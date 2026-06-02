@@ -1,5 +1,4 @@
 import { Link, createFileRoute } from "@tanstack/react-router";
-import { Header } from "@/components/site/Header";
 import { getPublicBaseUrl } from "@/lib/publicUrl";
 import { Footer } from "@/components/site/Footer";
 import { ReceiptsHero } from "@/components/site/ReceiptsHero";
@@ -7,9 +6,14 @@ import { AccuracyChart } from "@/components/site/AccuracyChart";
 import { NotableCallCard } from "@/components/site/NotableCallCard";
 import { RecentResolvedList } from "@/components/site/RecentResolvedList";
 import {
+  ScoredYesterday,
+  ScoredYesterdayHeader,
+} from "@/components/site/ScoredYesterday";
+import {
   useReceiptsStats,
   useRecentResolved,
   useNotableCalls,
+  useScoredYesterday,
 } from "@/hooks/useEvents";
 import type { RecentResolved, NotableCall } from "@/lib/queries";
 
@@ -77,10 +81,10 @@ function ReceiptsPage() {
   const stats = useReceiptsStats();
   const recent = useRecentResolved(10);
   const notable = useNotableCalls();
+  const scored = useScoredYesterday(6);
 
   return (
-    <div style={{ background: "var(--bg)", color: "var(--ink)" }}>
-      <Header />
+    <>
       <main className="mx-auto max-w-2xl">
         {/* Hero */}
         <section className="px-5 pb-7 pt-9">
@@ -166,6 +170,14 @@ function ReceiptsPage() {
           )}
         </section>
 
+        {/* Scored yesterday */}
+        <div className="px-5 pb-2 pt-2">
+          <ScoredYesterdayHeader picks={scored.data ?? []} />
+        </div>
+        <section className="px-5 pb-10 pt-3">
+          <ScoredYesterday picks={scored.data ?? []} />
+        </section>
+
         {/* Methodology */}
         <section className="px-5 pb-12">
           <Link
@@ -178,6 +190,6 @@ function ReceiptsPage() {
         </section>
       </main>
       <Footer />
-    </div>
+    </>
   );
 }

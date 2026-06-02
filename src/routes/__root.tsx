@@ -4,14 +4,17 @@ import {
   Link,
   createRootRouteWithContext,
   useRouter,
+  useLocation,
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { Toaster } from "@/components/ui/sonner";
+import { AppHeader } from "@/components/site/AppHeader";
+import { Drawer } from "@/components/site/Drawer";
 
 function NotFoundComponent() {
   return (
@@ -129,10 +132,24 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  const { pathname } = useLocation();
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const hideChrome = pathname.startsWith("/admin");
 
   return (
     <QueryClientProvider client={queryClient}>
-      <Outlet />
+      <div
+        className="min-h-screen"
+        style={{ background: "var(--bg)", color: "var(--ink)" }}
+      >
+        {!hideChrome && (
+          <>
+            <AppHeader onMenuClick={() => setDrawerOpen(true)} />
+            <Drawer open={drawerOpen} onClose={() => setDrawerOpen(false)} />
+          </>
+        )}
+        <Outlet />
+      </div>
       <Toaster />
     </QueryClientProvider>
   );

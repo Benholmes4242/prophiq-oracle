@@ -1,5 +1,4 @@
 import type { ReactNode } from "react";
-import { Header } from "./Header";
 import { Footer } from "./Footer";
 
 export function LegalPage({
@@ -14,8 +13,7 @@ export function LegalPage({
   children: ReactNode;
 }) {
   return (
-    <div style={{ background: "var(--bg)", color: "var(--ink)" }}>
-      <Header />
+    <>
       <main className="mx-auto max-w-2xl">
         <section className="px-5 pb-6 pt-9">
           <h1
@@ -41,6 +39,6 @@ export function LegalPage({
         <section className="legal-prose px-5 pb-12 pt-2">{children}</section>
       </main>
       <Footer />
-    </div>
+    </>
   );
 }

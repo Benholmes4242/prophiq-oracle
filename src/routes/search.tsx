@@ -1,8 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
-import { Header } from "@/components/site/Header";
-import { Footer } from "@/components/site/Footer";
 
 interface SearchRow {
   event_id: string;
@@ -48,9 +46,7 @@ function SearchPage() {
   });
 
   return (
-    <div style={{ background: "var(--bg)", color: "var(--ink)" }}>
-      <Header />
-      <main className="mx-auto max-w-2xl px-5 pb-12 pt-9">
+    <main className="mx-auto max-w-2xl px-5 pb-12 pt-9">
         <div className="mb-6">
           <p
             className="font-mono text-[10px] uppercase tracking-[0.2em]"
@@ -144,8 +140,6 @@ function SearchPage() {
             </li>
           ))}
         </ul>
-      </main>
-      <Footer />
-    </div>
+    </main>
   );
 }

@@ -1,5 +1,4 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Header } from "@/components/site/Header";
 import { Footer } from "@/components/site/Footer";
 import { WhatWeAnalyseSection } from "@/components/site/WhatWeAnalyseSection";
 
@@ -43,8 +42,7 @@ const STEPS = [
 
 function AboutPage() {
   return (
-    <div style={{ background: "var(--bg)", color: "var(--ink)" }}>
-      <Header />
+    <>
       <main className="mx-auto max-w-2xl">
         <section className="px-5 pb-7 pt-9">
           <h1
@@ -136,7 +134,7 @@ function AboutPage() {
         </section>
       </main>
       <Footer />
-    </div>
+    </>
   );
 }
 

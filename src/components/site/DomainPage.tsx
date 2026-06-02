@@ -1,6 +1,4 @@
 import { useState, useMemo } from "react";
-import { Header } from "@/components/site/Header";
-import { Footer } from "@/components/site/Footer";
 import { DomainHero } from "@/components/site/DomainHero";
 import { FilterChips } from "@/components/site/FilterChips";
 import { TodaysLeadCard } from "@/components/site/TodaysLeadCard";
@@ -60,10 +58,8 @@ export function DomainPage({ domain }: { domain: DomainId }) {
   const leadPick = lead ? toHomepagePick(lead) : null;
 
   return (
-    <div style={{ background: "var(--bg)", color: "var(--ink)" }}>
-      <Header />
-      <main className="mx-auto max-w-2xl">
-        <DomainHero domain={domain} />
+    <main className="mx-auto max-w-2xl">
+      <DomainHero domain={domain} />
 
         <section className="px-5 pb-5">
           <AskInput placeholder={DOMAIN_PLACEHOLDER[domain]} onSubmit={ask} />
@@ -131,11 +127,9 @@ export function DomainPage({ domain }: { domain: DomainId }) {
         <div className="px-5 pt-2">
           {/* Scored recently header is rendered inside the strip */}
         </div>
-        <section className="px-5 pb-10 pt-3">
-          <DomainResolvedStrip picks={resolved} />
-        </section>
-      </main>
-      <Footer />
-    </div>
+      <section className="px-5 pb-10 pt-3">
+        <DomainResolvedStrip picks={resolved} />
+      </section>
+    </main>
   );
 }
