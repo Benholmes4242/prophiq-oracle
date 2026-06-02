@@ -112,7 +112,23 @@ export function ChatSheet({ eventId, onClose }: ChatSheetProps) {
               key={m.id}
               className={"msg " + (m.role === "user" ? "msg-user" : "msg-assistant")}
             >
-              {sanitize(m.content)}
+              {m.role === "user" ? (
+                sanitize(m.content)
+              ) : (
+                <ReactMarkdown
+                  remarkPlugins={[remarkGfm]}
+                  skipHtml
+                  components={{
+                    a: ({ href, children }) => (
+                      <a href={href} target="_blank" rel="noopener noreferrer">
+                        {children}
+                      </a>
+                    ),
+                  }}
+                >
+                  {stripCitations(sanitize(m.content))}
+                </ReactMarkdown>
+              )}
             </div>
           ))}
           {sending && <div className="msg msg-assistant msg-thinking">Thinking…</div>}
