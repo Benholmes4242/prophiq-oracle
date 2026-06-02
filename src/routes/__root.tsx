@@ -139,7 +139,7 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       <div
-        className="min-h-screen"
+        className="flex h-[100dvh] flex-col"
         style={{ background: "var(--bg)", color: "var(--ink)" }}
       >
         {!hideChrome && (
@@ -148,7 +148,9 @@ function RootComponent() {
             <Drawer open={drawerOpen} onClose={() => setDrawerOpen(false)} />
           </>
         )}
-        <Outlet />
+        <main className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden">
+          <Outlet />
+        </main>
       </div>
       <Toaster />
     </QueryClientProvider>
