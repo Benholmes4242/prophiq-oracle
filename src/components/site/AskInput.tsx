@@ -76,7 +76,8 @@ export function AskInput({
         id="ask"
         ref={inputRef}
         value={q}
-        onChange={(e) => setQ(e.target.value)}
+        onChange={(e) => { setQ(e.target.value); handleScroll(); }}
+        onScroll={handleScroll}
         onKeyDown={(e) => {
           if (e.key === "Enter") {
             e.preventDefault();
