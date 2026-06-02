@@ -18,6 +18,15 @@ function sanitize(text: string): string {
   return text.replace(/[\u0000-\u0008\u000B-\u001F\u007F]/g, "");
 }
 
+/**
+ * Strip Perplexity-style citation markers: [1], [2][3], [1][2][3][4], etc.
+ * We don't currently surface the underlying source URLs, so showing the
+ * brackets just adds noise. Sentence punctuation stays intact.
+ */
+function stripCitations(text: string): string {
+  return text.replace(/\[\d+\](?:\[\d+\])*/g, '');
+}
+
 export function ChatSheet({ eventId, onClose }: ChatSheetProps) {
   const { messages, sendMessage, sending, error } = useChat(eventId);
   const { usage, refetch: refetchUsage } = useUsageQuota();
