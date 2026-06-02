@@ -48,6 +48,9 @@ function HomePage() {
 
   const marquee =
     picks.data?.find((p) => p.is_marquee) ?? picks.data?.[0] ?? null;
+  const restPicks =
+    picks.data?.filter((p) => p !== marquee).slice(0, 4) ?? [];
+
 
   function ask(q: string) {
     const trimmed = q.trim();
