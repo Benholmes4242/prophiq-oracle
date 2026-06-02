@@ -72,13 +72,14 @@ export function Drawer({ open, onClose }: DrawerProps) {
   return (
     <>
       <div
-        className={`fixed inset-0 z-[100] transition-opacity duration-[280ms] ease-out ${
+        className={`fixed inset-0 z-[100] ${
           open ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0"
         }`}
         style={{
           background: "rgba(11, 18, 32, 0.4)",
           backdropFilter: "blur(10px)",
           WebkitBackdropFilter: "blur(10px)",
+          transition: "opacity 280ms var(--ease-ios)",
         }}
         onClick={onClose}
         aria-hidden="true"
@@ -140,7 +141,7 @@ export function Drawer({ open, onClose }: DrawerProps) {
                   key={item.to}
                   to={item.to}
                   onClick={onClose}
-                  className="block px-5 py-2.5 font-body text-[15px] transition-colors hover:bg-[rgba(11,18,32,0.05)]"
+                  className="block px-5 py-2.5 font-body text-[15px] transition-ios-colors hover:bg-[rgba(11,18,32,0.05)]"
                   style={{
                     color: active ? "var(--amber-strong)" : "var(--ink)",
                     fontWeight: active ? 600 : 500,

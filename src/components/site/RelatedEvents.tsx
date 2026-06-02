@@ -38,7 +38,7 @@ export function RelatedEvents({ domain, excludeId, limit = 3 }: Props) {
               key={event.id}
               to="/$domain/events/$slug"
               params={{ domain: event.domain, slug: event.slug }}
-              className="flex items-center gap-3 rounded-xl px-4 py-3 transition-colors hover:bg-[var(--bg-tint)]/40"
+              className="flex items-center gap-3 rounded-xl px-4 py-3 transition-ios-colors hover:bg-[var(--bg-tint)]/40"
               style={{
                 background: "var(--bg-card)",
                 border: "1px solid var(--border-soft)",

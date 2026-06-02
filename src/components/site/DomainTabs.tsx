@@ -37,7 +37,7 @@ export function DomainTabs() {
               <Link
                 key={tab.id}
                 to={tab.to}
-                className="shrink-0 rounded-full font-body text-[13px] font-medium transition-colors"
+                className="shrink-0 rounded-full font-body text-[13px] font-medium transition-ios-colors"
                 style={{
                   padding: "6px 16px",
                   minHeight: 32,

@@ -60,10 +60,9 @@ function HomePage() {
   }
 
   return (
-    <main className="mx-auto flex min-h-[100dvh] max-w-2xl flex-col">
-      <div className="flex min-h-0 flex-1 flex-col justify-between px-4 pb-4">
-        {/* TOP: picks or ask panel */}
-        {askQ ? (
+    <div className="mx-auto flex h-full max-w-2xl flex-col justify-between px-4 pb-4">
+      {askQ ? (
+        <>
           <section className="pt-2">
             <AskInlinePanel
               key={askQ}
@@ -72,45 +71,53 @@ function HomePage() {
               onDismiss={() => setAskQ(null)}
             />
           </section>
-        ) : (
-          <div>
-            <section className="pt-4">
-              <SectionLabel>TOP PICK TODAY</SectionLabel>
-              {picks.isLoading ? (
-                <MarqueeSkeleton />
-              ) : marquee ? (
-                <MarqueeCard pick={marquee} />
-              ) : (
-                <EmptyMarquee />
-              )}
-            </section>
-
-            {restPicks.length >= 2 && (
-              <div className="-mx-4">
-                <PicksCarousel picks={restPicks} />
-                <div className="px-4">
-                  <Link
-                    to="/predictions"
-                    className="mt-2 block py-2 text-center font-body text-[13px] font-semibold"
-                    style={{ color: "var(--amber-2)" }}
-                  >
-                    See all picks →
-                  </Link>
-                </div>
-              </div>
+          <div />
+          <BottomCTA
+            showChips={false}
+            draft={draft}
+            onDraftChange={setDraft}
+            onSubmit={ask}
+          />
+        </>
+      ) : (
+        <>
+          <section className="pt-3">
+            <SectionLabel>TOP PICK TODAY</SectionLabel>
+            {picks.isLoading ? (
+              <MarqueeSkeleton />
+            ) : marquee ? (
+              <MarqueeCard pick={marquee} />
+            ) : (
+              <EmptyMarquee />
             )}
-          </div>
-        )}
+          </section>
 
-        {/* BOTTOM: hero invitation + chips + input */}
-        <BottomCTA
-          showChips={!askQ}
-          draft={draft}
-          onDraftChange={setDraft}
-          onSubmit={ask}
-        />
-      </div>
-    </main>
+          {restPicks.length >= 2 ? (
+            <section className="-mx-4">
+              <PicksCarousel picks={restPicks} />
+              <div className="px-4">
+                <Link
+                  to="/predictions"
+                  className="block py-1.5 text-center font-body text-[13px] font-semibold"
+                  style={{ color: "var(--amber-2)" }}
+                >
+                  See all picks →
+                </Link>
+              </div>
+            </section>
+          ) : (
+            <div />
+          )}
+
+          <BottomCTA
+            showChips
+            draft={draft}
+            onDraftChange={setDraft}
+            onSubmit={ask}
+          />
+        </>
+      )}
+    </div>
   );
 }
 
@@ -140,7 +147,10 @@ function BottomCTA({
   onSubmit: (q: string) => void;
 }) {
   return (
-    <div className="pt-4" style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
+    <div
+      className="shrink-0 pt-3"
+      style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+    >
       <div
         className="font-display mb-3.5 text-center"
         style={{
@@ -161,14 +171,7 @@ function BottomCTA({
               key={c.label}
               type="button"
               onClick={() => onSubmit(c.question)}
-              className="shrink-0 whitespace-nowrap rounded-full font-body text-[12.5px] font-medium active:scale-[0.96]"
-              style={{
-                padding: "8px 13px",
-                background: "var(--chip-bg)",
-                color: "var(--ink-2)",
-                border: "none",
-                transition: "all 180ms var(--ease-ios)",
-              }}
+              className="chip shrink-0 whitespace-nowrap rounded-full font-body text-[12.5px] font-medium active:scale-[0.96]"
             >
               {c.label}
             </button>

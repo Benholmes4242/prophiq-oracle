@@ -152,15 +152,15 @@ export function AskInlinePanel({
       {!result && !error && (
         <div
           className="mt-6 h-[3px] rounded-full overflow-hidden"
-          style={{ background: "var(--border-soft)" }}
+          style={{ background: "var(--line)" }}
         >
           <div
             style={{
               height: "100%",
               width: `${progressPct}%`,
-              background: "var(--amber)",
+              background: "linear-gradient(90deg, var(--amber), var(--amber-2))",
               borderRadius: 999,
-              transition: "width 400ms ease-out",
+              transition: "width 600ms var(--ease-ios)",
             }}
           />
         </div>
@@ -199,13 +199,13 @@ function LoadingBody({ stageIdx }: { stageIdx: number }) {
             height: 8,
             borderRadius: "50%",
             background: "var(--amber)",
-            animation: "panel-breathe 1.4s ease-in-out infinite",
+            animation: "panel-breathe 1.4s var(--ease-ios) infinite",
           }}
         />
         <div
           key={label}
           className="font-display text-[18px] font-semibold"
-          style={{ animation: "panel-stage-in 300ms ease-in-out" }}
+          style={{ animation: "panel-stage-in 300ms var(--ease-ios)" }}
         >
           {label}
         </div>
@@ -225,7 +225,7 @@ function ResultBody({
   return (
     <div
       className="pt-5"
-      style={{ animation: "panel-result-in 400ms ease-out" }}
+      style={{ animation: "panel-result-in 400ms var(--ease-ios)" }}
     >
       <div className="flex items-start justify-between mb-2">
         <div
@@ -250,14 +250,15 @@ function ResultBody({
       </div>
       <div
         className="mt-4 h-1.5 rounded-full overflow-hidden"
-        style={{ background: "var(--border-soft)" }}
+        style={{ background: "var(--line)" }}
       >
         <div
           style={{
             height: "100%",
             width: `${pct}%`,
-            background: "var(--amber)",
+            background: "linear-gradient(90deg, var(--amber), var(--amber-2))",
             borderRadius: 999,
+            transition: "width 600ms var(--ease-ios)",
           }}
         />
       </div>
@@ -277,7 +278,7 @@ function ResultBody({
       )}
       <button
         onClick={onOpenFull}
-        className="mt-5 w-full rounded-full py-3.5 font-body text-[15px] font-semibold transition-transform hover:scale-[1.01]"
+        className="transition-ios mt-5 w-full rounded-full py-3.5 font-body text-[15px] font-semibold hover:scale-[1.01]"
         style={{ background: "var(--amber)", color: "white" }}
       >
         Open full view →

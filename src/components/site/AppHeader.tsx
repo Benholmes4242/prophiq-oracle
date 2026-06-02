@@ -14,7 +14,7 @@ export function AppHeader({ onMenuClick }: AppHeaderProps) {
         type="button"
         onClick={onMenuClick}
         aria-label="Open menu"
-        className="grid h-11 w-11 place-items-center rounded-full transition-colors hover:bg-[rgba(11,18,32,0.05)] active:bg-[rgba(11,18,32,0.1)]"
+        className="grid h-11 w-11 place-items-center rounded-full transition-ios-colors hover:bg-[rgba(11,18,32,0.05)] active:bg-[rgba(11,18,32,0.1)]"
         style={{ color: "var(--ink)" }}
       >
         <svg
@@ -48,7 +48,7 @@ export function AppHeader({ onMenuClick }: AppHeaderProps) {
       <Link
         to="/search"
         aria-label="Search"
-        className="grid h-11 w-11 place-items-center rounded-full transition-colors hover:bg-[rgba(11,18,32,0.05)]"
+        className="grid h-11 w-11 place-items-center rounded-full transition-ios-colors hover:bg-[rgba(11,18,32,0.05)]"
         style={{ color: "var(--ink)" }}
       >
         <svg
