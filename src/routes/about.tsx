@@ -131,8 +131,6 @@ function AboutPage() {
           </p>
         </section>
       </main>
-      <Footer />
-    </>
   );
 }
 
