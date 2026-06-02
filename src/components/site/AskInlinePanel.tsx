@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
-import { EvidenceTicks } from "./EvidenceTicks";
+import { LoadingNucleus } from "./LoadingNucleus";
+import { RotatingTick } from "./RotatingTick";
 import { useLoadingStages } from "@/hooks/useLoadingStages";
 import { addToHistory, updateHistory } from "@/lib/questionHistory";
 import {
