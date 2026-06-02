@@ -6,7 +6,7 @@ interface FilterChipsProps {
 
 export function FilterChips({ chips, active, onChange }: FilterChipsProps) {
   return (
-    <div className="chips-scroll -mx-5 flex gap-2 overflow-x-auto px-5 pb-1">
+    <div className="chips-scroll -mx-5 flex gap-1.5 overflow-x-auto px-5 pb-1">
       {chips.map((chip) => {
         const isActive = chip === active;
         return (
@@ -14,12 +14,15 @@ export function FilterChips({ chips, active, onChange }: FilterChipsProps) {
             key={chip}
             type="button"
             onClick={() => onChange(chip)}
-            className="shrink-0 whitespace-nowrap rounded-full font-body text-[12.5px] font-medium active:scale-[0.96]"
+            className="shrink-0 whitespace-nowrap rounded-full font-medium active:scale-[0.97]"
             style={{
-              padding: "8px 13px",
-              border: "none",
-              background: isActive ? "var(--ink)" : "var(--chip-bg)",
-              color: isActive ? "#fff" : "var(--ink-2)",
+              fontFamily: "var(--font-sans)",
+              fontSize: 13,
+              padding: "7px 14px",
+              border: `1px solid ${isActive ? "var(--ink)" : "var(--line)"}`,
+              background: isActive ? "var(--ink)" : "transparent",
+              color: isActive ? "#fff" : "var(--ink-soft)",
+              letterSpacing: "-0.005em",
               transition: "all 180ms var(--ease-ios)",
             }}
             aria-pressed={isActive}

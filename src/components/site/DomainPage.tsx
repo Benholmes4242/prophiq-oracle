@@ -89,13 +89,17 @@ export function DomainPage({ domain }: { domain: DomainId }) {
         <div className="flex items-center gap-3 px-5 pb-2 pt-2">
           <span
             className="font-mono text-[10px] tracking-[0.2em]"
-            style={{ color: "var(--ink-faint)", fontWeight: 600 }}
+            style={{
+              color: "var(--ink-faint)",
+              fontWeight: 600,
+              textTransform: "uppercase",
+            }}
           >
-            UPCOMING
+            Upcoming
           </span>
           <span
             className="h-px flex-1"
-            style={{ background: "var(--border-soft)" }}
+            style={{ background: "var(--line)" }}
           />
           <span
             className="font-mono text-[10px]"

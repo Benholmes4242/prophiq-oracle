@@ -4,54 +4,51 @@ interface DomainHeroProps {
   domain: DomainId;
 }
 
-const DOMAIN_COPY: Record<DomainId, { eyebrow: string; headlineLines: [string, string]; sub: string }> = {
+const DOMAIN_COPY: Record<DomainId, { title: string; sub: string }> = {
   sport: {
-    eyebrow: "SPORT",
-    headlineLines: ["Sport.", "What wins?"],
-    sub: "Fixtures, finals, and head-to-head calls. Calibrated forecasts on every upcoming event.",
+    title: "Sport",
+    sub: "Fixtures, finals, and head-to-head calls — calibrated.",
   },
   politics: {
-    eyebrow: "POLITICS",
-    headlineLines: ["Politics.", "Who wins?"],
-    sub: "Elections, leadership contests, and political moments. Non-partisan forecasts on every upcoming event.",
+    title: "Politics",
+    sub: "Elections, contests, and political moments — non-partisan.",
   },
   markets: {
-    eyebrow: "MARKETS",
-    headlineLines: ["Markets.", "What moves?"],
-    sub: "Earnings, central banks, and macro prints. Informational forecasts on every upcoming event.",
+    title: "Markets",
+    sub: "Earnings, central banks, and macro prints — informational.",
   },
   entertainment: {
-    eyebrow: "ENTERTAINMENT",
-    headlineLines: ["Entertainment.", "What wins?"],
-    sub: "Awards, releases, and finales. Calibrated forecasts on every upcoming event.",
+    title: "Entertainment",
+    sub: "Awards, releases, and finales — calibrated.",
   },
 };
 
 export function DomainHero({ domain }: DomainHeroProps) {
   const copy = DOMAIN_COPY[domain];
   return (
-    <section className="px-5 pb-7 pt-9">
-      <p
-        className="font-mono text-[10px] tracking-[0.22em]"
-        style={{ color: "var(--amber-strong)", fontWeight: 600 }}
-      >
-        {copy.eyebrow}
-      </p>
+    <section className="px-5 pb-6 pt-9">
       <h1
-        className="mt-3 font-display tracking-[-0.03em]"
         style={{
+          fontFamily: "var(--font-sans)",
           fontWeight: 700,
-          lineHeight: 0.94,
-          fontSize: "clamp(40px, 11vw, 56px)",
+          fontSize: 40,
+          lineHeight: 1,
+          letterSpacing: "-0.03em",
+          color: "var(--ink)",
         }}
       >
-        {copy.headlineLines[0]}
-        <br />
-        <span style={{ color: "var(--amber)" }}>{copy.headlineLines[1]}</span>
+        {copy.title}
+        <span style={{ color: "var(--amber)" }}>.</span>
       </h1>
       <p
-        className="mt-5 max-w-[34ch] font-body text-[16px] leading-[1.45]"
-        style={{ color: "var(--ink-soft)" }}
+        className="mt-4 max-w-[36ch]"
+        style={{
+          fontFamily: "var(--font-sans)",
+          fontSize: 15.5,
+          lineHeight: 1.45,
+          color: "var(--ink-soft)",
+          letterSpacing: "-0.005em",
+        }}
       >
         {copy.sub}
       </p>
