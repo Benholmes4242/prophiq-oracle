@@ -1,9 +1,9 @@
 import { useState } from "react";
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { AskInput } from "@/components/site/AskInput";
 import { AskInlinePanel } from "@/components/site/AskInlinePanel";
-import { ConfidenceLabel } from "@/components/site/ConfidenceLabel";
-import { PicksCarousel } from "@/components/site/PicksCarousel";
+import { HighestConfidenceStream } from "@/components/site/HighestConfidenceStream";
+import { DomainTilesGrid, TILE_DOMAINS } from "@/components/site/DomainTilesGrid";
 import { TrackRecord } from "@/components/site/TrackRecord";
 import { useHomepagePicks } from "@/hooks/useEvents";
 import type { HomepagePick } from "@/lib/queries";
@@ -48,10 +48,13 @@ function HomePage() {
   const [askQ, setAskQ] = useState<string | null>(null);
   const [draft, setDraft] = useState("");
 
-  const marquee =
-    picks.data?.find((p) => p.is_marquee) ?? picks.data?.[0] ?? null;
-  const restPicks =
-    picks.data?.filter((p) => p !== marquee).slice(0, 4) ?? [];
+  const all = picks.data ?? [];
+  const streamPicks = all.slice(0, 6);
+
+  const byDomain: Record<string, HomepagePick | null> = {};
+  for (const d of TILE_DOMAINS) {
+    byDomain[d] = all.find((p) => p.domain === d) ?? null;
+  }
 
   function ask(q: string) {
     const trimmed = q.trim();
@@ -61,10 +64,10 @@ function HomePage() {
   }
 
   return (
-    <div className="mx-auto flex h-full max-w-2xl flex-col justify-between px-4 pb-4">
+    <div className="mx-auto flex h-full max-w-2xl flex-col justify-between pb-4">
       {askQ ? (
         <>
-          <section className="pt-2">
+          <section className="px-4 pt-2">
             <AskInlinePanel
               key={askQ}
               question={askQ}
@@ -75,6 +78,7 @@ function HomePage() {
           <div />
           <BottomCTA
             showChips={false}
+            inputDisabled
             draft={draft}
             onDraftChange={setDraft}
             onSubmit={ask}
@@ -82,39 +86,24 @@ function HomePage() {
         </>
       ) : (
         <>
-          <section className="entry-animate pt-3" data-stagger="0">
-            <SectionLabel>TOP PICK TODAY</SectionLabel>
-            {picks.isLoading ? (
-              <MarqueeSkeleton />
-            ) : marquee ? (
-              <MarqueeCard pick={marquee} />
-            ) : (
-              <EmptyMarquee />
-            )}
-          </section>
+          <div className="pt-3">
+            <HighestConfidenceStream picks={streamPicks} />
+          </div>
 
-          {restPicks.length >= 2 ? (
-            <section className="-mx-4">
-              <PicksCarousel picks={restPicks} />
-              <div className="px-4">
-                <Link
-                  to="/predictions"
-                  className="entry-animate block py-1.5 text-center font-body text-[13px] font-semibold"
-                  data-stagger="5"
-                  style={{ color: "var(--amber-2)" }}
-                >
-                  See all picks →
-                </Link>
-              </div>
-              <TrackRecord stagger={6} />
-            </section>
-          ) : (
-            <div>
-              <TrackRecord stagger={6} />
-            </div>
-          )}
+          <div className="space-y-3">
+            <DomainTilesGrid byDomain={byDomain} baseStagger={6} />
+            <TrackRecord stagger={10} />
+            <a
+              href="/predictions"
+              className="entry-animate block px-4 py-1 text-center font-body text-[13px] font-semibold"
+              data-stagger="11"
+              style={{ color: "var(--amber-2)" }}
+            >
+              See all picks →
+            </a>
+          </div>
 
-          <div className="entry-animate" data-stagger="7">
+          <div className="entry-animate" data-stagger="12">
             <BottomCTA
               showChips
               draft={draft}
@@ -128,38 +117,26 @@ function HomePage() {
   );
 }
 
-function SectionLabel({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="mb-3 flex items-center gap-2.5">
-      <div
-        className="font-mono text-[10px] font-semibold uppercase"
-        style={{ letterSpacing: "0.22em", color: "var(--amber-2)" }}
-      >
-        {children}
-      </div>
-      <div className="h-px flex-1" style={{ background: "var(--line)" }} />
-    </div>
-  );
-}
-
 function BottomCTA({
   showChips,
+  inputDisabled,
   draft,
   onDraftChange,
   onSubmit,
 }: {
   showChips: boolean;
+  inputDisabled?: boolean;
   draft: string;
   onDraftChange: (v: string) => void;
   onSubmit: (q: string) => void;
 }) {
   return (
     <div
-      className="shrink-0 pt-3"
+      className="shrink-0 px-4 pt-3"
       style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
     >
       <div
-        className="font-display mb-3.5 text-center"
+        className="font-display mb-3 text-center"
         style={{
           fontSize: 22,
           fontWeight: 600,
@@ -178,7 +155,7 @@ function BottomCTA({
               key={c.label}
               type="button"
               onClick={() => onSubmit(c.question)}
-              className="chip shrink-0 whitespace-nowrap rounded-full font-body text-[12.5px] font-medium active:scale-[0.96]"
+              className="chip shrink-0 whitespace-nowrap rounded-full font-body text-[12.5px] font-medium"
             >
               {c.label}
             </button>
@@ -190,143 +167,11 @@ function BottomCTA({
         value={draft}
         onChange={onDraftChange}
         onSubmit={onSubmit}
-        placeholder="Ask anything…"
+        placeholder={
+          inputDisabled ? "Working on your forecast…" : "Ask anything…"
+        }
+        disabled={inputDisabled}
       />
     </div>
-  );
-}
-
-function MarqueeCard({ pick }: { pick: HomepagePick }) {
-  const navigate = useNavigate();
-  const pct = pick.top_pick_pct != null ? Math.round(pick.top_pick_pct) : null;
-
-  function open() {
-    navigate({
-      to: "/$domain/events/$slug",
-      params: { domain: pick.domain, slug: pick.slug },
-    });
-  }
-
-  return (
-    <div
-      role="button"
-      tabIndex={0}
-      onClick={open}
-      onKeyDown={(e) => {
-        if (e.key === "Enter") open();
-      }}
-      className="marquee-card pressable cursor-pointer"
-      style={{
-        background: "var(--bg-card)",
-        border: "1px solid var(--line)",
-        borderRadius: 18,
-        padding: "18px 20px",
-        boxShadow: "var(--shadow-card)",
-        transition: "all 240ms var(--ease-ios)",
-      }}
-    >
-      <div className="mb-2 flex items-center justify-between">
-        <div
-          className="font-mono text-[10px] font-semibold uppercase"
-          style={{ letterSpacing: "0.22em", color: "var(--amber-2)" }}
-        >
-          {pick.domain.toUpperCase()}
-        </div>
-        <ConfidenceLabel tier={pick.confidence} />
-      </div>
-
-      <div
-        className="font-display mb-3"
-        style={{
-          fontSize: 19,
-          fontWeight: 600,
-          lineHeight: 1.2,
-          color: "var(--ink)",
-          letterSpacing: "-0.02em",
-        }}
-      >
-        {pick.title}
-      </div>
-
-      {pick.top_pick_label && pct != null && (
-        <>
-          <div className="flex items-end justify-between gap-3">
-            <div className="min-w-0 flex-1">
-              <div
-                className="mb-1 font-mono text-[9px] font-semibold uppercase"
-                style={{ letterSpacing: "0.22em", color: "var(--ink-3)" }}
-              >
-                TOP PICK
-              </div>
-              <div
-                className="font-display"
-                style={{
-                  fontSize: 20,
-                  fontWeight: 700,
-                  lineHeight: 1.1,
-                  color: "var(--ink)",
-                  letterSpacing: "-0.02em",
-                }}
-              >
-                {pick.top_pick_label}
-              </div>
-            </div>
-            <div
-              className="font-mono"
-              style={{
-                fontSize: 38,
-                fontWeight: 600,
-                lineHeight: 0.95,
-                color: "var(--amber)",
-                letterSpacing: "-0.04em",
-                fontFeatureSettings: "'tnum'",
-              }}
-            >
-              {pct}
-              <span style={{ fontSize: 18 }}>%</span>
-            </div>
-          </div>
-          <div
-            className="mt-3 h-1 overflow-hidden rounded-full"
-            style={{ background: "var(--line)" }}
-          >
-            <div
-              className="h-full rounded-full"
-              style={{
-                width: `${pct}%`,
-                background:
-                  "linear-gradient(90deg, var(--amber), var(--amber-2))",
-                transition: "width 600ms var(--ease-ios)",
-              }}
-            />
-          </div>
-        </>
-      )}
-    </div>
-  );
-}
-
-function EmptyMarquee() {
-  return (
-    <div
-      className="rounded-[18px] p-8 text-center"
-      style={{
-        background: "var(--bg-card)",
-        border: "1px dashed var(--line-2)",
-      }}
-    >
-      <div className="font-body text-[14px]" style={{ color: "var(--ink-2)" }}>
-        Today's picks are calibrating. Check back shortly.
-      </div>
-    </div>
-  );
-}
-
-function MarqueeSkeleton() {
-  return (
-    <div
-      className="h-[180px] animate-pulse rounded-[18px]"
-      style={{ background: "var(--bg-card)" }}
-    />
   );
 }
