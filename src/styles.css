@@ -1574,3 +1574,16 @@
   0% { transform: translateX(-100%); }
   100% { transform: translateX(100%); }
 }
+
+/* Asked page item hover/active feedback */
+.ask-item:hover {
+  border-color: var(--line-2);
+}
+.ask-item:hover .ask-chevron {
+  color: var(--amber);
+  transform: translateX(2px);
+}
+.ask-item:active {
+  transform: scale(0.985);
+  background: var(--bg-tint);
+}
