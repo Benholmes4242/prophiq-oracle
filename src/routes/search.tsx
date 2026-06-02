@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   createFileRoute,
-  Link,
   useNavigate,
 } from "@tanstack/react-router";
 import { useQuery, keepPreviousData } from "@tanstack/react-query";
@@ -371,5 +370,3 @@ function LoadingShimmer() {
   );
 }
 
-// Keep Link import for potential future use; satisfy linter
-void Link;
