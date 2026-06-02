@@ -29,7 +29,7 @@ export function EventCard({
     <Link
       to="/$domain/events/$slug"
       params={{ domain: event.domain, slug: event.slug }}
-      className="group block rounded-xl border border-[var(--brand-border)] bg-white p-4 shadow-[0_1px_0_rgba(15,23,42,0.02)] transition-all hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md"
+      className="group block rounded-xl border border-[var(--brand-border)] bg-white p-4 shadow-[0_1px_0_rgba(15,23,42,0.02)] transition-ios hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md"
     >
       <div className="flex items-center justify-between gap-2">
         <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">

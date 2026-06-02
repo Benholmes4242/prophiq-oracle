@@ -199,13 +199,13 @@ function LoadingBody({ stageIdx }: { stageIdx: number }) {
             height: 8,
             borderRadius: "50%",
             background: "var(--amber)",
-            animation: "panel-breathe 1.4s ease-in-out infinite",
+            animation: "panel-breathe 1.4s var(--ease-ios) infinite",
           }}
         />
         <div
           key={label}
           className="font-display text-[18px] font-semibold"
-          style={{ animation: "panel-stage-in 300ms ease-in-out" }}
+          style={{ animation: "panel-stage-in 300ms var(--ease-ios)" }}
         >
           {label}
         </div>
@@ -225,7 +225,7 @@ function ResultBody({
   return (
     <div
       className="pt-5"
-      style={{ animation: "panel-result-in 400ms ease-out" }}
+      style={{ animation: "panel-result-in 400ms var(--ease-ios)" }}
     >
       <div className="flex items-start justify-between mb-2">
         <div

@@ -39,7 +39,7 @@ export function Header({ showTabs = true }: HeaderProps) {
             <SearchInput />
             <Link
               to="/about"
-              className="font-body text-[13px] transition-colors hover:text-[var(--ink)]"
+              className="font-body text-[13px] transition-ios-colors hover:text-[var(--ink)]"
               style={{ color: "var(--ink-soft)", fontWeight: 500 }}
             >
               How it works
