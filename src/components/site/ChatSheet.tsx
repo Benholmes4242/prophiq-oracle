@@ -4,6 +4,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { useChat } from "@/hooks/useChat";
 import { useUsageQuota } from "@/hooks/useUsageQuota";
 
@@ -14,6 +16,15 @@ interface ChatSheetProps {
 
 function sanitize(text: string): string {
   return text.replace(/[\u0000-\u0008\u000B-\u001F\u007F]/g, "");
+}
+
+/**
+ * Strip Perplexity-style citation markers: [1], [2][3], [1][2][3][4], etc.
+ * We don't currently surface the underlying source URLs, so showing the
+ * brackets just adds noise. Sentence punctuation stays intact.
+ */
+function stripCitations(text: string): string {
+  return text.replace(/\[\d+\](?:\[\d+\])*/g, '');
 }
 
 export function ChatSheet({ eventId, onClose }: ChatSheetProps) {
@@ -101,7 +112,23 @@ export function ChatSheet({ eventId, onClose }: ChatSheetProps) {
               key={m.id}
               className={"msg " + (m.role === "user" ? "msg-user" : "msg-assistant")}
             >
-              {sanitize(m.content)}
+              {m.role === "user" ? (
+                sanitize(m.content)
+              ) : (
+                <ReactMarkdown
+                  remarkPlugins={[remarkGfm]}
+                  skipHtml
+                  components={{
+                    a: ({ href, children }) => (
+                      <a href={href} target="_blank" rel="noopener noreferrer">
+                        {children}
+                      </a>
+                    ),
+                  }}
+                >
+                  {stripCitations(sanitize(m.content))}
+                </ReactMarkdown>
+              )}
             </div>
           ))}
           {sending && <div className="msg msg-assistant msg-thinking">Thinking…</div>}
