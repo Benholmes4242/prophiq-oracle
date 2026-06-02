@@ -350,6 +350,18 @@
   border-color: var(--line-2) !important;
 }
 
+/* Brief O — Domain page card hover/active */
+.lead-card-hover:hover {
+  border-color: var(--line-2) !important;
+}
+.event-card:hover {
+  border-color: var(--line-2) !important;
+}
+.event-card:active {
+  transform: scale(0.99);
+  background: var(--bg-tint) !important;
+}
+
 /* ============================================================
  * Brief I — Ask flow polish
  * ============================================================ */
