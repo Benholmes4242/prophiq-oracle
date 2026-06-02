@@ -74,18 +74,6 @@ export function AskInlinePanel({
     else onStateChange?.("loading");
   }, [result, error, onStateChange]);
 
-  const stageOrder: WireStage[] = [
-    "rate_limit",
-    "pre_filter",
-    "moderation",
-    "research",
-    "models",
-    "consensus",
-  ];
-  const stageIdx = currentStage ? stageOrder.indexOf(currentStage) : 0;
-  const progressPct = result
-    ? 100
-    : Math.min(((stageIdx + 1) / (stageOrder.length + 1)) * 100, 95);
 
   return (
     <div
