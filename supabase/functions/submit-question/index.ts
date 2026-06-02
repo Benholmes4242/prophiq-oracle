@@ -62,9 +62,9 @@ Deno.serve(async (req) => {
       // ----- 1. RATE LIMIT -----
       sse.send({ stage: "rate_limit", status: "start" });
       const checker: RateLimitChecker = {
-        async countAccepted({ fingerprint: fp, ipHash: ih, endpoint, sinceIso }) {
+        async countAccepted({ fingerprint: fp, ipHash: ih, endpoints, sinceIso }) {
           let q = supabase.from("submission_rate_limits").select("id", { count: "exact", head: true })
-            .eq("endpoint", endpoint).eq("outcome", "accepted").gte("submitted_at", sinceIso);
+            .in("endpoint", endpoints).eq("outcome", "accepted").gte("submitted_at", sinceIso);
           if (fp) q = q.eq("fingerprint", fp);
           if (ih) q = q.eq("ip_hash", ih);
           const { count } = await q;
@@ -72,7 +72,11 @@ Deno.serve(async (req) => {
         },
         async record() { /* unused — we record outcomes explicitly below */ },
       };
-      const decision = await check(checker, { endpoint: "submit_question", fingerprint, ipHash, question });
+      const decision = await check(checker, {
+        endpoint: "submit_question",
+        fingerprint, ipHash, question,
+        countEndpoints: ["submit_question", "chat_message"],
+      });
       if (!decision.ok) {
         sse.send({ stage: "rate_limit", status: "error", message: `Limit reached (${decision.reason}). Try again later.`, data: decision });
         await recordOutcome("rejected_rate_limit");
