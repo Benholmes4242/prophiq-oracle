@@ -33,11 +33,11 @@ Deno.serve(async (req) => {
   const ipHash = await hashIp(ip);
   const supabase = getServiceClient();
 
-  // Rate limit
+  // Rate limit — shared bucket with submit_question.
   const checker: RateLimitChecker = {
-    async countAccepted({ fingerprint: fp, ipHash: ih, endpoint, sinceIso }) {
+    async countAccepted({ fingerprint: fp, ipHash: ih, endpoints, sinceIso }) {
       let q = supabase.from("submission_rate_limits").select("id", { count: "exact", head: true })
-        .eq("endpoint", endpoint).eq("outcome", "accepted").gte("submitted_at", sinceIso);
+        .in("endpoint", endpoints).eq("outcome", "accepted").gte("submitted_at", sinceIso);
       if (fp) q = q.eq("fingerprint", fp);
       if (ih) q = q.eq("ip_hash", ih);
       const { count } = await q;
@@ -45,7 +45,11 @@ Deno.serve(async (req) => {
     },
     async record() {},
   };
-  const decision = await check(checker, { endpoint: "chat_message", fingerprint, ipHash, question: message });
+  const decision = await check(checker, {
+    endpoint: "chat_message",
+    fingerprint, ipHash, question: message,
+    countEndpoints: ["submit_question", "chat_message"],
+  });
   if (!decision.ok) {
     await supabase.from("submission_rate_limits").insert({
       fingerprint, ip_hash: ipHash, endpoint: "chat_message",
