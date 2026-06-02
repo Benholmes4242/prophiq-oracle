@@ -58,10 +58,8 @@ export function DomainPage({ domain }: { domain: DomainId }) {
   const leadPick = lead ? toHomepagePick(lead) : null;
 
   return (
-    <div style={{ background: "var(--bg)", color: "var(--ink)" }}>
-      <Header />
-      <main className="mx-auto max-w-2xl">
-        <DomainHero domain={domain} />
+    <main className="mx-auto max-w-2xl">
+      <DomainHero domain={domain} />
 
         <section className="px-5 pb-5">
           <AskInput placeholder={DOMAIN_PLACEHOLDER[domain]} onSubmit={ask} />
