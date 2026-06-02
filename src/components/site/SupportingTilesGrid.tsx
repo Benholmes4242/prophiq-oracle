@@ -1,4 +1,5 @@
 import { useNavigate } from "@tanstack/react-router";
+import { ConfidenceLabel } from "@/components/site/ConfidenceLabel";
 import type { HomepagePick } from "@/lib/queries";
 
 interface Props {
@@ -47,56 +48,54 @@ function SupportingTile({
       className="pressable entry-animate text-left"
       data-stagger={stagger}
       style={{
-        minHeight: 100,
+        minHeight: 130,
         background: "var(--bg-card)",
         border: "1px solid var(--line)",
         borderRadius: 14,
         boxShadow: "var(--shadow-sm)",
-        padding: "12px 14px",
-        display: "flex",
-        flexDirection: "column",
+        padding: "13px 14px",
+        display: "grid",
+        gridTemplateRows: "auto 1fr auto",
+        gap: 10,
       }}
     >
-      <div className="mb-1.5 flex items-center justify-between gap-2">
-        <div
-          className="truncate font-mono text-[8.5px] font-bold uppercase"
-          style={{ letterSpacing: "0.2em", color: "var(--amber-2)" }}
-        >
-          {pick.domain.toUpperCase()}
-        </div>
-      </div>
       <div
-        className="font-body line-clamp-2"
         style={{
-          fontSize: 12.5,
-          fontWeight: 600,
-          lineHeight: 1.22,
-          letterSpacing: "-0.01em",
-          color: "var(--ink)",
-          marginBottom: 8,
-          flex: 1,
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "flex-start",
+          gap: 10,
+          minWidth: 0,
         }}
       >
-        {pick.title}
-      </div>
-      <div className="flex items-end justify-between gap-1.5">
         <div
-          className="min-w-0 truncate font-body"
           style={{
-            fontSize: 12,
-            fontWeight: 700,
-            letterSpacing: "-0.01em",
-            color: "var(--ink)",
-            maxWidth: 90,
+            display: "flex",
+            flexDirection: "column",
+            gap: 6,
+            minWidth: 0,
+            flex: 1,
           }}
         >
-          {pick.top_pick_label ?? "—"}
+          <div
+            className="font-mono"
+            style={{
+              fontSize: 9,
+              fontWeight: 700,
+              letterSpacing: "0.2em",
+              color: "var(--amber-2)",
+              textTransform: "uppercase",
+            }}
+          >
+            {pick.domain.toUpperCase()}
+          </div>
+          <ConfidenceLabel tier={pick.confidence} />
         </div>
         {pct != null && (
           <div
             className="font-mono shrink-0"
             style={{
-              fontSize: 20,
+              fontSize: 22,
               fontWeight: 600,
               lineHeight: 0.95,
               letterSpacing: "-0.03em",
@@ -105,9 +104,43 @@ function SupportingTile({
             }}
           >
             {pct}
-            <span style={{ fontSize: 10 }}>%</span>
+            <span style={{ fontSize: 11 }}>%</span>
           </div>
         )}
+      </div>
+
+      <div
+        className="font-body"
+        style={{
+          fontSize: 13,
+          fontWeight: 600,
+          lineHeight: 1.3,
+          letterSpacing: "-0.01em",
+          color: "var(--ink)",
+          display: "-webkit-box",
+          WebkitLineClamp: 3,
+          WebkitBoxOrient: "vertical",
+          overflow: "hidden",
+        }}
+      >
+        {pick.title}
+      </div>
+
+      <div
+        className="font-body"
+        style={{
+          fontSize: 12.5,
+          fontWeight: 700,
+          lineHeight: 1.3,
+          letterSpacing: "-0.01em",
+          color: "var(--ink)",
+          display: "-webkit-box",
+          WebkitLineClamp: 2,
+          WebkitBoxOrient: "vertical",
+          overflow: "hidden",
+        }}
+      >
+        {pick.top_pick_label ?? "—"}
       </div>
     </button>
   );
@@ -119,7 +152,7 @@ function EmptyTile({ stagger }: { stagger: number }) {
       className="entry-animate"
       data-stagger={stagger}
       style={{
-        minHeight: 100,
+        minHeight: 130,
         border: "1px dashed var(--line-2)",
         borderRadius: 14,
         display: "grid",

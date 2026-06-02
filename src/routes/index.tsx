@@ -159,17 +159,28 @@ function BottomCTA({
       </div>
 
       {showChips && (
-        <div className="chips-scroll -mx-1 mb-2.5 flex gap-1.5 overflow-x-auto px-1">
-          {CHIPS.map((c) => (
-            <button
-              key={c.label}
-              type="button"
-              onClick={() => onSubmit(c.question)}
-              className="chip shrink-0 whitespace-nowrap rounded-full font-body text-[12.5px] font-medium"
-            >
-              {c.label}
-            </button>
-          ))}
+        <div className="relative -mx-4 mb-2.5">
+          <div className="chips-scroll flex gap-1.5 overflow-x-auto px-4">
+            {CHIPS.map((c) => (
+              <button
+                key={c.label}
+                type="button"
+                onClick={() => onSubmit(c.question)}
+                className="chip shrink-0 whitespace-nowrap rounded-full font-body text-[12.5px] font-medium"
+              >
+                {c.label}
+              </button>
+            ))}
+          </div>
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-y-0 right-0"
+            style={{
+              width: 28,
+              background:
+                "linear-gradient(to right, transparent, var(--bg))",
+            }}
+          />
         </div>
       )}
 

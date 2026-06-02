@@ -28,45 +28,42 @@ export function FeatureCard({ pick, stagger = 1 }: Props) {
         borderRadius: 18,
         boxShadow: "var(--shadow-card)",
         padding: "16px 18px",
-        display: "flex",
-        flexDirection: "column",
+        display: "grid",
+        gridTemplateRows: "auto auto auto auto",
+        gap: 12,
       }}
     >
-      <div className="flex items-center justify-between gap-2">
-        <div
-          className="truncate font-mono text-[10px] font-bold uppercase"
-          style={{ letterSpacing: "0.2em", color: "var(--amber-2)" }}
-        >
-          FEATURED · {pick.domain.toUpperCase()}
-        </div>
-        <ConfidenceLabel tier={pick.confidence} compact />
-      </div>
-
       <div
-        className="font-body"
         style={{
-          fontSize: 17,
-          fontWeight: 600,
-          lineHeight: 1.2,
-          letterSpacing: "-0.02em",
-          color: "var(--ink)",
-          margin: "8px 0 12px",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "flex-start",
+          gap: 12,
+          minWidth: 0,
         }}
       >
-        {pick.title}
-      </div>
-
-      <div className="flex items-end justify-between gap-3">
         <div
-          className="min-w-0 font-body"
           style={{
-            fontSize: 17,
-            fontWeight: 700,
-            letterSpacing: "-0.02em",
-            color: "var(--ink)",
+            display: "flex",
+            flexDirection: "column",
+            gap: 8,
+            minWidth: 0,
+            flex: 1,
           }}
         >
-          {pick.top_pick_label ?? "—"}
+          <div
+            className="font-mono"
+            style={{
+              fontSize: 10,
+              fontWeight: 700,
+              letterSpacing: "0.22em",
+              color: "var(--amber-2)",
+              textTransform: "uppercase",
+            }}
+          >
+            FEATURED · {pick.domain.toUpperCase()}
+          </div>
+          <ConfidenceLabel tier={pick.confidence} />
         </div>
         {pct != null && (
           <div
@@ -86,10 +83,43 @@ export function FeatureCard({ pick, stagger = 1 }: Props) {
         )}
       </div>
 
+      <div
+        className="font-body"
+        style={{
+          fontSize: 17,
+          fontWeight: 600,
+          lineHeight: 1.2,
+          letterSpacing: "-0.02em",
+          color: "var(--ink)",
+          display: "-webkit-box",
+          WebkitLineClamp: 3,
+          WebkitBoxOrient: "vertical",
+          overflow: "hidden",
+        }}
+      >
+        {pick.title}
+      </div>
+
+      <div
+        className="font-body"
+        style={{
+          fontSize: 15,
+          fontWeight: 700,
+          lineHeight: 1.3,
+          letterSpacing: "-0.01em",
+          color: "var(--ink)",
+          display: "-webkit-box",
+          WebkitLineClamp: 2,
+          WebkitBoxOrient: "vertical",
+          overflow: "hidden",
+        }}
+      >
+        {pick.top_pick_label ?? "—"}
+      </div>
+
       {pct != null && (
         <div
           style={{
-            marginTop: 10,
             height: 3,
             background: "var(--line)",
             borderRadius: 999,
