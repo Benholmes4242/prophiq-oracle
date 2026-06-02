@@ -294,24 +294,26 @@
 .entry-animate {
   animation: entryFadeUp 360ms var(--ease-ios) backwards;
 }
-.entry-animate[data-stagger="0"] { animation-delay:   0ms; }
-.entry-animate[data-stagger="1"] { animation-delay:  80ms; }
-.entry-animate[data-stagger="2"] { animation-delay: 130ms; }
-.entry-animate[data-stagger="3"] { animation-delay: 180ms; }
-.entry-animate[data-stagger="4"] { animation-delay: 230ms; }
-.entry-animate[data-stagger="5"] { animation-delay: 280ms; }
-.entry-animate[data-stagger="6"] { animation-delay: 320ms; }
-.entry-animate[data-stagger="7"] { animation-delay: 360ms; }
+.entry-animate[data-stagger="0"]  { animation-delay:   0ms; }
+.entry-animate[data-stagger="1"]  { animation-delay:  80ms; }
+.entry-animate[data-stagger="2"]  { animation-delay: 120ms; }
+.entry-animate[data-stagger="3"]  { animation-delay: 160ms; }
+.entry-animate[data-stagger="4"]  { animation-delay: 200ms; }
+.entry-animate[data-stagger="5"]  { animation-delay: 240ms; }
+.entry-animate[data-stagger="6"]  { animation-delay: 280ms; }
+.entry-animate[data-stagger="7"]  { animation-delay: 320ms; }
+.entry-animate[data-stagger="8"]  { animation-delay: 360ms; }
+.entry-animate[data-stagger="9"]  { animation-delay: 400ms; }
+.entry-animate[data-stagger="10"] { animation-delay: 440ms; }
+.entry-animate[data-stagger="11"] { animation-delay: 480ms; }
+.entry-animate[data-stagger="12"] { animation-delay: 520ms; }
 
 @media (prefers-reduced-motion: reduce) {
   .entry-animate { animation: none !important; }
 }
 
 /* ============================================================
- * Mobile press states — Brief G
- * Tactile feedback on touch / click for tap targets.
- * Marker class `.pressable` lets us override hover transforms
- * without !important.
+ * Mobile press states — Briefs G/H
  * ============================================================ */
 .pressable {
   transition: transform 120ms var(--ease-ios),
@@ -320,12 +322,30 @@
               background-color 180ms var(--ease-ios);
 }
 .marquee-card.pressable:active,
-.pick-card.pressable:active {
+.pick-card.pressable:active,
+.conf-card.pressable:active,
+.e-tile.pressable:active {
   transform: scale(0.98);
 }
-.chip:active {
-  transform: scale(0.96);
+.chip:active { transform: scale(0.96); }
+.drawer-item:active { background: rgba(10, 17, 23, 0.08); }
+
+/* ============================================================
+ * Brief H — Highest Confidence stream + tile hover
+ * ============================================================ */
+.conf-stream {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  padding: 0 16px 4px;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
-.drawer-item:active {
-  background: rgba(10, 17, 23, 0.08);
+.conf-stream::-webkit-scrollbar { display: none; }
+
+.conf-card:hover,
+.e-tile:hover {
+  transform: translateY(-1px);
+  border-color: var(--line-2) !important;
 }
