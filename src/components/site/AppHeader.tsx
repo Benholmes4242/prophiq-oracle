@@ -7,8 +7,8 @@ interface AppHeaderProps {
 export function AppHeader({ onMenuClick }: AppHeaderProps) {
   return (
     <header
-      className="mx-auto flex max-w-2xl items-center justify-between px-4 pb-1 pt-2.5"
-      style={{ background: "var(--bg)" }}
+      className="flex items-center justify-between px-4 pb-1 pt-2.5"
+      style={{ background: "var(--bg)", paddingTop: "max(env(safe-area-inset-top), 10px)" }}
     >
       <button
         type="button"
