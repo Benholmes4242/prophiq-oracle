@@ -89,6 +89,7 @@ export function useChat(eventId: string | undefined) {
         const json = (await res.json()) as {
           thread_id: string;
           assistant_message?: ChatMessage;
+          reply?: string;
         };
         if (json.thread_id && json.thread_id !== threadId) {
           setThreadId(json.thread_id);
@@ -98,6 +99,16 @@ export function useChat(eventId: string | undefined) {
         }
         if (json.assistant_message) {
           setMessages((prev) => [...prev, json.assistant_message!]);
+        } else if (json.reply) {
+          setMessages((prev) => [
+            ...prev,
+            {
+              id: `assistant-${Date.now()}`,
+              role: "assistant",
+              content: json.reply!,
+              created_at: new Date().toISOString(),
+            },
+          ]);
         }
       } catch (e) {
         setError(e instanceof Error ? e.message : String(e));
