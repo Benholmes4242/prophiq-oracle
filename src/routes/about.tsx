@@ -41,8 +41,7 @@ const STEPS = [
 
 function AboutPage() {
   return (
-    <>
-      <main className="mx-auto max-w-2xl">
+    <main className="mx-auto max-w-2xl">
         <section className="px-5 pb-7 pt-9">
           <h1
             className="font-display tracking-[-0.035em]"
