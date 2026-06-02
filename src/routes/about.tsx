@@ -1,5 +1,4 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Footer } from "@/components/site/Footer";
 import { WhatWeAnalyseSection } from "@/components/site/WhatWeAnalyseSection";
 
 export const Route = createFileRoute("/about")({
@@ -42,8 +41,7 @@ const STEPS = [
 
 function AboutPage() {
   return (
-    <>
-      <main className="mx-auto max-w-2xl">
+    <main className="mx-auto max-w-2xl">
         <section className="px-5 pb-7 pt-9">
           <h1
             className="font-display tracking-[-0.035em]"
@@ -133,8 +131,6 @@ function AboutPage() {
           </p>
         </section>
       </main>
-      <Footer />
-    </>
   );
 }
 
