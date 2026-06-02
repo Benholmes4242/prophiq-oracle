@@ -3,7 +3,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { LoadingNucleus } from "./LoadingNucleus";
 import { RotatingTick } from "./RotatingTick";
 import { useLoadingStages } from "@/hooks/useLoadingStages";
-import { addToHistory, updateHistory } from "@/lib/questionHistory";
+import { addToHistory } from "@/lib/questionHistory";
 import {
   runForecast,
   type AskResult,
@@ -30,6 +30,7 @@ export function AskInlinePanel({
   const [result, setResult] = useState<AskResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
+  const historyAddedForRef = useRef<string | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -37,8 +38,9 @@ export function AskInlinePanel({
     setCurrentStage(null);
     setResult(null);
     setError(null);
+    // Reset guard when the question changes (new ask)
+    historyAddedForRef.current = null;
 
-    const historyEntry = addToHistory({ question });
     const abort = new AbortController();
     abortRef.current = abort;
 
@@ -49,10 +51,15 @@ export function AskInlinePanel({
       onStage: (stage) => setCurrentStage(stage),
       onResult: (res) => {
         setResult(res);
-        updateHistory(historyEntry.id, {
-          eventSlug: res.eventSlug,
-          eventDomain: res.eventDomain,
-        });
+        // Guard: only persist once per question, even if onResult fires twice
+        if (historyAddedForRef.current !== question) {
+          historyAddedForRef.current = question;
+          addToHistory({
+            question,
+            eventSlug: res.eventSlug,
+            eventDomain: res.eventDomain,
+          });
+        }
       },
       onError: (msg) => setError(msg),
     });

@@ -16,7 +16,7 @@ const SECTIONS: Array<{
     items: [
       { label: "Home", to: "/" },
       { label: "Search", to: "/search" },
-      { label: "Your questions", to: "/my-questions" },
+      { label: "Asked", to: "/asked" },
     ],
   },
   {
