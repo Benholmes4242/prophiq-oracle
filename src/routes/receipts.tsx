@@ -81,10 +81,10 @@ function ReceiptsPage() {
   const stats = useReceiptsStats();
   const recent = useRecentResolved(10);
   const notable = useNotableCalls();
+  const scored = useScoredYesterday(6);
 
   return (
-    <div style={{ background: "var(--bg)", color: "var(--ink)" }}>
-      <Header />
+    <>
       <main className="mx-auto max-w-2xl">
         {/* Hero */}
         <section className="px-5 pb-7 pt-9">
