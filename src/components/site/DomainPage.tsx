@@ -1,6 +1,4 @@
 import { useState, useMemo } from "react";
-import { Header } from "@/components/site/Header";
-import { Footer } from "@/components/site/Footer";
 import { DomainHero } from "@/components/site/DomainHero";
 import { FilterChips } from "@/components/site/FilterChips";
 import { TodaysLeadCard } from "@/components/site/TodaysLeadCard";
