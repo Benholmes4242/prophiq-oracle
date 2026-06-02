@@ -2,7 +2,7 @@ import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { AskInput } from "@/components/site/AskInput";
 import { AskInlinePanel, type AskPanelState } from "@/components/site/AskInlinePanel";
-import { LoadingOrb } from "@/components/site/LoadingOrb";
+
 import { FeatureCard } from "@/components/site/FeatureCard";
 import { SupportingTilesGrid } from "@/components/site/SupportingTilesGrid";
 import { TrackRecord } from "@/components/site/TrackRecord";
