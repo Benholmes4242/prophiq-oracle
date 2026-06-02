@@ -1,10 +1,13 @@
-import { Link } from "@tanstack/react-router";
+import { Link, useRouterState } from "@tanstack/react-router";
 
 interface AppHeaderProps {
   onMenuClick: () => void;
 }
 
 export function AppHeader({ onMenuClick }: AppHeaderProps) {
+  const isSearchPage = useRouterState({
+    select: (s) => s.location.pathname === "/search",
+  });
   return (
     <header
       className="flex items-center justify-between px-4 pb-1 pt-2.5"
@@ -48,8 +51,9 @@ export function AppHeader({ onMenuClick }: AppHeaderProps) {
       <Link
         to="/search"
         aria-label="Search"
+        aria-current={isSearchPage ? "page" : undefined}
         className="grid h-11 w-11 place-items-center rounded-full transition-ios-colors hover:bg-[rgba(11,18,32,0.05)]"
-        style={{ color: "var(--ink)" }}
+        style={{ color: isSearchPage ? "var(--amber-2)" : "var(--ink)" }}
       >
         <svg
           width="20"
