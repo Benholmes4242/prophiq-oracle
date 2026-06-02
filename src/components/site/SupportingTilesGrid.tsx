@@ -1,5 +1,4 @@
 import { useNavigate } from "@tanstack/react-router";
-import { ConfidenceLabel } from "@/components/site/ConfidenceLabel";
 import type { HomepagePick } from "@/lib/queries";
 
 interface Props {
@@ -48,54 +47,43 @@ function SupportingTile({
       className="pressable entry-animate text-left"
       data-stagger={stagger}
       style={{
-        minHeight: 130,
+        minHeight: 110,
         background: "var(--bg-card)",
         border: "1px solid var(--line)",
         borderRadius: 14,
         boxShadow: "var(--shadow-sm)",
-        padding: "13px 14px",
+        padding: "12px 13px",
         display: "grid",
         gridTemplateRows: "auto 1fr auto",
-        gap: 10,
+        gap: 8,
       }}
     >
       <div
         style={{
           display: "flex",
           justifyContent: "space-between",
-          alignItems: "flex-start",
+          alignItems: "center",
           gap: 10,
           minWidth: 0,
         }}
       >
         <div
+          className="font-mono"
           style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: 6,
-            minWidth: 0,
-            flex: 1,
+            fontSize: 9,
+            fontWeight: 700,
+            letterSpacing: "0.2em",
+            color: "var(--amber-2)",
+            textTransform: "uppercase",
           }}
         >
-          <div
-            className="font-mono"
-            style={{
-              fontSize: 9,
-              fontWeight: 700,
-              letterSpacing: "0.2em",
-              color: "var(--amber-2)",
-              textTransform: "uppercase",
-            }}
-          >
-            {pick.domain.toUpperCase()}
-          </div>
-          <ConfidenceLabel tier={pick.confidence} />
+          {pick.domain.toUpperCase()}
         </div>
         {pct != null && (
           <div
             className="font-mono shrink-0"
             style={{
-              fontSize: 22,
+              fontSize: 20,
               fontWeight: 600,
               lineHeight: 0.95,
               letterSpacing: "-0.03em",
@@ -104,7 +92,7 @@ function SupportingTile({
             }}
           >
             {pct}
-            <span style={{ fontSize: 11 }}>%</span>
+            <span style={{ fontSize: 10 }}>%</span>
           </div>
         )}
       </div>
@@ -112,7 +100,7 @@ function SupportingTile({
       <div
         className="font-body"
         style={{
-          fontSize: 13,
+          fontSize: 12,
           fontWeight: 600,
           lineHeight: 1.3,
           letterSpacing: "-0.01em",
@@ -129,7 +117,7 @@ function SupportingTile({
       <div
         className="font-body"
         style={{
-          fontSize: 12.5,
+          fontSize: 11.5,
           fontWeight: 700,
           lineHeight: 1.3,
           letterSpacing: "-0.01em",
@@ -152,7 +140,7 @@ function EmptyTile({ stagger }: { stagger: number }) {
       className="entry-animate"
       data-stagger={stagger}
       style={{
-        minHeight: 130,
+        minHeight: 110,
         border: "1px dashed var(--line-2)",
         borderRadius: 14,
         display: "grid",
