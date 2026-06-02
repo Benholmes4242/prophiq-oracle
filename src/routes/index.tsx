@@ -249,14 +249,8 @@ function MarqueeCard({ pick }: { pick: HomepagePick }) {
         </>
       )}
 
-      {pick.reasoning_excerpt && (
-        <div
-          className="mt-3 font-body text-[12.5px] leading-[1.4]"
-          style={{ color: "var(--ink-soft)" }}
-        >
-          {pick.reasoning_excerpt}
-        </div>
-      )}
+
+
     </div>
   );
 }
