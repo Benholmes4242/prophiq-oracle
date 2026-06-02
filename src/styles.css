@@ -464,10 +464,124 @@
   opacity: 1;
 }
 
+/* Loading nucleus (atomic indicator) */
+.loading-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  margin-top: 24px;
+}
+
+.loading-nucleus {
+  width: 80px;
+  height: 80px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.nucleus-ring {
+  position: absolute;
+  border-radius: 50%;
+  border: 1px solid rgba(244, 115, 26, 0.22);
+  pointer-events: none;
+}
+.nucleus-ring-outer { inset: 4px; }
+.nucleus-ring-inner { inset: 14px; }
+
+.nucleus-core {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #FFD580, var(--amber));
+  box-shadow:
+    0 0 10px rgba(244, 115, 26, 0.55),
+    inset 0 -1px 1px rgba(80, 30, 0, 0.3);
+  z-index: 2;
+  animation: nucleus-core-pulse 2.2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+.nucleus-orbit {
+  position: absolute;
+  border-radius: 50%;
+}
+.nucleus-orbit-outer { inset: 4px; animation: nucleus-spin 3.6s linear infinite; }
+.nucleus-orbit-inner { inset: 14px; animation: nucleus-spin 2.6s linear infinite reverse; }
+
+.nucleus-particle {
+  position: absolute;
+  top: -4px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-radius: 50%;
+  background: var(--amber);
+}
+.nucleus-particle-outer {
+  width: 8px;
+  height: 8px;
+  box-shadow: 0 0 6px rgba(244, 115, 26, 0.7);
+}
+.nucleus-particle-inner {
+  width: 6px;
+  height: 6px;
+  box-shadow: 0 0 5px rgba(244, 115, 26, 0.6);
+}
+
+@keyframes nucleus-spin {
+  to { transform: rotate(360deg); }
+}
+@keyframes nucleus-core-pulse {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.12); }
+}
+
+.stage-label-centered {
+  font-family: var(--font-sans);
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--ink);
+  letter-spacing: -0.01em;
+  text-align: center;
+  animation: stage-in 320ms var(--ease-ios);
+  min-height: 22px;
+}
+@keyframes stage-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.tick-row {
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  width: 100%;
+}
+.tick-text {
+  position: absolute;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink-faint);
+  letter-spacing: -0.005em;
+  transition: opacity 280ms var(--ease-ios), transform 280ms var(--ease-ios);
+  text-align: center;
+  white-space: nowrap;
+}
+.tick-entering { opacity: 0; transform: translateY(3px); }
+.tick-visible  { opacity: 0.9; transform: translateY(0); }
+.tick-leaving  { opacity: 0; transform: translateY(-3px); }
+
 @media (prefers-reduced-motion: reduce) {
   .loading-orb,
   .loading-orb-halo,
   .loading-orb-wrapper,
+  .nucleus-orbit-outer,
+  .nucleus-orbit-inner,
+  .nucleus-core,
   .evidence-tick,
   .result-stagger {
     animation: none !important;
