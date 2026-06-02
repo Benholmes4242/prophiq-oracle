@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
-import { EvidenceTicks } from "./EvidenceTicks";
+import { LoadingNucleus } from "./LoadingNucleus";
+import { RotatingTick } from "./RotatingTick";
 import { useLoadingStages } from "@/hooks/useLoadingStages";
 import { addToHistory, updateHistory } from "@/lib/questionHistory";
 import {
@@ -73,18 +74,6 @@ export function AskInlinePanel({
     else onStateChange?.("loading");
   }, [result, error, onStateChange]);
 
-  const stageOrder: WireStage[] = [
-    "rate_limit",
-    "pre_filter",
-    "moderation",
-    "research",
-    "models",
-    "consensus",
-  ];
-  const stageIdx = currentStage ? stageOrder.indexOf(currentStage) : 0;
-  const progressPct = result
-    ? 100
-    : Math.min(((stageIdx + 1) / (stageOrder.length + 1)) * 100, 95);
 
   return (
     <div
@@ -165,22 +154,6 @@ export function AskInlinePanel({
       )}
       {error && <ErrorBody message={error} onDismiss={onDismiss} />}
 
-      {!result && !error && (
-        <div
-          className="mt-6 h-[3px] rounded-full overflow-hidden"
-          style={{ background: "var(--line)" }}
-        >
-          <div
-            style={{
-              height: "100%",
-              width: `${progressPct}%`,
-              background: "linear-gradient(90deg, var(--amber), var(--amber-2))",
-              borderRadius: 999,
-              transition: "width 600ms var(--ease-ios)",
-            }}
-          />
-        </div>
-      )}
 
       <style>{`
         @keyframes panel-in {
@@ -199,15 +172,12 @@ export function AskInlinePanel({
 function LoadingBody({ currentStage }: { currentStage: WireStage | null }) {
   const label = useLoadingStages(currentStage);
   return (
-    <div className="pt-5 min-h-[64px]">
-      <div
-        key={label}
-        className="font-sans text-[18px] font-semibold"
-        style={{ animation: "panel-stage-in 300ms var(--ease-ios)" }}
-      >
+    <div className="loading-body">
+      <LoadingNucleus />
+      <div key={label} className="stage-label-centered">
         {label}
       </div>
-      <EvidenceTicks />
+      <RotatingTick />
     </div>
   );
 }
