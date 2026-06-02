@@ -172,15 +172,12 @@ export function AskInlinePanel({
 function LoadingBody({ currentStage }: { currentStage: WireStage | null }) {
   const label = useLoadingStages(currentStage);
   return (
-    <div className="pt-5 min-h-[64px]">
-      <div
-        key={label}
-        className="font-sans text-[18px] font-semibold"
-        style={{ animation: "panel-stage-in 300ms var(--ease-ios)" }}
-      >
+    <div className="loading-body">
+      <LoadingNucleus />
+      <div key={label} className="stage-label-centered">
         {label}
       </div>
-      <EvidenceTicks />
+      <RotatingTick />
     </div>
   );
 }
