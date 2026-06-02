@@ -170,6 +170,14 @@ function ReceiptsPage() {
           )}
         </section>
 
+        {/* Scored yesterday */}
+        <div className="px-5 pb-2 pt-2">
+          <ScoredYesterdayHeader picks={scored.data ?? []} />
+        </div>
+        <section className="px-5 pb-10 pt-3">
+          <ScoredYesterday picks={scored.data ?? []} />
+        </section>
+
         {/* Methodology */}
         <section className="px-5 pb-12">
           <Link
@@ -182,6 +190,6 @@ function ReceiptsPage() {
         </section>
       </main>
       <Footer />
-    </div>
+    </>
   );
 }
