@@ -10,6 +10,12 @@ export interface RateLimitConfig {
   ipHash: string;
   /** Question/content for the audit row. Truncated to 500 chars. */
   question: string;
+  /**
+   * Optional: count accepted submissions across these endpoints instead of
+   * just `endpoint`. Used to share a single daily bucket between
+   * submit_question and chat_message.
+   */
+  countEndpoints?: Endpoint[];
 }
 
 export interface RateLimitWindow {
