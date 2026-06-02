@@ -1,8 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
-import { Header } from "@/components/site/Header";
-import { Footer } from "@/components/site/Footer";
 
 interface SearchRow {
   event_id: string;
