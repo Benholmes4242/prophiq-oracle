@@ -1,9 +1,10 @@
+import * as React from "react";
 import { Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import type { DomainId } from "@/lib/types";
 
-const DOMAINS: { key: DomainId; label: string; Icon: () => JSX.Element }[] = [
+const DOMAINS: { key: DomainId; label: string; Icon: () => React.ReactElement }[] = [
   { key: "sport", label: "Sport", Icon: TrophyIcon },
   { key: "politics", label: "Politics", Icon: LandmarkIcon },
   { key: "markets", label: "Markets", Icon: ChartIcon },
