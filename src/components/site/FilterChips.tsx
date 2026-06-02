@@ -14,20 +14,14 @@ export function FilterChips({ chips, active, onChange }: FilterChipsProps) {
             key={chip}
             type="button"
             onClick={() => onChange(chip)}
-            className="shrink-0 whitespace-nowrap rounded-full px-3.5 py-1.5 font-body text-[12.5px] font-medium transition-colors"
-            style={
-              isActive
-                ? {
-                    background: "var(--ink)",
-                    color: "#fff",
-                    border: "1px solid var(--ink)",
-                  }
-                : {
-                    background: "transparent",
-                    color: "var(--ink-soft)",
-                    border: "1px solid var(--border-strong)",
-                  }
-            }
+            className="shrink-0 whitespace-nowrap rounded-full font-body text-[12.5px] font-medium active:scale-[0.96]"
+            style={{
+              padding: "8px 13px",
+              border: "none",
+              background: isActive ? "var(--ink)" : "var(--chip-bg)",
+              color: isActive ? "#fff" : "var(--ink-2)",
+              transition: "all 180ms var(--ease-ios)",
+            }}
             aria-pressed={isActive}
           >
             {chip}
