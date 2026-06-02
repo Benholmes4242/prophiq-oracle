@@ -73,7 +73,7 @@ function HomePage() {
               onStateChange={setAskState}
             />
           </section>
-          {askState === "loading" ? <LoadingOrb /> : <div />}
+          <div />
           <BottomCTA
             showChips={false}
             inputDisabled
