@@ -39,6 +39,6 @@ export function LegalPage({
         <section className="legal-prose px-5 pb-12 pt-2">{children}</section>
       </main>
       <Footer />
-    </div>
+    </>
   );
 }
