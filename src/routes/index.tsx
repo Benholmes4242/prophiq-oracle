@@ -13,13 +13,13 @@ export const Route = createFileRoute("/")({
     const ogImage = `${getPublicBaseUrl()}/api/og/home`;
     return {
       meta: [
-        { title: "Prophiq — What happens next?" },
+        { title: "Prophiq — Predict what happens next" },
         {
           name: "description",
           content:
             "From the Grand National to the FOMC, Prophiq forecasts every upcoming event worth following.",
         },
-        { property: "og:title", content: "Prophiq — What happens next?" },
+        { property: "og:title", content: "Prophiq — Predict what happens next" },
         {
           property: "og:description",
           content: "Calibrated forecasts for every upcoming event.",

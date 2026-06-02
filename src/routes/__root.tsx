@@ -81,14 +81,14 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Prophiq — What happens next?" },
+      { title: "Prophiq — Predict what happens next" },
       {
         name: "description",
         content:
           "From the Grand National to the FOMC, Prophiq forecasts every upcoming event worth following. Ask anything.",
       },
       { name: "author", content: "Prophiq" },
-      { property: "og:title", content: "Prophiq — What happens next?" },
+      { property: "og:title", content: "Prophiq — Predict what happens next" },
       {
         property: "og:description",
         content:
