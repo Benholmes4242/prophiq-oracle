@@ -2,11 +2,10 @@ import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { AskInput } from "@/components/site/AskInput";
 import { AskInlinePanel } from "@/components/site/AskInlinePanel";
-import { HighestConfidenceStream } from "@/components/site/HighestConfidenceStream";
-import { DomainTilesGrid, TILE_DOMAINS } from "@/components/site/DomainTilesGrid";
+import { FeatureCard } from "@/components/site/FeatureCard";
+import { SupportingTilesGrid } from "@/components/site/SupportingTilesGrid";
 import { TrackRecord } from "@/components/site/TrackRecord";
 import { useHomepagePicks } from "@/hooks/useEvents";
-import type { HomepagePick } from "@/lib/queries";
 import { getPublicBaseUrl } from "@/lib/publicUrl";
 
 export const Route = createFileRoute("/")({
@@ -49,12 +48,8 @@ function HomePage() {
   const [draft, setDraft] = useState("");
 
   const all = picks.data ?? [];
-  const streamPicks = all.slice(0, 6);
-
-  const byDomain: Record<string, HomepagePick | null> = {};
-  for (const d of TILE_DOMAINS) {
-    byDomain[d] = all.find((p) => p.domain === d) ?? null;
-  }
+  const feature = all.find((p) => p.is_marquee) ?? all[0] ?? null;
+  const supporting = all.filter((p) => p !== feature).slice(0, 4);
 
   function ask(q: string) {
     const trimmed = q.trim();
@@ -86,24 +81,39 @@ function HomePage() {
         </>
       ) : (
         <>
-          <div className="pt-3">
-            <HighestConfidenceStream picks={streamPicks} />
-          </div>
+          <section className="px-4 pt-3">
+            <div
+              className="entry-animate mb-2 flex items-center gap-2.5"
+              data-stagger="0"
+            >
+              <div
+                className="font-mono text-[10px] font-semibold uppercase"
+                style={{ letterSpacing: "0.22em", color: "var(--amber-2)" }}
+              >
+                Today's Forecasts
+              </div>
+              <div
+                className="h-px flex-1"
+                style={{ background: "var(--line)" }}
+              />
+            </div>
+            {feature && <FeatureCard pick={feature} stagger={1} />}
+          </section>
 
           <div className="space-y-3">
-            <DomainTilesGrid byDomain={byDomain} baseStagger={6} />
-            <TrackRecord stagger={10} />
+            <SupportingTilesGrid picks={supporting} />
+            <TrackRecord stagger={6} />
             <a
               href="/predictions"
               className="entry-animate block px-4 py-1 text-center font-body text-[13px] font-semibold"
-              data-stagger="11"
+              data-stagger="7"
               style={{ color: "var(--amber-2)" }}
             >
               See all picks →
             </a>
           </div>
 
-          <div className="entry-animate" data-stagger="12">
+          <div className="entry-animate" data-stagger="8">
             <BottomCTA
               showChips
               draft={draft}
