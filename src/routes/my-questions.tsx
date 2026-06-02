@@ -135,8 +135,6 @@ function MyQuestionsPage() {
             </button>
           </>
         )}
-      </main>
-      <Footer />
-    </div>
+    </main>
   );
 }
