@@ -1,5 +1,4 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Footer } from "@/components/site/Footer";
 import { WhatWeAnalyseSection } from "@/components/site/WhatWeAnalyseSection";
 
 export const Route = createFileRoute("/about")({
