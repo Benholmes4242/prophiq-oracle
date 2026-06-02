@@ -127,11 +127,9 @@ export function DomainPage({ domain }: { domain: DomainId }) {
         <div className="px-5 pt-2">
           {/* Scored recently header is rendered inside the strip */}
         </div>
-        <section className="px-5 pb-10 pt-3">
-          <DomainResolvedStrip picks={resolved} />
-        </section>
-      </main>
-      <Footer />
-    </div>
+      <section className="px-5 pb-10 pt-3">
+        <DomainResolvedStrip picks={resolved} />
+      </section>
+    </main>
   );
 }
