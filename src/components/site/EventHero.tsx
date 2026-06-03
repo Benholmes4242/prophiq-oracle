@@ -1,85 +1,93 @@
-// EventHero — top card on the event detail page. Geist typography (no
-// Bricolage), no HIGH confidence badge, pick row at the bottom with the big
-// percentage on the right.
+// EventHero — content-led hero for the event detail page. Domain + subcategory
+// eyebrow, length-scaled title, and a smart-date + countdown meta line. The
+// pick row was moved out: CallSection owns all probability surfaces now.
 
 import { useEffect, useMemo, useState } from "react";
-import { SourceBadge } from "./SourceBadge";
 import { DOMAIN_LABEL } from "@/lib/types";
 import type { EventRow } from "@/lib/types";
 
 interface EventHeroProps {
   event: EventRow;
-  topPickLabel: string | null;
-  topPickPct: number | null;
+  subcategory?: string | null;
 }
 
-export function EventHero({ event, topPickLabel, topPickPct }: EventHeroProps) {
-  const countdown = useCountdown(event.starts_at);
-  const pct = topPickPct != null ? Math.round(topPickPct) : null;
+export function EventHero({ event, subcategory }: EventHeroProps) {
+  const eyebrowText = subcategory
+    ? `${DOMAIN_LABEL[event.domain]} · ${subcategory}`
+    : DOMAIN_LABEL[event.domain];
+
+  const titleText = event.question || event.title;
+  const titleFontSize = titleText.length > 70 ? 22 : 26;
+
+  const meta = useEventMeta(event.starts_at);
+
   return (
     <header className="event-hero">
       <div className="hero-eyebrow-row">
-        <span className="hero-domain">
-          {DOMAIN_LABEL[event.domain].toUpperCase()}
-        </span>
-        <span className="hero-source-badge">
-          <SourceBadge source={event.source} />
-        </span>
+        <span className="hero-domain">{eyebrowText}</span>
       </div>
-
-      <h1 className="hero-title">{event.question || event.title}</h1>
+      <h1
+        className="hero-title"
+        style={{ fontSize: `${titleFontSize}px` }}
+      >
+        {titleText}
+      </h1>
       <p className="hero-countdown" suppressHydrationWarning>
-        {countdown}
+        {meta}
       </p>
-
-      {topPickLabel && (
-        <>
-          <div className="hero-divider" />
-          <div className="hero-pick-row">
-            <div className="min-w-0">
-              <div className="hero-pick-label">TOP PICK</div>
-              <div className="hero-pick-name">{topPickLabel}</div>
-            </div>
-            {pct != null && (
-              <div className="hero-pct">
-                {pct}
-                <span className="small">%</span>
-              </div>
-            )}
-          </div>
-          {pct != null && (
-            <div className="hero-bar">
-              <div className="hero-bar-fill" style={{ width: `${pct}%` }} />
-            </div>
-          )}
-        </>
-      )}
     </header>
   );
 }
 
-function useCountdown(iso: string): string {
+function useEventMeta(iso: string): string {
   const target = useMemo(() => new Date(iso).getTime(), [iso]);
   const [, force] = useState(0);
   useEffect(() => {
     const id = setInterval(() => force((v) => v + 1), 60_000);
     return () => clearInterval(id);
   }, []);
-  const diff = target - Date.now();
-  const abs = Math.abs(diff);
-  const minutes = Math.floor(abs / 60_000);
-  const hours = Math.floor(minutes / 60);
-  const days = Math.floor(hours / 24);
-  let label: string;
-  if (days > 1) label = `${days} days`;
-  else if (hours >= 1) label = `${hours}h ${minutes % 60}m`;
-  else label = `${minutes}m`;
-  const when = new Date(iso).toLocaleString(undefined, {
-    month: "short",
+
+  const date = new Date(iso);
+  const now = Date.now();
+  const diffMs = target - now;
+  const absMs = Math.abs(diffMs);
+  const days = Math.floor(absMs / (24 * 60 * 60 * 1000));
+  const hours = Math.floor(absMs / (60 * 60 * 1000));
+  const minutes = Math.floor(absMs / 60_000);
+
+  const yearNeeded = days > 60;
+  const isMidnight = date.getUTCHours() === 0 && date.getUTCMinutes() === 0;
+  const dateOpts: Intl.DateTimeFormatOptions = {
+    weekday: "long",
     day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-    hour12: true,
-  });
-  return diff > 0 ? `Starts in ${label} · ${when}` : `Started ${label} ago · ${when}`;
+    month: "long",
+    ...(yearNeeded ? { year: "numeric" } : {}),
+  };
+  const datePart = date.toLocaleDateString(undefined, dateOpts);
+
+  let timePart = "";
+  if (!isMidnight) {
+    const timeStr = date.toLocaleTimeString(undefined, {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    });
+    const tz = Intl.DateTimeFormat(undefined, { timeZoneName: "short" })
+      .formatToParts(date)
+      .find((p) => p.type === "timeZoneName")?.value;
+    timePart = tz ? ` · ${timeStr} ${tz}` : ` · ${timeStr}`;
+  }
+
+  let countdown: string;
+  if (diffMs > 0) {
+    if (days >= 2) countdown = `${days} days away`;
+    else if (hours >= 1) countdown = `in ${hours}h ${minutes % 60}m`;
+    else countdown = `in ${minutes}m`;
+  } else {
+    if (days >= 1) countdown = `started ${days}d ago`;
+    else if (hours >= 1) countdown = `started ${hours}h ago`;
+    else countdown = `started ${minutes}m ago`;
+  }
+
+  return `${datePart} · ${countdown}${timePart}`;
 }
