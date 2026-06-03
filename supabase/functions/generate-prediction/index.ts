@@ -291,6 +291,7 @@ Deno.serve(async (req) => {
     prediction: inserted,
     consensus: consensusOut.consensus,
     research_fetched: research !== null,
+    priors_used: priors.length,
     reused: false,
   });
 });
