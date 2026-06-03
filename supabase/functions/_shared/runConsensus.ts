@@ -4,6 +4,7 @@
 
 import { computeConsensus, type ConsensusResult, type ModelRanking } from "./consensusEngine.ts";
 import { ALL_LLM_CALLERS, type LlmCaller } from "./llm.ts";
+import type { ResearchContext } from "./domain.ts";
 
 export interface RunConsensusInput {
   prompt: string;
@@ -12,6 +13,8 @@ export interface RunConsensusInput {
   callers?: LlmCaller[];
   /** Per-call timeout in ms. Default 45s. */
   timeoutMs?: number;
+  /** Research context that was woven into the prompt. For lineage only. */
+  research?: ResearchContext | null;
 }
 
 export interface RunConsensusOutput {
