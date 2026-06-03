@@ -1,6 +1,10 @@
 // Thin Perplexity client used by domain adapters and the consensus engine for
 // grounded research. Reads PERPLEXITY_API_KEY from the edge function env.
 
+import type { ResearchContext } from "./domain.ts";
+
+
+
 export interface PerplexityMessage {
   role: "system" | "user" | "assistant";
   content: string;
@@ -81,4 +85,66 @@ function readEnv(name: string): string | undefined {
   // Node fallback for tests
   const proc = (globalThis as { process?: { env: Record<string, string | undefined> } }).process;
   return proc?.env?.[name];
+}
+
+// --------------------------------------------------------------------------
+// Shared research-context helper used by domain adapter gatherResearch()
+// implementations. Wraps perplexityChat with a 20s timeout and packages the
+// response into a ResearchContext for storage on the prediction row.
+// --------------------------------------------------------------------------
+
+
+const DEFAULT_RESEARCH_MODEL = "sonar-pro";
+const DEFAULT_RESEARCH_TEMPERATURE = 0.2;
+const DEFAULT_RESEARCH_MAX_TOKENS = 800;
+const DEFAULT_RESEARCH_RECENCY: "day" | "week" | "month" | "year" = "week";
+const DEFAULT_RESEARCH_TIMEOUT_MS = 20_000;
+
+export async function fetchResearchContext(args: {
+  systemPrompt: string;
+  userPrompt: string;
+  researchPromptVersion: string;
+  recencyFilter?: "day" | "week" | "month" | "year";
+  maxTokens?: number;
+  timeoutMs?: number;
+}): Promise<ResearchContext> {
+  const timeoutMs = args.timeoutMs ?? DEFAULT_RESEARCH_TIMEOUT_MS;
+
+  const response = await Promise.race<PerplexityResponse>([
+    perplexityChat(
+      [
+        { role: "system", content: args.systemPrompt },
+        { role: "user", content: args.userPrompt },
+      ],
+      {
+        model: DEFAULT_RESEARCH_MODEL,
+        temperature: DEFAULT_RESEARCH_TEMPERATURE,
+        maxTokens: args.maxTokens ?? DEFAULT_RESEARCH_MAX_TOKENS,
+        searchRecencyFilter: args.recencyFilter ?? DEFAULT_RESEARCH_RECENCY,
+      },
+    ),
+    new Promise<PerplexityResponse>((_, reject) =>
+      setTimeout(
+        () => reject(new Error(`Perplexity request timed out after ${timeoutMs}ms`)),
+        timeoutMs,
+      )
+    ),
+  ]);
+
+  const rawAny = response.raw as Record<string, unknown> | null;
+  const usage = rawAny && typeof rawAny === "object"
+    ? (rawAny["usage"] as Record<string, number> | undefined)
+    : undefined;
+  const tokensUsed = typeof usage?.total_tokens === "number" ? usage.total_tokens : null;
+
+  const sources = (response.citations ?? []).map((url) => ({ url }));
+
+  return {
+    sources,
+    synthesised: (response.content ?? "").trim(),
+    fetched_at: new Date().toISOString(),
+    model: response.model,
+    tokens_used: tokensUsed,
+    research_prompt_version: args.researchPromptVersion,
+  };
 }

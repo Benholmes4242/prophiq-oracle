@@ -7,10 +7,37 @@ import type {
   DomainAdapter,
   DomainEvent,
   EventOutcome,
+  ResearchContext,
   ResolutionResult,
 } from "../domain.ts";
-import { perplexityChat } from "../perplexity.ts";
+import { fetchResearchContext, perplexityChat } from "../perplexity.ts";
 import { coerceDiscoveredEvent, logSkip, safeExtractJsonArray } from "./_util.ts";
+
+const RESEARCH_PROMPT_VERSION = "markets.research.v1";
+
+const RESEARCH_SYSTEM = `You are a financial markets analyst providing factual research for a forecasting model. Return ONLY the research findings as 4-6 short paragraphs of plain prose. Do not give investment advice. Do not produce a prediction or recommendation - just the data and context a good analyst would assemble.`;
+
+function buildMarketsResearchUser(event: DomainEvent, outcomes: EventOutcome[]): string {
+  const labels = outcomes.map((o, i) => `${i + 1}. ${o.label}`).join("\n");
+  return `Research the following upcoming markets event:
+
+Event: ${event.title}
+Question: ${event.question}
+Scheduled: ${event.starts_at}
+
+Outcomes being considered:
+${labels}
+
+In 200-400 words, cover anything material to forecasting the outcome:
+- Latest relevant economic data releases (with dates and prints)
+- Central bank statements, minutes, or speeches from the last 4 weeks
+- Market positioning: futures pricing, OIS curves, swap rates, or implied probabilities where publicly available
+- Recent analyst consensus from major sell-side desks (cite without naming specific firms)
+- Technical signals where appropriate
+- Any breaking news from the last 14 days that bears on the event
+
+Be strictly factual. Do not give investment advice. Cite specific data releases and statements with dates.`;
+}
 
 const DOMAIN_ID = "markets";
 
@@ -149,7 +176,25 @@ export const marketsAdapter: DomainAdapter = {
     return parseResolution(response.content, outcomes);
   },
 
-  buildPrompt(event: DomainEvent, outcomes: EventOutcome[]): string {
+  async gatherResearch(event: DomainEvent, outcomes: EventOutcome[]): Promise<ResearchContext> {
+    return await fetchResearchContext({
+      systemPrompt: RESEARCH_SYSTEM,
+      userPrompt: buildMarketsResearchUser(event, outcomes),
+      researchPromptVersion: RESEARCH_PROMPT_VERSION,
+      recencyFilter: "week",
+      maxTokens: 800,
+    });
+  },
+
+  buildPrompt(
+    event: DomainEvent,
+    outcomes: EventOutcome[],
+    _mode?: "prediction" | "odds",
+    research?: ResearchContext,
+  ): string {
+    const researchBlock = research?.synthesised
+      ? `\nLIVE RESEARCH CONTEXT (fetched ${research.fetched_at}):\n${research.synthesised}\n`
+      : "";
     return `Financial-markets analysis task. INFORMATIONAL ONLY — do not give advice and do not use betting or odds framing.
 
 Event: ${event.title}
@@ -158,8 +203,8 @@ Scheduled: ${event.starts_at}
 
 Outcomes:
 ${outcomes.map((o, i) => `${i + 1}. ${o.label}`).join("\n")}
-
-Rank every outcome from most likely (rank 1) to least likely. For each, provide a probability (0-1), a fit_score (0-1), and 1-3 short reasons grounded in recent data, analyst consensus, historical base rates, and current macro conditions.`;
+${researchBlock}
+Rank every outcome from most likely (rank 1) to least likely. For each, provide a probability (0-1), a fit_score (0-1), and 1-3 short reasons grounded in recent data, analyst consensus, historical base rates, current macro conditions, and the research above when present.`;
   },
 };
 

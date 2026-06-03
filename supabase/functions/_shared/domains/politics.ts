@@ -7,10 +7,36 @@ import type {
   DomainAdapter,
   DomainEvent,
   EventOutcome,
+  ResearchContext,
   ResolutionResult,
 } from "../domain.ts";
-import { perplexityChat } from "../perplexity.ts";
+import { fetchResearchContext, perplexityChat } from "../perplexity.ts";
 import { coerceDiscoveredEvent, logSkip, safeExtractJsonArray } from "./_util.ts";
+
+const RESEARCH_PROMPT_VERSION = "politics.research.v1";
+
+const RESEARCH_SYSTEM = `You are a non-partisan political analyst providing neutral, factual research. Return ONLY the research findings as 4-6 short paragraphs of plain prose. Maintain strict neutrality - present facts, polls, and statements without editorial framing. No advocacy. No predictions. Just the data.`;
+
+function buildPoliticsResearchUser(event: DomainEvent, outcomes: EventOutcome[]): string {
+  const labels = outcomes.map((o, i) => `${i + 1}. ${o.label}`).join("\n");
+  return `Research the following upcoming political event:
+
+Event: ${event.title}
+Question: ${event.question}
+Scheduled: ${event.starts_at}
+
+Outcomes being considered:
+${labels}
+
+In 200-400 words, cover anything material to forecasting the outcome:
+- Latest reliable polling with dates, pollsters, and sample sizes
+- Recent material statements or actions by the principals or relevant parties
+- Prediction market signals where publicly available (Polymarket, Kalshi, PredictIt as applicable)
+- Expert commentary from credible non-partisan sources
+- Notable endorsements, debates, or events in the last 14 days
+
+Stay strictly non-partisan. Present facts without editorial framing. Cite sources and dates inline. Do not produce a prediction yourself.`;
+}
 
 const DOMAIN_ID = "politics";
 
@@ -145,7 +171,25 @@ export const politicsAdapter: DomainAdapter = {
     return parseResolution(response.content, outcomes);
   },
 
-  buildPrompt(event: DomainEvent, outcomes: EventOutcome[]): string {
+  async gatherResearch(event: DomainEvent, outcomes: EventOutcome[]): Promise<ResearchContext> {
+    return await fetchResearchContext({
+      systemPrompt: RESEARCH_SYSTEM,
+      userPrompt: buildPoliticsResearchUser(event, outcomes),
+      researchPromptVersion: RESEARCH_PROMPT_VERSION,
+      recencyFilter: "week",
+      maxTokens: 800,
+    });
+  },
+
+  buildPrompt(
+    event: DomainEvent,
+    outcomes: EventOutcome[],
+    _mode?: "prediction" | "odds",
+    research?: ResearchContext,
+  ): string {
+    const researchBlock = research?.synthesised
+      ? `\nLIVE RESEARCH CONTEXT (fetched ${research.fetched_at}):\n${research.synthesised}\n`
+      : "";
     return `Political analysis task. Use neutral, non-partisan language. Do NOT use betting or odds framing.
 
 Event: ${event.title}
@@ -154,8 +198,8 @@ Date: ${event.starts_at}
 
 Outcomes:
 ${outcomes.map((o, i) => `${i + 1}. ${o.label}`).join("\n")}
-
-Rank every outcome from most likely (rank 1) to least likely. For each, provide a probability (0-1), a fit_score (0-1), and 1-3 short reasons grounded in polling, recent statements, historical base rates, and current political dynamics.`;
+${researchBlock}
+Rank every outcome from most likely (rank 1) to least likely. For each, provide a probability (0-1), a fit_score (0-1), and 1-3 short reasons grounded in polling, recent statements, historical base rates, current political dynamics, and the research above when present.`;
   },
 };
 
