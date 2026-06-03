@@ -322,6 +322,13 @@ Deno.serve(async (req) => {
         was_correct: p.was_correct,
       })),
       top_pick_prob_raw: topPickProbRaw,
+      market_signals_used: marketSignals.map((s) => ({
+        venue: s.venue,
+        outcome_label: s.market_outcome_label,
+        implied_probability: s.implied_probability,
+        fetched_at: s.fetched_at,
+        age_minutes_at_call: s.age_minutes_at_call,
+      })),
     });
     if (lineageErr) throw new Error(lineageErr.message);
   } catch (e) {
