@@ -20,6 +20,11 @@ import {
   PRIOR_CONTEXT_MIN_SIMILARITY,
   type PriorContext,
 } from "../_shared/priorContext.ts";
+import {
+  loadCalibrationCurve,
+  calibrateRankedOutcomes,
+  type CalibrationCurve,
+} from "../_shared/calibration.ts";
 import type {
   DomainEvent,
   EventOutcome,
