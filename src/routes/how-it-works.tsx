@@ -380,17 +380,19 @@ function DataMoatSection() {
     <section style={{ marginBottom: 48 }}>
       <SectionEyebrow>The data</SectionEyebrow>
       <SectionHeading accent=".">
-        A calibration dataset that compounds
+        Two layers of intelligence, one calibrated answer
       </SectionHeading>
       <EditorialP>
-        Every forecast Prophiq produces is logged with its outcome. Over time,
-        this builds a proprietary calibration record - a structured dataset of
-        predictions, probabilities, and resolved outcomes across every domain
-        we cover.
+        <Em>Prophiq runs on two layers of intelligence in parallel.</Em>{" "}
+        Real-time research pulled from across the globe - market signals,
+        historical patterns, expert commentary, breaking news. And{" "}
+        <Em>our own calibration record</Em> - a proprietary dataset of every
+        call Prophiq has made and every outcome that resolved it, across all
+        four domains.
       </EditorialP>
       <EditorialP>
-        This record sharpens future calls.{" "}
-        <Em>The longer Prophiq runs, the more grounded its judgment becomes.</Em>
+        Both feed every forecast. Each resolved event becomes signal in the
+        next call, sharpening calibration across the system.
       </EditorialP>
       <div
         style={{
