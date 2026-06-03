@@ -14,6 +14,7 @@ import { getServiceClient } from "../_shared/supabaseClient.ts";
 import { handleCorsPreflight, jsonResponse, errorResponse } from "../_shared/http.ts";
 import { extractSignalsUsed, estimatePromptTokens } from "../_shared/signals.ts";
 import { extractEntities } from "../_shared/entities.ts";
+import { embedText, buildEmbeddingInput, EMBEDDING_MODEL_ID } from "../_shared/embeddings.ts";
 import type {
   DomainEvent,
   EventOutcome,
