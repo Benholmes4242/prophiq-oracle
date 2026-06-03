@@ -175,13 +175,45 @@ Deno.serve(async (req) => {
     }
   }
 
-  // ----- Build prompt with research + priors woven in -----
+  // ============================================================
+  // Phase 2: Market signals from prediction markets (best-effort)
+  // ============================================================
+  const marketSignalsEnabled =
+    (Deno.env.get("MARKET_SIGNALS_ENABLED") ?? "true").toLowerCase() !== "false";
+  let marketSignals: MarketSignal[] = [];
+  if (marketSignalsEnabled) {
+    try {
+      marketSignals = await gatherMarketSignals(
+        supabase,
+        {
+          id: event.id,
+          title: event.title,
+          question: event.question,
+          domain: event.domain,
+        },
+        (outcomes as EventOutcome[]).map((o) => ({ id: o.id, label: o.label })),
+      );
+      if (marketSignals.length > 0) {
+        console.log(
+          `[generate-prediction] event=${body.event_id} market_signals_loaded=${marketSignals.length}`,
+        );
+      }
+    } catch (e) {
+      console.warn(
+        `[generate-prediction] market signals fetch failed for event ${body.event_id}: ${(e as Error).message}`,
+      );
+      marketSignals = [];
+    }
+  }
+
+  // ----- Build prompt with research + priors + market signals woven in -----
   const prompt = adapter.buildPrompt(
     event as DomainEvent,
     outcomes as EventOutcome[],
     mode,
     research ?? undefined,
     priors.length > 0 ? priors : undefined,
+    marketSignals.length > 0 ? marketSignals : undefined,
   );
 
   // ----- Run consensus -----
@@ -192,6 +224,7 @@ Deno.serve(async (req) => {
       outcomes: (outcomes as EventOutcome[]).map((o) => ({ id: o.id, label: o.label })),
       research,
       priors: priors.length > 0 ? priors : null,
+      marketSignals: marketSignals.length > 0 ? marketSignals : null,
     });
   } catch (e) {
     return errorResponse(`consensus failed: ${(e as Error).message}`, 502);
