@@ -7,10 +7,37 @@ import type {
   DomainAdapter,
   DomainEvent,
   EventOutcome,
+  ResearchContext,
   ResolutionResult,
 } from "../domain.ts";
-import { perplexityChat } from "../perplexity.ts";
+import { fetchResearchContext, perplexityChat } from "../perplexity.ts";
 import { coerceDiscoveredEvent, logSkip, safeExtractJsonArray } from "./_util.ts";
+
+const RESEARCH_PROMPT_VERSION = "entertainment.research.v1";
+
+const RESEARCH_SYSTEM = `You are an entertainment industry analyst providing factual research. Return ONLY the research findings as 4-6 short paragraphs of plain prose. No editorial opinions, no predictions - just the data and recent momentum signals a good analyst would assemble.`;
+
+function buildEntertainmentResearchUser(event: DomainEvent, outcomes: EventOutcome[]): string {
+  const labels = outcomes.map((o, i) => `${i + 1}. ${o.label}`).join("\n");
+  return `Research the following upcoming entertainment event:
+
+Event: ${event.title}
+Question: ${event.question}
+Scheduled: ${event.starts_at}
+
+Outcomes being considered:
+${labels}
+
+In 200-400 words, cover anything material to forecasting the outcome:
+- Recent guild awards, critic awards, or precursor signals
+- Festival reception, review scores, or critical consensus
+- Industry insider commentary from trade publications
+- Betting market activity where publicly available
+- Box office, streaming, or audience momentum if applicable
+- Any breaking news from the last 30 days that bears on the event
+
+Be factual. Cite specific events, awards, and dates inline. Do not produce a prediction.`;
+}
 
 const DOMAIN_ID = "entertainment";
 
