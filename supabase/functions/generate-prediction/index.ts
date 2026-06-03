@@ -358,6 +358,17 @@ Deno.serve(async (req) => {
         fetched_at: s.fetched_at,
         age_minutes_at_call: s.age_minutes_at_call,
       })),
+      structured_data_used: structuredData
+        ? {
+            source: structuredData.source,
+            source_version: structuredData.source_version,
+            fetched_at: structuredData.fetched_at,
+            age_minutes_at_call: Math.floor(
+              (Date.now() - new Date(structuredData.fetched_at).getTime()) / 60_000,
+            ),
+            line_count: structuredData.summary_lines.length,
+          }
+        : {},
     });
     if (lineageErr) throw new Error(lineageErr.message);
   } catch (e) {
