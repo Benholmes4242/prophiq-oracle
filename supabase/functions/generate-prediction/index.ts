@@ -238,6 +238,14 @@ Deno.serve(async (req) => {
       research_tokens_used: researchTokens,
       llm_input_tokens_est: promptTokens,
       prompt_version: PROMPT_VERSION,
+      prior_predictions_used: priors.map((p) => ({
+        prediction_id: p.prediction_id,
+        event_id: p.event_id,
+        similarity: p.similarity,
+        top_pick_label: p.top_pick_label,
+        top_pick_prob: p.top_pick_prob,
+        was_correct: p.was_correct,
+      })),
     });
     if (lineageErr) throw new Error(lineageErr.message);
   } catch (e) {
