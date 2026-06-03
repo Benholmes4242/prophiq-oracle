@@ -93,7 +93,6 @@ function readEnv(name: string): string | undefined {
 // response into a ResearchContext for storage on the prediction row.
 // --------------------------------------------------------------------------
 
-import type { ResearchContext } from "./domain.ts";
 
 const DEFAULT_RESEARCH_MODEL = "sonar-pro";
 const DEFAULT_RESEARCH_TEMPERATURE = 0.2;
