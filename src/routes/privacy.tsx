@@ -125,37 +125,37 @@ function PrivacyPage() {
         <ItemList
           items={[
             {
-              term: "Anthropic",
+              term: "Hosting and data storage",
+              detail:
+                "Stores forecasts, calibration data, and operational logs.",
+            },
+            {
+              term: "Real-time research and AI-assisted reasoning",
               detail:
                 "Receives question text and research context to generate forecasts as part of the reasoning ensemble.",
             },
             {
-              term: "OpenAI",
+              term: "Transactional email delivery",
               detail:
-                "Receives question text and research context to generate forecasts as part of the reasoning ensemble.",
+                "Sends service emails, digests, and account notifications.",
             },
             {
-              term: "Google",
+              term: "Application deployment",
               detail:
-                "Receives question text and research context to generate forecasts as part of the reasoning ensemble.",
-            },
-            {
-              term: "Perplexity",
-              detail:
-                "Used to retrieve real-time research context for each forecast.",
-            },
-            {
-              term: "Supabase",
-              detail:
-                "Hosts our database and backend infrastructure. Stores forecasts, calibration data, and operational logs.",
-            },
-            {
-              term: "Cloudflare",
-              detail:
-                "Edge network, hosting, and DDoS protection. Sees request metadata in transit.",
+                "Edge network, hosting infrastructure, and DDoS protection. Sees request metadata in transit.",
             },
           ]}
         />
+        <EditorialP>
+          For the current list of named providers in each category, contact{" "}
+          <a
+            href={`mailto:${CONTACT_EMAIL}`}
+            style={{ color: "var(--amber)", textDecoration: "none", fontWeight: 500 }}
+          >
+            {CONTACT_EMAIL}
+          </a>
+          .
+        </EditorialP>
         <EditorialP>
           We <Em>do not sell your data</Em>. We do not share it with
           advertisers or data brokers. Where data is transferred outside the
