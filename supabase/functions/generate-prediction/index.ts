@@ -26,6 +26,7 @@ import {
   type CalibrationCurve,
 } from "../_shared/calibration.ts";
 import { gatherMarketSignals, type MarketSignal } from "../_shared/marketSignals.ts";
+import { type StructuredData } from "../_shared/structuredData.ts";
 import type {
   DomainEvent,
   EventOutcome,
