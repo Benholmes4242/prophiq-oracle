@@ -12,6 +12,7 @@ import type {
 } from "../domain.ts";
 import { fetchResearchContext, perplexityChat } from "../perplexity.ts";
 import { formatPriorBlock, type PriorContext } from "../priorContext.ts";
+import { formatMarketSignalsBlock, type MarketSignal } from "../marketSignals.ts";
 import { coerceDiscoveredEvent, logSkip, safeExtractJsonArray } from "./_util.ts";
 
 const RESEARCH_PROMPT_VERSION = "politics.research.v1";
@@ -188,11 +189,13 @@ export const politicsAdapter: DomainAdapter = {
     _mode?: "prediction" | "odds",
     research?: ResearchContext,
     priors?: PriorContext[],
+    marketSignals?: MarketSignal[],
   ): string {
     const researchBlock = research?.synthesised
       ? `\nLIVE RESEARCH CONTEXT (fetched ${research.fetched_at}):\n${research.synthesised}\n`
       : "";
     const priorBlock = formatPriorBlock(priors ?? []);
+    const marketBlock = formatMarketSignalsBlock(marketSignals ?? []);
     return `Political analysis task. Use neutral, non-partisan language. Do NOT use betting or odds framing.
 
 Event: ${event.title}
@@ -201,7 +204,7 @@ Date: ${event.starts_at}
 
 Outcomes:
 ${outcomes.map((o, i) => `${i + 1}. ${o.label}`).join("\n")}
-${researchBlock}${priorBlock}
+${researchBlock}${priorBlock}${marketBlock}
 Rank every outcome from most likely (rank 1) to least likely. For each, provide a probability (0-1), a fit_score (0-1), and 1-3 short reasons grounded in polling, recent statements, historical base rates, current political dynamics, and the research above when present.`;
   },
 };

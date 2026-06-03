@@ -12,6 +12,7 @@ import type {
 } from "../domain.ts";
 import { fetchResearchContext, perplexityChat } from "../perplexity.ts";
 import { formatPriorBlock, type PriorContext } from "../priorContext.ts";
+import { formatMarketSignalsBlock, type MarketSignal } from "../marketSignals.ts";
 import { coerceDiscoveredEvent, logSkip, safeExtractJsonArray } from "./_util.ts";
 
 const RESEARCH_PROMPT_VERSION = "entertainment.research.v1";
@@ -189,11 +190,13 @@ export const entertainmentAdapter: DomainAdapter = {
     _mode?: "prediction" | "odds",
     research?: ResearchContext,
     priors?: PriorContext[],
+    marketSignals?: MarketSignal[],
   ): string {
     const researchBlock = research?.synthesised
       ? `\nLIVE RESEARCH CONTEXT (fetched ${research.fetched_at}):\n${research.synthesised}\n`
       : "";
     const priorBlock = formatPriorBlock(priors ?? []);
+    const marketBlock = formatMarketSignalsBlock(marketSignals ?? []);
     return `Entertainment analysis task. Do NOT use betting or odds framing.
 
 Event: ${event.title}
@@ -202,7 +205,7 @@ Scheduled: ${event.starts_at}
 
 Outcomes:
 ${outcomes.map((o, i) => `${i + 1}. ${o.label}`).join("\n")}
-${researchBlock}${priorBlock}
+${researchBlock}${priorBlock}${marketBlock}
 Rank every outcome from most likely (rank 1) to least likely. For each, provide a probability (0-1), a fit_score (0-1), and 1-3 short reasons grounded in critic reception, precursor awards, industry buzz, historical base rates, and the research above when present.`;
   },
 };

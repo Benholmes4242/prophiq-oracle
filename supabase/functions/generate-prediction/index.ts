@@ -25,6 +25,7 @@ import {
   calibrateRankedOutcomes,
   type CalibrationCurve,
 } from "../_shared/calibration.ts";
+import { gatherMarketSignals, type MarketSignal } from "../_shared/marketSignals.ts";
 import type {
   DomainEvent,
   EventOutcome,
@@ -34,7 +35,7 @@ import type {
 
 registerAllDomains();
 
-const PROMPT_VERSION = "v1.2.0"; // bumped from v1.1.0 - prior context injection
+const PROMPT_VERSION = "v1.3.0"; // bumped from v1.2.0 - market signals injection
 const STALE_AFTER_MS = 6 * 60 * 60 * 1000; // 6 hours
 const RESEARCH_CACHE_TTL_MS = 30 * 60 * 1000; // 30 minutes
 
@@ -174,13 +175,45 @@ Deno.serve(async (req) => {
     }
   }
 
-  // ----- Build prompt with research + priors woven in -----
+  // ============================================================
+  // Phase 2: Market signals from prediction markets (best-effort)
+  // ============================================================
+  const marketSignalsEnabled =
+    (Deno.env.get("MARKET_SIGNALS_ENABLED") ?? "true").toLowerCase() !== "false";
+  let marketSignals: MarketSignal[] = [];
+  if (marketSignalsEnabled) {
+    try {
+      marketSignals = await gatherMarketSignals(
+        supabase,
+        {
+          id: event.id,
+          title: event.title,
+          question: event.question,
+          domain: event.domain,
+        },
+        (outcomes as EventOutcome[]).map((o) => ({ id: o.id, label: o.label })),
+      );
+      if (marketSignals.length > 0) {
+        console.log(
+          `[generate-prediction] event=${body.event_id} market_signals_loaded=${marketSignals.length}`,
+        );
+      }
+    } catch (e) {
+      console.warn(
+        `[generate-prediction] market signals fetch failed for event ${body.event_id}: ${(e as Error).message}`,
+      );
+      marketSignals = [];
+    }
+  }
+
+  // ----- Build prompt with research + priors + market signals woven in -----
   const prompt = adapter.buildPrompt(
     event as DomainEvent,
     outcomes as EventOutcome[],
     mode,
     research ?? undefined,
     priors.length > 0 ? priors : undefined,
+    marketSignals.length > 0 ? marketSignals : undefined,
   );
 
   // ----- Run consensus -----
@@ -191,6 +224,7 @@ Deno.serve(async (req) => {
       outcomes: (outcomes as EventOutcome[]).map((o) => ({ id: o.id, label: o.label })),
       research,
       priors: priors.length > 0 ? priors : null,
+      marketSignals: marketSignals.length > 0 ? marketSignals : null,
     });
   } catch (e) {
     return errorResponse(`consensus failed: ${(e as Error).message}`, 502);
@@ -288,6 +322,13 @@ Deno.serve(async (req) => {
         was_correct: p.was_correct,
       })),
       top_pick_prob_raw: topPickProbRaw,
+      market_signals_used: marketSignals.map((s) => ({
+        venue: s.venue,
+        outcome_label: s.market_outcome_label,
+        implied_probability: s.implied_probability,
+        fetched_at: s.fetched_at,
+        age_minutes_at_call: s.age_minutes_at_call,
+      })),
     });
     if (lineageErr) throw new Error(lineageErr.message);
   } catch (e) {
@@ -334,6 +375,7 @@ Deno.serve(async (req) => {
     consensus: consensusOut.consensus,
     research_fetched: research !== null,
     priors_used: priors.length,
+    market_signals_used: marketSignals.length,
     reused: false,
   });
 });

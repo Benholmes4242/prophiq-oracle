@@ -91,6 +91,7 @@ export interface DomainAdapter {
     mode?: "prediction" | "odds",
     research?: ResearchContext,
     priors?: import("./priorContext.ts").PriorContext[],
+    marketSignals?: import("./marketSignals.ts").MarketSignal[],
   ): string;
 }
 
