@@ -380,17 +380,19 @@ function DataMoatSection() {
     <section style={{ marginBottom: 48 }}>
       <SectionEyebrow>The data</SectionEyebrow>
       <SectionHeading accent=".">
-        A calibration dataset that compounds
+        Two layers of intelligence, one calibrated answer
       </SectionHeading>
       <EditorialP>
-        Every forecast Prophiq produces is logged with its outcome. Over time,
-        this builds a proprietary calibration record - a structured dataset of
-        predictions, probabilities, and resolved outcomes across every domain
-        we cover.
+        <Em>Prophiq runs on two layers of intelligence in parallel.</Em>{" "}
+        Real-time research pulled from across the globe - market signals,
+        historical patterns, expert commentary, breaking news. And{" "}
+        <Em>our own calibration record</Em> - a proprietary dataset of every
+        call Prophiq has made and every outcome that resolved it, across all
+        four domains.
       </EditorialP>
       <EditorialP>
-        This record sharpens future calls.{" "}
-        <Em>The longer Prophiq runs, the more grounded its judgment becomes.</Em>
+        Both feed every forecast. Each resolved event becomes signal in the
+        next call, sharpening calibration across the system.
       </EditorialP>
       <div
         style={{
@@ -410,13 +412,14 @@ function DataMoatSection() {
             letterSpacing: "-0.005em",
           }}
         >
-          Today, Prophiq's analysis is built on real-time external research.{" "}
+          Every forecast Prophiq makes is structured, scored, and folded back
+          into the system.{" "}
           <strong style={{ color: "var(--ink)", fontWeight: 600 }}>
-            Tomorrow, it's built on real-time research plus Prophiq's own
-            accumulating record of what we said and what actually happened.
+            That feedback loop runs on every call - the layer no generalist AI
+            carries.
           </strong>{" "}
-          That second layer is the one that grows exponentially - and it only
-          gets built by running.
+          It's what makes Prophiq the right tool for decisions where calibration
+          matters.
         </p>
       </div>
     </section>
@@ -455,7 +458,7 @@ function ProbabilityKeySection() {
       <SectionHeading>What the numbers mean.</SectionHeading>
       <EditorialP>
         A probability is a measurement of confidence, not a prediction of
-        outcome. Here's the rough translation:
+        outcome. Here's how to read them:
       </EditorialP>
       <div
         style={{
@@ -513,7 +516,7 @@ function RecentCallsSection() {
     <section style={{ marginBottom: 48 }}>
       <SectionEyebrow>Recent calls</SectionEyebrow>
       <SectionHeading>How it's played out.</SectionHeading>
-      <EditorialP>A handful of recent forecasts, with what happened.</EditorialP>
+      <EditorialP>Recent forecasts and how they resolved.</EditorialP>
       <div style={{ marginTop: 20 }}>
         {FEATURED_CALLS.map((call) => (
           <FeaturedCallCard key={call.id} call={call} />
@@ -695,7 +698,7 @@ function AggregateSection() {
         <span style={{ color: "var(--amber)" }}>?</span>
       </SectionHeading>
       <EditorialP>
-        Across the events we've called and that have since resolved:
+        Across our resolved forecasts:
       </EditorialP>
       <div
         style={{
