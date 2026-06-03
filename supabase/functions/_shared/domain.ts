@@ -90,6 +90,7 @@ export interface DomainAdapter {
     outcomes: EventOutcome[],
     mode?: "prediction" | "odds",
     research?: ResearchContext,
+    priors?: import("./priorContext.ts").PriorContext[],
   ): string;
 }
 

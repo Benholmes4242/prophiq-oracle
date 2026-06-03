@@ -15,6 +15,11 @@ import { handleCorsPreflight, jsonResponse, errorResponse } from "../_shared/htt
 import { extractSignalsUsed, estimatePromptTokens } from "../_shared/signals.ts";
 import { extractEntities } from "../_shared/entities.ts";
 import { embedText, buildEmbeddingInput, EMBEDDING_MODEL_ID } from "../_shared/embeddings.ts";
+import {
+  PRIOR_CONTEXT_LIMIT,
+  PRIOR_CONTEXT_MIN_SIMILARITY,
+  type PriorContext,
+} from "../_shared/priorContext.ts";
 import type {
   DomainEvent,
   EventOutcome,
@@ -24,7 +29,7 @@ import type {
 
 registerAllDomains();
 
-const PROMPT_VERSION = "v1.1.0"; // bumped from v1.0.0 - research-enriched prompts
+const PROMPT_VERSION = "v1.2.0"; // bumped from v1.1.0 - prior context injection
 const STALE_AFTER_MS = 6 * 60 * 60 * 1000; // 6 hours
 const RESEARCH_CACHE_TTL_MS = 30 * 60 * 1000; // 30 minutes
 
@@ -134,12 +139,43 @@ Deno.serve(async (req) => {
     }
   }
 
-  // ----- Build prompt with research woven in -----
+  // ============================================================
+  // Prior context: similar resolved past forecasts (Brief W).
+  // Feature-flagged for safe rollout. Best-effort: failure logs but
+  // does not block the forecast (falls through to research-only).
+  // ============================================================
+  const priorContextEnabled =
+    (Deno.env.get("PRIOR_CONTEXT_ENABLED") ?? "true").toLowerCase() !== "false";
+  let priors: PriorContext[] = [];
+  if (priorContextEnabled) {
+    try {
+      const { data, error } = await supabase.rpc("get_prior_context_for_event", {
+        p_query_event_id: body.event_id,
+        p_limit: PRIOR_CONTEXT_LIMIT,
+        p_min_similarity: PRIOR_CONTEXT_MIN_SIMILARITY,
+      });
+      if (error) throw new Error(error.message);
+      if (Array.isArray(data) && data.length > 0) {
+        priors = data as PriorContext[];
+        console.log(
+          `[generate-prediction] event=${body.event_id} priors_loaded=${priors.length}`,
+        );
+      }
+    } catch (e) {
+      console.warn(
+        `[generate-prediction] prior context fetch failed for event ${body.event_id}: ${(e as Error).message}`,
+      );
+      priors = [];
+    }
+  }
+
+  // ----- Build prompt with research + priors woven in -----
   const prompt = adapter.buildPrompt(
     event as DomainEvent,
     outcomes as EventOutcome[],
     mode,
     research ?? undefined,
+    priors.length > 0 ? priors : undefined,
   );
 
   // ----- Run consensus -----
@@ -149,6 +185,7 @@ Deno.serve(async (req) => {
       prompt,
       outcomes: (outcomes as EventOutcome[]).map((o) => ({ id: o.id, label: o.label })),
       research,
+      priors: priors.length > 0 ? priors : null,
     });
   } catch (e) {
     return errorResponse(`consensus failed: ${(e as Error).message}`, 502);
@@ -201,6 +238,14 @@ Deno.serve(async (req) => {
       research_tokens_used: researchTokens,
       llm_input_tokens_est: promptTokens,
       prompt_version: PROMPT_VERSION,
+      prior_predictions_used: priors.map((p) => ({
+        prediction_id: p.prediction_id,
+        event_id: p.event_id,
+        similarity: p.similarity,
+        top_pick_label: p.top_pick_label,
+        top_pick_prob: p.top_pick_prob,
+        was_correct: p.was_correct,
+      })),
     });
     if (lineageErr) throw new Error(lineageErr.message);
   } catch (e) {
@@ -246,6 +291,7 @@ Deno.serve(async (req) => {
     prediction: inserted,
     consensus: consensusOut.consensus,
     research_fetched: research !== null,
+    priors_used: priors.length,
     reused: false,
   });
 });
