@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import type { ReactNode } from "react";
+import { useCalibrationHeadline } from "@/hooks/useCalibrationHeadline";
 
 export const Route = createFileRoute("/how-it-works")({
   head: () => ({
