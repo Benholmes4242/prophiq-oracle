@@ -116,7 +116,7 @@ function PrivacyPage() {
         />
       </Section>
 
-      <Section eyebrow="Who we work with" heading="Our data processors">
+      <Section eyebrow="Who we work with" heading="Service providers.">
         <EditorialP>
           Prophiq runs on a small set of third-party services. Each is a data
           processor acting under our instructions. We use them because they
@@ -127,12 +127,12 @@ function PrivacyPage() {
             {
               term: "Hosting and data storage",
               detail:
-                "Stores forecasts, calibration data, and operational logs.",
+                "Stores forecasts, calibration data, and operational logs. Data is hosted in EU regions where available.",
             },
             {
               term: "Real-time research and AI-assisted reasoning",
               detail:
-                "Receives question text and research context to generate forecasts as part of the reasoning ensemble.",
+                "Receives question text and research context to generate forecasts as part of the reasoning ensemble. We send the question and research context only - we do not transmit your name, email, IP, or any directly identifying information.",
             },
             {
               term: "Transactional email delivery",
