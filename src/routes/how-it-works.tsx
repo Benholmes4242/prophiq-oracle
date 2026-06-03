@@ -458,7 +458,7 @@ function ProbabilityKeySection() {
       <SectionHeading>What the numbers mean.</SectionHeading>
       <EditorialP>
         A probability is a measurement of confidence, not a prediction of
-        outcome. Here's the rough translation:
+        outcome. Here's how to read them:
       </EditorialP>
       <div
         style={{
