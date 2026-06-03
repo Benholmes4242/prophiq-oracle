@@ -8,6 +8,7 @@ import { perplexityChat } from "../_shared/perplexity.ts";
 import { check, truncateQuestion, type RateLimitChecker } from "../_shared/rateLimit.ts";
 import { getServiceClient } from "../_shared/supabaseClient.ts";
 import { scoreToConfidence } from "../_shared/confidence.ts";
+import { requireAuthenticatedUser, type AuthedUser } from "../_shared/auth.ts";
 import {
   handleCorsPreflight, jsonResponse, errorResponse,
   getFingerprint, getClientIp, hashIp,
