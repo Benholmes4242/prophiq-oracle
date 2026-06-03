@@ -1,6 +1,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getStripeClient } from "../_shared/stripe.ts";
 import { requireAuthenticatedUser } from "../_shared/auth.ts";
+import { handleCorsPreflight, jsonResponse, errorResponse } from "../_shared/http.ts";
 
 const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
 const supabaseServiceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -17,8 +18,11 @@ const DEFAULT_CANCEL_PATH = "/pricing?canceled=true";
 const TRIAL_DAYS = 7;
 
 Deno.serve(async (req: Request) => {
+  const cors = handleCorsPreflight(req);
+  if (cors) return cors;
+
   if (req.method !== "POST") {
-    return new Response("Method not allowed", { status: 405 });
+    return errorResponse("Method not allowed", 405);
   }
 
   const supabase = createClient(supabaseUrl, supabaseServiceRoleKey);
@@ -34,17 +38,11 @@ Deno.serve(async (req: Request) => {
   try {
     body = await req.json();
   } catch {
-    return new Response(JSON.stringify({ error: "Invalid JSON body" }), {
-      status: 400,
-      headers: { "Content-Type": "application/json" },
-    });
+    return errorResponse("Invalid JSON body", 400);
   }
 
   if (!body.price_id) {
-    return new Response(JSON.stringify({ error: "Missing price_id" }), {
-      status: 400,
-      headers: { "Content-Type": "application/json" },
-    });
+    return errorResponse("Missing price_id", 400);
   }
 
   const { data: priceRow } = await supabase
@@ -55,10 +53,7 @@ Deno.serve(async (req: Request) => {
     .maybeSingle();
 
   if (!priceRow) {
-    return new Response(JSON.stringify({ error: "Unknown or inactive price_id" }), {
-      status: 400,
-      headers: { "Content-Type": "application/json" },
-    });
+    return errorResponse("Unknown or inactive price_id", 400);
   }
 
   const stripe = getStripeClient();
@@ -109,8 +104,5 @@ Deno.serve(async (req: Request) => {
     customer_update: { address: "auto", name: "auto" },
   });
 
-  return new Response(JSON.stringify({ url: session.url }), {
-    status: 200,
-    headers: { "Content-Type": "application/json" },
-  });
+  return jsonResponse({ url: session.url });
 });

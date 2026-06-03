@@ -8,20 +8,24 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import Stripe from "https://esm.sh/stripe@17.5.0?target=deno";
 import { getStripeClient, mapStripeStatus, stripeTimestampToIso } from "../_shared/stripe.ts";
+import { handleCorsPreflight, jsonResponse, errorResponse } from "../_shared/http.ts";
 
 const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
 const supabaseServiceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const stripeWebhookSecret = Deno.env.get("STRIPE_WEBHOOK_SECRET")!;
 
 Deno.serve(async (req: Request) => {
+  const cors = handleCorsPreflight(req);
+  if (cors) return cors;
+
   if (req.method !== "POST") {
-    return new Response("Method not allowed", { status: 405 });
+    return errorResponse("Method not allowed", 405);
   }
 
   const signature = req.headers.get("Stripe-Signature");
   if (!signature) {
     console.warn("[stripe-webhook] missing Stripe-Signature header");
-    return new Response("Missing signature", { status: 400 });
+    return errorResponse("Missing signature", 400);
   }
 
   const stripe = getStripeClient();
@@ -38,7 +42,7 @@ Deno.serve(async (req: Request) => {
     );
   } catch (e) {
     console.warn(`[stripe-webhook] signature validation failed: ${(e as Error).message}`);
-    return new Response("Invalid signature", { status: 400 });
+    return errorResponse("Invalid signature", 400);
   }
 
   // Idempotency: have we seen this event ID before?
@@ -50,10 +54,7 @@ Deno.serve(async (req: Request) => {
 
   if (existing) {
     console.log(`[stripe-webhook] event ${event.id} (${event.type}) already processed - skipping`);
-    return new Response(JSON.stringify({ received: true, deduplicated: true }), {
-      status: 200,
-      headers: { "Content-Type": "application/json" },
-    });
+    return jsonResponse({ received: true, deduplicated: true });
   }
 
   try {
@@ -88,10 +89,7 @@ Deno.serve(async (req: Request) => {
     payload: event as unknown as Record<string, unknown>,
   });
 
-  return new Response(JSON.stringify({ received: true }), {
-    status: 200,
-    headers: { "Content-Type": "application/json" },
-  });
+  return jsonResponse({ received: true });
 });
 
 type SbClient = ReturnType<typeof createClient>;
