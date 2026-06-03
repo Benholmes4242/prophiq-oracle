@@ -29,7 +29,7 @@ import type {
 
 registerAllDomains();
 
-const PROMPT_VERSION = "v1.1.0"; // bumped from v1.0.0 - research-enriched prompts
+const PROMPT_VERSION = "v1.2.0"; // bumped from v1.1.0 - prior context injection
 const STALE_AFTER_MS = 6 * 60 * 60 * 1000; // 6 hours
 const RESEARCH_CACHE_TTL_MS = 30 * 60 * 1000; // 30 minutes
 
