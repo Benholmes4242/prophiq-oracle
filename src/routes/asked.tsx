@@ -99,20 +99,34 @@ function PageHeader({
 
 function PrivacyNote() {
   return (
-    <div
-      className="mt-3 flex items-center gap-2 font-mono text-[10px] uppercase"
-      style={{
-        letterSpacing: "0.22em",
-        color: "var(--ink-faint)",
-        fontWeight: 600,
-      }}
-    >
-      <span
-        aria-hidden
-        className="inline-block rounded-full"
-        style={{ width: 6, height: 6, background: "var(--amber)" }}
-      />
-      Stored only on this device
+    <div className="mt-3 flex items-center justify-between gap-3">
+      <div
+        className="inline-flex items-center gap-2 font-mono text-[10px] uppercase"
+        style={{
+          letterSpacing: "0.22em",
+          color: "var(--ink-faint)",
+          fontWeight: 600,
+        }}
+      >
+        <span
+          aria-hidden
+          className="inline-block rounded-full"
+          style={{ width: 6, height: 6, background: "var(--amber)" }}
+        />
+        Stored only on this device
+      </div>
+      <Link
+        to="/how-it-works"
+        className="font-body text-[12px]"
+        style={{
+          color: "var(--ink-faint)",
+          fontWeight: 500,
+          letterSpacing: "-0.005em",
+          textDecoration: "none",
+        }}
+      >
+        How it works →
+      </Link>
     </div>
   );
 }
