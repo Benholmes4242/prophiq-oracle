@@ -33,6 +33,7 @@ import type {
   ResearchContext,
   ResearchContextError,
 } from "../_shared/domain.ts";
+import { extractUserIfAuthenticated } from "../_shared/auth.ts";
 
 registerAllDomains();
 
