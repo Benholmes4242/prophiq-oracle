@@ -20,6 +20,11 @@ import {
   PRIOR_CONTEXT_MIN_SIMILARITY,
   type PriorContext,
 } from "../_shared/priorContext.ts";
+import {
+  loadCalibrationCurve,
+  calibrateRankedOutcomes,
+  type CalibrationCurve,
+} from "../_shared/calibration.ts";
 import type {
   DomainEvent,
   EventOutcome,
@@ -199,6 +204,41 @@ Deno.serve(async (req) => {
   const top3 = ranked.slice(0, 3);
   const alternates = ranked.filter((r) => r.is_dark_horse);
 
+  // ============================================================
+  // Phase 1: Apply post-hoc calibration mapping (best-effort)
+  // ============================================================
+  const calibrationMappingEnabled =
+    (Deno.env.get("CALIBRATION_MAPPING_ENABLED") ?? "true").toLowerCase() !== "false";
+
+  let calibrationCurve: CalibrationCurve | null = null;
+  if (calibrationMappingEnabled) {
+    try {
+      calibrationCurve = await loadCalibrationCurve(supabase, event.domain);
+    } catch (e) {
+      console.warn(
+        `[generate-prediction] calibration curve load failed for ${event.domain}: ${(e as Error).message}`,
+      );
+      calibrationCurve = null;
+    }
+  }
+
+  // Capture raw top-pick probability BEFORE calibration (always, regardless of flag)
+  const topPickProbRaw: number | null = ranked[0]?.probability ?? null;
+
+  const calibratedTop3 = calibrationCurve
+    ? calibrateRankedOutcomes(calibrationCurve, top3)
+    : top3;
+  const calibratedAlternates = calibrationCurve
+    ? calibrateRankedOutcomes(calibrationCurve, alternates)
+    : alternates;
+  const calibrationCurveVersion: string | null = calibrationCurve?.version ?? null;
+
+  if (calibrationCurve) {
+    console.log(
+      `[generate-prediction] event=${body.event_id} calibration_applied version=${calibrationCurve.version}`,
+    );
+  }
+
   // Mark prior predictions stale (same mode only)
   await supabase.from("predictions").update({ is_current: false })
     .eq("event_id", body.event_id).eq("mode", mode);
@@ -208,14 +248,15 @@ Deno.serve(async (req) => {
   const { data: inserted, error: insErr } = await supabase.from("predictions").insert({
     event_id: body.event_id,
     mode,
-    ranked_outcomes: top3,
-    alternates,
+    ranked_outcomes: calibratedTop3,
+    alternates: calibratedAlternates,
     consensus_method: consensusOut.consensus.method,
     consensus_score: consensusOut.consensus.consensus_score,
     agreement_score: consensusOut.consensus.agreement_score,
     model_results: consensusOut.model_results,
     research_context,
     prompt_version: PROMPT_VERSION,
+    calibration_curve_version: calibrationCurveVersion,
     is_current: true,
     expires_at: new Date(Date.now() + STALE_AFTER_MS).toISOString(),
   }).select("*").single();
@@ -246,6 +287,7 @@ Deno.serve(async (req) => {
         top_pick_prob: p.top_pick_prob,
         was_correct: p.was_correct,
       })),
+      top_pick_prob_raw: topPickProbRaw,
     });
     if (lineageErr) throw new Error(lineageErr.message);
   } catch (e) {
