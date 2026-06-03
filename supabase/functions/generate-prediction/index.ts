@@ -71,6 +71,9 @@ Deno.serve(async (req) => {
 
   const adapter = getDomain(event.domain);
 
+  // Capture when inputs were assembled - before any LLM calls fire.
+  const timeOfCall = Date.now();
+
   // ----- Fetch live research with in-memory cache + graceful fallback -----
   let research: ResearchContext | null = null;
   let researchError: ResearchContextError | null = null;
