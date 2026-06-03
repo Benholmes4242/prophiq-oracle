@@ -36,7 +36,7 @@ import type {
 
 registerAllDomains();
 
-const PROMPT_VERSION = "v1.3.0"; // bumped from v1.2.0 - market signals injection
+const PROMPT_VERSION = "v1.4.0"; // bumped from v1.3.0 - structured data injection
 const STALE_AFTER_MS = 6 * 60 * 60 * 1000; // 6 hours
 const RESEARCH_CACHE_TTL_MS = 30 * 60 * 1000; // 30 minutes
 
