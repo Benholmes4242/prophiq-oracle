@@ -8,17 +8,17 @@ import { useQuery } from "@tanstack/react-query";
 import { DomainDisclaimer } from "@/components/site/DisclaimerBanner";
 import { EventResolvedBanner } from "@/components/site/EventResolvedBanner";
 import { EventHero } from "@/components/site/EventHero";
-import { ReasoningCard } from "@/components/site/ReasoningCard";
-import { OtherContenders } from "@/components/site/OtherContenders";
-import { MethodologyCard } from "@/components/site/MethodologyCard";
+import { CallSection, FIELD_LABEL_PATTERN } from "@/components/site/CallSection";
+import { Reasoning } from "@/components/site/Reasoning";
 import { RelatedEvents } from "@/components/site/RelatedEvents";
 import { StickyBottomCTA } from "@/components/site/StickyBottomCTA";
 import { ChatSheet } from "@/components/site/ChatSheet";
 import { useCurrentPrediction } from "@/hooks/usePrediction";
 import { fetchEventBySlug, fetchEventResolution } from "@/lib/queries";
 import { getPublicBaseUrl } from "@/lib/publicUrl";
+import { classifyEvent } from "@/lib/subcategory";
 import { DOMAINS, DOMAIN_LABEL } from "@/lib/types";
-import type { DomainId } from "@/lib/types";
+import type { DomainId, RankedOutcome } from "@/lib/types";
 
 export const Route = createFileRoute("/$domain/events/$slug")({
   loader: async ({ params }) => {
