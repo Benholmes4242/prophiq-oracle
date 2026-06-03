@@ -12,6 +12,8 @@ import { useEffect, useState, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
+import { ensureAnonymousSession } from "../lib/auth";
+import { reclaimLegacyAskedHistory } from "../lib/migrateLocalStorageHistory";
 import { Toaster } from "@/components/ui/sonner";
 import { AppHeader } from "@/components/site/AppHeader";
 import { Drawer } from "@/components/site/Drawer";
@@ -77,6 +79,16 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
 }
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
+  beforeLoad: async () => {
+    if (typeof window === "undefined") return;
+    try {
+      await ensureAnonymousSession();
+      // fire-and-forget; never block route load on history reclaim
+      reclaimLegacyAskedHistory().catch(() => {});
+    } catch (err) {
+      console.error("[root] auth bootstrap failed:", err);
+    }
+  },
   head: () => ({
     meta: [
       { charSet: "utf-8" },
