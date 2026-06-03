@@ -144,6 +144,7 @@ Deno.serve(async (req) => {
         status: "scheduled",
         mode: "prediction",
         source: "user_submitted",
+        submitted_by_user_id: authedUser.user_id,
         submitted_by_fingerprint: fingerprint,
         submitted_at: new Date().toISOString(),
         moderation_status: "approved",
