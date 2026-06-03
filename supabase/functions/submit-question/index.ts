@@ -4,10 +4,10 @@
 // Stages emitted as `data:` SSE events:
 //   1. rate_limit  (start/done/error)
 //   2. pre_filter  (start/done/error)
-//   3. moderation  (start/done/error — may carry a reject reason)
-//   4. research    (start/done — informational; populates description)
-//   5. models      (start/done — runs 3 LLMs in parallel)
-//   6. consensus   (start/done — computes weighted Borda)
+//   3. moderation  (start/done/error - may carry a reject reason)
+//   4. research    (start/done - informational; populates description)
+//   5. models      (start/done - runs 3 LLMs in parallel)
+//   6. consensus   (start/done - computes weighted Borda)
 //   7. done        (carries final event_id + prediction_id)
 
 import { registerAllDomains } from "../_shared/domains/index.ts";
@@ -151,7 +151,7 @@ Deno.serve(async (req) => {
       const resolvesAt = defaultResolvesAt(mod, today);
       sse.send({ stage: "moderation", status: "done", data: { domain: domainId, normalized_question: normalized, starts_at: startsAt, resolves_at: resolvesAt } });
 
-      // ----- 4. RESEARCH (informational stage — placeholder for now) -----
+      // ----- 4. RESEARCH (informational stage - placeholder for now) -----
       sse.send({ stage: "research", status: "start" });
       const description = mod.metadata && typeof mod.metadata === "object" && typeof (mod.metadata as Record<string, unknown>).context === "string"
         ? (mod.metadata as Record<string, string>).context
