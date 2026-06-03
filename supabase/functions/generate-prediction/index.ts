@@ -59,6 +59,14 @@ Deno.serve(async (req) => {
 
   const supabase = getServiceClient();
 
+  // Optional: capture user_id for observability when called by an authenticated
+  // frontend. Cron / service-role invocations pass no JWT and yield null.
+  const authedUser = await extractUserIfAuthenticated(req, supabase);
+  if (authedUser) {
+    console.log(`[generate-prediction] user_triggered=${authedUser.user_id} anonymous=${authedUser.is_anonymous}`);
+  }
+
+
   const { data: event, error: evErr } = await supabase
     .from("events").select("*").eq("id", body.event_id).single();
   if (evErr || !event) return errorResponse(`event not found: ${evErr?.message ?? body.event_id}`, 404);
