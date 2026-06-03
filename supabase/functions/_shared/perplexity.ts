@@ -1,6 +1,10 @@
 // Thin Perplexity client used by domain adapters and the consensus engine for
 // grounded research. Reads PERPLEXITY_API_KEY from the edge function env.
 
+import type { ResearchContext } from "./domain.ts";
+
+
+
 export interface PerplexityMessage {
   role: "system" | "user" | "assistant";
   content: string;
