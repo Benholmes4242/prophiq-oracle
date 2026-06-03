@@ -201,7 +201,7 @@ export const marketsAdapter: DomainAdapter = {
       : "";
     const priorBlock = formatPriorBlock(priors ?? []);
     const marketBlock = formatMarketSignalsBlock(marketSignals ?? []);
-    return `Financial-markets analysis task. INFORMATIONAL ONLY - do not give advice and do not use betting or odds framing.
+    return `Financial-markets analysis task. INFORMATIONAL ONLY — do not give advice and do not use betting or odds framing.
 
 Event: ${event.title}
 Question: ${event.question}
