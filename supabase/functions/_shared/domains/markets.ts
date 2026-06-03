@@ -13,6 +13,7 @@ import type {
 import { fetchResearchContext, perplexityChat } from "../perplexity.ts";
 import { formatPriorBlock, type PriorContext } from "../priorContext.ts";
 import { formatMarketSignalsBlock, type MarketSignal } from "../marketSignals.ts";
+import { formatStructuredDataBlock, type StructuredData } from "../structuredData.ts";
 import { coerceDiscoveredEvent, logSkip, safeExtractJsonArray } from "./_util.ts";
 
 const RESEARCH_PROMPT_VERSION = "markets.research.v1";
