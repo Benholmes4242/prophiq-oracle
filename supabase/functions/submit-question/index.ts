@@ -151,7 +151,7 @@ Deno.serve(async (req) => {
       const resolvesAt = defaultResolvesAt(mod, today);
       sse.send({ stage: "moderation", status: "done", data: { domain: domainId, normalized_question: normalized, starts_at: startsAt, resolves_at: resolvesAt } });
 
-      // ----- 4. RESEARCH (informational stage — placeholder for now) -----
+      // ----- 4. RESEARCH (informational stage - placeholder for now) -----
       sse.send({ stage: "research", status: "start" });
       const description = mod.metadata && typeof mod.metadata === "object" && typeof (mod.metadata as Record<string, unknown>).context === "string"
         ? (mod.metadata as Record<string, string>).context
