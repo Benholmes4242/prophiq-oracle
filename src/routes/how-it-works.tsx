@@ -516,7 +516,7 @@ function RecentCallsSection() {
     <section style={{ marginBottom: 48 }}>
       <SectionEyebrow>Recent calls</SectionEyebrow>
       <SectionHeading>How it's played out.</SectionHeading>
-      <EditorialP>A handful of recent forecasts, with what happened.</EditorialP>
+      <EditorialP>Recent forecasts and how they resolved.</EditorialP>
       <div style={{ marginTop: 20 }}>
         {FEATURED_CALLS.map((call) => (
           <FeaturedCallCard key={call.id} call={call} />
