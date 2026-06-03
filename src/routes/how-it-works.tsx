@@ -25,10 +25,6 @@ const ENGINE_STATS = {
   avgResolutionTime: "< 8s",
 };
 
-const AGGREGATE = {
-  resolvedCount: 247,
-  avgCalibrationErrorPp: 5,
-};
 
 type FeaturedCall = {
   id: string;
