@@ -209,6 +209,7 @@ export const sportAdapter: DomainAdapter = {
     research?: ResearchContext,
     priors?: PriorContext[],
     marketSignals?: MarketSignal[],
+    structuredData?: StructuredData | null,
   ): string {
     const oddsHint = mode === "odds"
       ? "Frame your analysis in terms of bookmaker-style implied probabilities and fair odds. Justify each rank with what the market should price."
@@ -218,6 +219,7 @@ export const sportAdapter: DomainAdapter = {
       : "";
     const priorBlock = formatPriorBlock(priors ?? []);
     const marketBlock = formatMarketSignalsBlock(marketSignals ?? []);
+    const structuredBlock = formatStructuredDataBlock(structuredData ?? null);
     return `Sports analysis task.
 
 Event: ${event.title}
@@ -226,12 +228,169 @@ Kickoff: ${event.starts_at}
 
 Outcomes:
 ${outcomes.map((o, i) => `${i + 1}. ${o.label}`).join("\n")}
-${researchBlock}${priorBlock}${marketBlock}
+${researchBlock}${priorBlock}${marketBlock}${structuredBlock}
 ${oddsHint}
 
-Use the live research context above (when present) as your primary input. Rank every outcome from most likely (rank 1) to least likely. For each, provide a probability (0-1), a fit_score (0-1) for how strongly the data supports it, and 1-3 short reasons grounded in form, head-to-head, injuries, venue, and the research above.`;
+Use the structured data above as authoritative factual ground truth where present. The live research and market signals are useful context. Rank every outcome from most likely (rank 1) to least likely. For each, provide a probability (0-1), a fit_score (0-1) for how strongly the data supports it, and 1-3 short reasons grounded in form, head-to-head, injuries, venue, and the research above.`;
+  },
+
+  async gatherStructuredData(
+    supabase: SupabaseClient,
+    event: DomainEvent,
+    _outcomes: EventOutcome[],
+  ): Promise<StructuredData | null> {
+    try {
+      return await gatherFootballStructuredData(supabase, event);
+    } catch (e) {
+      console.warn(`[sportAdapter] structured data fetch failed: ${(e as Error).message}`);
+      return null;
+    }
   },
 };
+
+// ============================================================
+// Football structured-data helpers
+// ============================================================
+
+function isFootballEvent(event: DomainEvent): boolean {
+  const text = [
+    event.title,
+    event.question,
+    typeof event.metadata === "object" && event.metadata !== null
+      ? String((event.metadata as Record<string, unknown>).subcategory ?? "") +
+        " " +
+        String((event.metadata as Record<string, unknown>).sport ?? "") +
+        " " +
+        String((event.metadata as Record<string, unknown>).league ?? "")
+      : "",
+  ].join(" ").toLowerCase();
+
+  const negativeKeywords = [
+    "nfl", "american football", "super bowl",
+    "nba", "basketball",
+    "tennis", "wimbledon", "us open", "french open", "australian open",
+    "golf", "pga", "masters", "ryder cup",
+    "f1", "formula 1", "grand prix",
+    "ufc", "mma", "boxing",
+    "cricket", "ipl", "ashes",
+    "rugby",
+  ];
+  for (const k of negativeKeywords) if (text.includes(k)) return false;
+
+  const positiveKeywords = [
+    "premier league", "la liga", "serie a", "bundesliga", "ligue 1",
+    "champions league", "europa league", "fa cup",
+    "world cup", "uefa", "fifa", "concacaf", "afcon", "copa america",
+    "mls", "championship", "carabao cup", "football", "soccer",
+  ];
+  for (const k of positiveKeywords) if (text.includes(k)) return true;
+
+  return false;
+}
+
+function extractTeamNamesFromQuestion(
+  event: DomainEvent,
+): { teamA: string; teamB: string } | null {
+  const text = `${event.title} ${event.question}`;
+  const vMatch = text.match(/(.+?)\s+(?:v|vs|vs\.|versus)\s+(.+?)(?:\s*[\(\-\?]|$)/i);
+  if (vMatch) {
+    return { teamA: vMatch[1].trim(), teamB: vMatch[2].trim() };
+  }
+  return null;
+}
+
+async function gatherFootballStructuredData(
+  supabase: SupabaseClient,
+  event: DomainEvent,
+): Promise<StructuredData | null> {
+  if (!isFootballEvent(event)) return null;
+
+  const cached = await loadCachedStructuredData(supabase, event.id, apiSportsVersionTag);
+  if (cached) return cached;
+
+  const teams = extractTeamNamesFromQuestion(event);
+  if (!teams) return null;
+
+  const [teamA, teamB] = await Promise.all([
+    searchTeamByName(teams.teamA),
+    searchTeamByName(teams.teamB),
+  ]);
+  if (!teamA || !teamB) return null;
+
+  const [formA, formB, h2h] = await Promise.all([
+    getTeamRecentForm(teamA.id, 5),
+    getTeamRecentForm(teamB.id, 5),
+    getHeadToHead(teamA.id, teamB.id, 5),
+  ]);
+
+  const lines: string[] = [];
+  lines.push(
+    `${teamA.name} recent form (last 5): ${summariseFootballForm(formA, teamA.id)}`,
+  );
+  lines.push(
+    `${teamB.name} recent form (last 5): ${summariseFootballForm(formB, teamB.id)}`,
+  );
+  if (h2h.length > 0) {
+    lines.push(
+      `Head-to-head (last ${h2h.length}): ${summariseFootballH2H(h2h, teamA, teamB)}`,
+    );
+  }
+
+  if (lines.length === 0) return null;
+
+  const data: StructuredData = {
+    source: apiSportsVersionTag,
+    source_version: "v3",
+    fetched_at: new Date().toISOString(),
+    payload: {
+      team_a: { id: teamA.id, name: teamA.name, recent_form: formA },
+      team_b: { id: teamB.id, name: teamB.name, recent_form: formB },
+      head_to_head: h2h,
+    },
+    summary_lines: lines,
+  };
+
+  await persistStructuredData(supabase, event.id, data);
+  return data;
+}
+
+function summariseFootballForm(fixtures: ApiSportsFixture[], teamId: number): string {
+  if (fixtures.length === 0) return "no recent data available";
+  const parts: string[] = [];
+  for (const f of fixtures) {
+    const isHome = f.home_team.id === teamId;
+    const teamGoals = isHome ? f.home_goals : f.away_goals;
+    const oppGoals = isHome ? f.away_goals : f.home_goals;
+    const opponent = isHome ? f.away_team.name : f.home_team.name;
+    if (teamGoals === null || oppGoals === null) continue;
+
+    const result = teamGoals > oppGoals ? "W" : teamGoals < oppGoals ? "L" : "D";
+    parts.push(`${result} ${teamGoals}-${oppGoals} vs ${opponent}`);
+  }
+  return parts.length > 0 ? parts.join("; ") : "no recent results parsed";
+}
+
+function summariseFootballH2H(
+  fixtures: ApiSportsFixture[],
+  teamA: { id: number; name: string },
+  teamB: { id: number; name: string },
+): string {
+  let aWins = 0;
+  let bWins = 0;
+  let draws = 0;
+  const recentScores: string[] = [];
+  for (const f of fixtures) {
+    if (f.home_goals === null || f.away_goals === null) continue;
+    const aIsHome = f.home_team.id === teamA.id;
+    const aGoals = aIsHome ? f.home_goals : f.away_goals;
+    const bGoals = aIsHome ? f.away_goals : f.home_goals;
+    if (aGoals > bGoals) aWins += 1;
+    else if (aGoals < bGoals) bWins += 1;
+    else draws += 1;
+    recentScores.push(`${aGoals}-${bGoals}`);
+  }
+  return `${teamA.name} ${aWins}W ${draws}D ${bWins}L ${teamB.name} (recent scores ${teamA.name} perspective: ${recentScores.slice(0, 3).join(", ")})`;
+}
 
 function parseResolution(content: string, outcomes: EventOutcome[]): ResolutionResult | null {
   try {
