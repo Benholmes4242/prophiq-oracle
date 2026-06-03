@@ -31,11 +31,12 @@ DECLARE
   v_trial_end     timestamptz;
   v_status        text;
 BEGIN
-  SELECT count(*)::integer INTO v_used_today
-  FROM public.questions q
-  WHERE q.user_id = p_user_id
-    AND q.mode = 'prediction'
-    AND q.created_at >= date_trunc('day', now() at time zone 'utc');
+  -- Count today's submissions (mirrors Brief AA's get_usage_today_for_user)
+  SELECT COUNT(*)::integer INTO v_used_today
+  FROM events
+  WHERE submitted_by_user_id = p_user_id
+    AND submitted_at >= (now() AT TIME ZONE 'utc')::date
+    AND submitted_at < (now() AT TIME ZONE 'utc')::date + interval '1 day';
 
   SELECT
     s.status            AS status,

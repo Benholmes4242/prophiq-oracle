@@ -161,6 +161,18 @@ function RootComponent() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const hideChrome = pathname.startsWith("/admin");
 
+  // Fallback anonymous sign-in trigger. The primary trigger is in beforeLoad
+  // above, but observation shows beforeLoad doesn't always fire reliably on
+  // the deployed bundle. This useEffect catches the gap - if a session already
+  // exists (from beforeLoad), ensureAnonymousSession short-circuits as a no-op.
+  useEffect(() => {
+    console.log("[root] mount fallback: ensuring anonymous session");
+    ensureAnonymousSession().catch((err) => {
+      console.error("[root] mount fallback anonymous sign-in failed:", err);
+    });
+  }, []);
+
+
   return (
     <QueryClientProvider client={queryClient}>
       <div

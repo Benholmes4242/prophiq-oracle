@@ -4,10 +4,10 @@
 // Stages emitted as `data:` SSE events:
 //   1. rate_limit  (start/done/error)
 //   2. pre_filter  (start/done/error)
-//   3. moderation  (start/done/error — may carry a reject reason)
-//   4. research    (start/done — informational; populates description)
-//   5. models      (start/done — runs 3 LLMs in parallel)
-//   6. consensus   (start/done — computes weighted Borda)
+//   3. moderation  (start/done/error - may carry a reject reason)
+//   4. research    (start/done - informational; populates description)
+//   5. models      (start/done - runs 3 LLMs in parallel)
+//   6. consensus   (start/done - computes weighted Borda)
 //   7. done        (carries final event_id + prediction_id)
 
 import { registerAllDomains } from "../_shared/domains/index.ts";
