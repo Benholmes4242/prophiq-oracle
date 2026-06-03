@@ -219,7 +219,7 @@ Deno.serve(async (req) => {
     } catch (err) {
       sse.send({ stage: "done", status: "error", message: (err as Error).message });
       try { await supabase.from("submission_rate_limits").insert({
-        fingerprint, ip_hash: ipHash, endpoint: "submit_question",
+        fingerprint: fingerprint ?? authedUser.user_id, ip_hash: ipHash, endpoint: "submit_question",
         question: truncateQuestion(question), outcome: "failed",
       }); } catch { /* swallow */ }
       sse.close();
