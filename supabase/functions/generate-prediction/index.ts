@@ -375,6 +375,7 @@ Deno.serve(async (req) => {
     consensus: consensusOut.consensus,
     research_fetched: research !== null,
     priors_used: priors.length,
+    market_signals_used: marketSignals.length,
     reused: false,
   });
 });
