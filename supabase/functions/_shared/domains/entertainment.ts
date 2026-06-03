@@ -172,7 +172,25 @@ export const entertainmentAdapter: DomainAdapter = {
     return parseResolution(response.content, outcomes);
   },
 
-  buildPrompt(event: DomainEvent, outcomes: EventOutcome[]): string {
+  async gatherResearch(event: DomainEvent, outcomes: EventOutcome[]): Promise<ResearchContext> {
+    return await fetchResearchContext({
+      systemPrompt: RESEARCH_SYSTEM,
+      userPrompt: buildEntertainmentResearchUser(event, outcomes),
+      researchPromptVersion: RESEARCH_PROMPT_VERSION,
+      recencyFilter: "month",
+      maxTokens: 800,
+    });
+  },
+
+  buildPrompt(
+    event: DomainEvent,
+    outcomes: EventOutcome[],
+    _mode?: "prediction" | "odds",
+    research?: ResearchContext,
+  ): string {
+    const researchBlock = research?.synthesised
+      ? `\nLIVE RESEARCH CONTEXT (fetched ${research.fetched_at}):\n${research.synthesised}\n`
+      : "";
     return `Entertainment analysis task. Do NOT use betting or odds framing.
 
 Event: ${event.title}
@@ -181,8 +199,8 @@ Scheduled: ${event.starts_at}
 
 Outcomes:
 ${outcomes.map((o, i) => `${i + 1}. ${o.label}`).join("\n")}
-
-Rank every outcome from most likely (rank 1) to least likely. For each, provide a probability (0-1), a fit_score (0-1), and 1-3 short reasons grounded in critic reception, precursor awards, industry buzz, and historical base rates.`;
+${researchBlock}
+Rank every outcome from most likely (rank 1) to least likely. For each, provide a probability (0-1), a fit_score (0-1), and 1-3 short reasons grounded in critic reception, precursor awards, industry buzz, historical base rates, and the research above when present.`;
   },
 };
 
