@@ -68,27 +68,58 @@ Deno.serve(async (req) => {
     };
 
     try {
-      // ----- 1. RATE LIMIT (per user_id, free-tier daily cap) -----
+      // ----- 1. RATE LIMIT (per user_id, per-tier daily cap via get_user_quota_today) -----
       sse.send({ stage: "rate_limit", status: "start" });
-      const FREE_DAILY_CAP = 3;
-      const { data: usageRow, error: usageErr } = await supabase
-        .rpc("get_usage_today_for_user", { p_user_id: authedUser.user_id })
-        .single();
-      if (usageErr) {
-        console.error("[submit-question] usage RPC failed:", usageErr.message);
+      const { data: quotaData, error: quotaErr } = await supabase
+        .rpc("get_user_quota_today", { p_user_id: authedUser.user_id });
+      if (quotaErr) {
+        console.error("[submit-question] quota RPC failed:", quotaErr.message);
         sse.send({ stage: "rate_limit", status: "error", message: "Could not check usage quota" });
         await recordOutcome("failed"); sse.close(); return;
       }
-      const used = (usageRow as { questions_submitted_today?: number } | null)?.questions_submitted_today ?? 0;
-      if (used >= FREE_DAILY_CAP) {
+      const quotaRow = (Array.isArray(quotaData) ? quotaData[0] : quotaData) as {
+        used_today: number;
+        daily_cap: number;
+        remaining: number;
+        tier: string;
+        is_trialing: boolean;
+        trial_end: string | null;
+        subscription_status: string;
+      } | null;
+      if (!quotaRow) {
+        console.error("[submit-question] quota RPC returned no row");
+        sse.send({ stage: "rate_limit", status: "error", message: "Could not check usage quota" });
+        await recordOutcome("failed"); sse.close(); return;
+      }
+      if (quotaRow.remaining <= 0) {
         sse.send({
           stage: "rate_limit", status: "error",
-          message: `Daily question limit reached (${used}/${FREE_DAILY_CAP}).`,
-          data: { code: "DAILY_LIMIT_REACHED", used, cap: FREE_DAILY_CAP },
+          message: `Daily question limit reached (${quotaRow.used_today}/${quotaRow.daily_cap}).`,
+          data: {
+            code: "DAILY_LIMIT_REACHED",
+            used: quotaRow.used_today,
+            used_today: quotaRow.used_today,
+            cap: quotaRow.daily_cap,
+            daily_cap: quotaRow.daily_cap,
+            tier: quotaRow.tier,
+            is_trialing: quotaRow.is_trialing,
+            trial_end: quotaRow.trial_end,
+            subscription_status: quotaRow.subscription_status,
+          },
         });
         await recordOutcome("rejected_rate_limit"); sse.close(); return;
       }
-      sse.send({ stage: "rate_limit", status: "done", data: { used, cap: FREE_DAILY_CAP } });
+      sse.send({
+        stage: "rate_limit", status: "done",
+        data: {
+          used: quotaRow.used_today,
+          cap: quotaRow.daily_cap,
+          tier: quotaRow.tier,
+          is_trialing: quotaRow.is_trialing,
+          trial_end: quotaRow.trial_end,
+          subscription_status: quotaRow.subscription_status,
+        },
+      });
 
       // ----- 2. PRE-FILTER -----
       sse.send({ stage: "pre_filter", status: "start" });
