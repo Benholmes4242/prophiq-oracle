@@ -70,6 +70,39 @@ Deno.serve(async (req) => {
     }
   }
 
+  // ============================================================
+  // Lazy embedding for this event (best-effort).
+  // Placed AFTER cached-prediction reuse (so cached paths don't burn an
+  // OpenAI call) and BEFORE research fetch.
+  // ============================================================
+  if (!event.embedding) {
+    try {
+      const input = buildEmbeddingInput({
+        title: event.title,
+        question: event.question,
+      });
+      if (input.length > 0) {
+        const embedding = await embedText(input);
+        const { error: embErr } = await supabase
+          .from("events")
+          .update({
+            embedding,
+            embedding_model: EMBEDDING_MODEL_ID,
+            embedded_at: new Date().toISOString(),
+          })
+          .eq("id", body.event_id);
+        if (embErr) throw new Error(embErr.message);
+        console.log(
+          `[generate-prediction] event=${body.event_id} embedded model=${EMBEDDING_MODEL_ID}`,
+        );
+      }
+    } catch (e) {
+      console.warn(
+        `[generate-prediction] embedding failed for event ${body.event_id}: ${(e as Error).message}`,
+      );
+    }
+  }
+
   const adapter = getDomain(event.domain);
 
   // Capture when inputs were assembled - before any LLM calls fire.
