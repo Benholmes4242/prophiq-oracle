@@ -30,13 +30,6 @@ const SECTIONS: Array<{
     ],
   },
   {
-    label: "EVIDENCE",
-    items: [
-      { label: "Receipts", to: "/receipts" },
-      { label: "All predictions", to: "/predictions" },
-    ],
-  },
-  {
     label: "LEGAL",
     items: [
       { label: "Privacy", to: "/privacy" },
