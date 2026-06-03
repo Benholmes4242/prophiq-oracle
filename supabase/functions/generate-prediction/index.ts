@@ -287,6 +287,7 @@ Deno.serve(async (req) => {
         top_pick_prob: p.top_pick_prob,
         was_correct: p.was_correct,
       })),
+      top_pick_prob_raw: topPickProbRaw,
     });
     if (lineageErr) throw new Error(lineageErr.message);
   } catch (e) {
