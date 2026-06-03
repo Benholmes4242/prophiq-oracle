@@ -24,15 +24,24 @@ Deno.serve(async (req) => {
   try { body = await req.json(); } catch { return errorResponse("invalid JSON body"); }
 
   const message = (body.message ?? "").trim();
-  const fingerprint = getFingerprint(body, req);
+  const fingerprint = getFingerprint(body, req) ?? "anon";
   if (!body.event_id) return errorResponse("event_id required");
   if (!message) return errorResponse("message required");
-  if (!fingerprint) return errorResponse("fingerprint required");
   if (message.length > 1000) return errorResponse("message too long (max 1000 chars)");
 
   const ip = getClientIp(req);
   const ipHash = await hashIp(ip);
   const supabase = getServiceClient();
+
+  // Require auth (anonymous JWTs pass)
+  let authedUser: AuthedUser;
+  try {
+    authedUser = await requireAuthenticatedUser(req, supabase);
+  } catch (r) {
+    return r as Response;
+  }
+  console.log(`[chat-message] user=${authedUser.user_id} is_anonymous=${authedUser.is_anonymous}`);
+
 
   // Rate limit — shared bucket with submit_question.
   const checker: RateLimitChecker = {
