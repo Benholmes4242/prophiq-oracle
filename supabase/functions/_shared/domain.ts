@@ -47,6 +47,27 @@ export interface DiscoveredEvent {
   metadata?: Record<string, unknown>;
 }
 
+/**
+ * Output of an adapter's gatherResearch() call. Stored verbatim in
+ * predictions.research_context (jsonb) and used to enrich the LLM
+ * consensus prompt.
+ */
+export interface ResearchContext {
+  sources: Array<{ url: string; title?: string; snippet?: string }>;
+  synthesised: string;
+  fetched_at: string;
+  model: string;
+  tokens_used: number | null;
+  research_prompt_version: string;
+}
+
+/** Error shape stored when research fetch fails (instead of a silent null). */
+export interface ResearchContextError {
+  error: true;
+  reason: string;
+  fetched_at: string;
+}
+
 export interface DomainAdapter {
   id: DomainId;
   displayName: string;
@@ -54,10 +75,22 @@ export interface DomainAdapter {
   discover(now: Date): Promise<DiscoveredEvent[]>;
   /** Resolve a finished event into final rankings. Return null if not yet resolvable. */
   resolve(event: DomainEvent, outcomes: EventOutcome[]): Promise<ResolutionResult | null>;
+  /**
+   * Pull live web research relevant to this event via Perplexity. Returns a
+   * ResearchContext with synthesised text and citations. Throws on fetch
+   * failure (caller handles fallback).
+   */
+  gatherResearch(event: DomainEvent, outcomes: EventOutcome[]): Promise<ResearchContext | null>;
   /** Build the per-domain research prompt for the AI consensus engine.
    * `mode` selects "prediction" framing (default) or "odds" framing (only
-   * supported by adapters whose events have mode === "odds" | "both"). */
-  buildPrompt(event: DomainEvent, outcomes: EventOutcome[], mode?: "prediction" | "odds"): string;
+   * supported by adapters whose events have mode === "odds" | "both").
+   * If `research` is provided, it should be woven into the prompt. */
+  buildPrompt(
+    event: DomainEvent,
+    outcomes: EventOutcome[],
+    mode?: "prediction" | "odds",
+    research?: ResearchContext,
+  ): string;
 }
 
 export interface ResolutionResult {
