@@ -6,6 +6,7 @@
 // endpoints that work with or without auth, like generate-prediction).
 
 import { type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.45.4";
+import { errorResponse } from "./http.ts";
 
 export interface AuthedUser {
   user_id: string;
@@ -25,20 +26,14 @@ export async function requireAuthenticatedUser(
     req.headers.get("Authorization") ?? req.headers.get("authorization");
 
   if (!authHeader || !authHeader.toLowerCase().startsWith("bearer ")) {
-    throw new Response(
-      JSON.stringify({ error: "Missing or malformed Authorization header" }),
-      { status: 401, headers: { "Content-Type": "application/json" } },
-    );
+    throw errorResponse("Missing or malformed Authorization header", 401);
   }
 
   const jwt = authHeader.slice(7).trim();
   const { data: { user }, error } = await supabase.auth.getUser(jwt);
 
   if (error || !user) {
-    throw new Response(
-      JSON.stringify({ error: "Invalid or expired token" }),
-      { status: 401, headers: { "Content-Type": "application/json" } },
-    );
+    throw errorResponse("Invalid or expired token", 401);
   }
 
   return {
