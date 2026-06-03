@@ -26,6 +26,7 @@ import {
   type CalibrationCurve,
 } from "../_shared/calibration.ts";
 import { gatherMarketSignals, type MarketSignal } from "../_shared/marketSignals.ts";
+import { type StructuredData } from "../_shared/structuredData.ts";
 import type {
   DomainEvent,
   EventOutcome,
@@ -35,7 +36,7 @@ import type {
 
 registerAllDomains();
 
-const PROMPT_VERSION = "v1.3.0"; // bumped from v1.2.0 - market signals injection
+const PROMPT_VERSION = "v1.4.0"; // bumped from v1.3.0 - structured data injection
 const STALE_AFTER_MS = 6 * 60 * 60 * 1000; // 6 hours
 const RESEARCH_CACHE_TTL_MS = 30 * 60 * 1000; // 30 minutes
 
@@ -206,7 +207,33 @@ Deno.serve(async (req) => {
     }
   }
 
-  // ----- Build prompt with research + priors + market signals woven in -----
+  // ============================================================
+  // Phase 3: Structured data feeds (best-effort, per-domain)
+  // ============================================================
+  const structuredDataEnabled =
+    (Deno.env.get("STRUCTURED_DATA_ENABLED") ?? "true").toLowerCase() !== "false";
+  let structuredData: StructuredData | null = null;
+  if (structuredDataEnabled && typeof adapter.gatherStructuredData === "function") {
+    try {
+      structuredData = await adapter.gatherStructuredData(
+        supabase,
+        event as DomainEvent,
+        outcomes as EventOutcome[],
+      );
+      if (structuredData) {
+        console.log(
+          `[generate-prediction] event=${body.event_id} structured_data_loaded source=${structuredData.source} lines=${structuredData.summary_lines.length}`,
+        );
+      }
+    } catch (e) {
+      console.warn(
+        `[generate-prediction] structured data fetch failed for event ${body.event_id}: ${(e as Error).message}`,
+      );
+      structuredData = null;
+    }
+  }
+
+  // ----- Build prompt with research + priors + markets + structured woven in -----
   const prompt = adapter.buildPrompt(
     event as DomainEvent,
     outcomes as EventOutcome[],
@@ -214,6 +241,7 @@ Deno.serve(async (req) => {
     research ?? undefined,
     priors.length > 0 ? priors : undefined,
     marketSignals.length > 0 ? marketSignals : undefined,
+    structuredData,
   );
 
   // ----- Run consensus -----
@@ -225,6 +253,7 @@ Deno.serve(async (req) => {
       research,
       priors: priors.length > 0 ? priors : null,
       marketSignals: marketSignals.length > 0 ? marketSignals : null,
+      structuredData,
     });
   } catch (e) {
     return errorResponse(`consensus failed: ${(e as Error).message}`, 502);
@@ -329,6 +358,17 @@ Deno.serve(async (req) => {
         fetched_at: s.fetched_at,
         age_minutes_at_call: s.age_minutes_at_call,
       })),
+      structured_data_used: structuredData
+        ? {
+            source: structuredData.source,
+            source_version: structuredData.source_version,
+            fetched_at: structuredData.fetched_at,
+            age_minutes_at_call: Math.floor(
+              (Date.now() - new Date(structuredData.fetched_at).getTime()) / 60_000,
+            ),
+            line_count: structuredData.summary_lines.length,
+          }
+        : {},
     });
     if (lineageErr) throw new Error(lineageErr.message);
   } catch (e) {
@@ -376,6 +416,7 @@ Deno.serve(async (req) => {
     research_fetched: research !== null,
     priors_used: priors.length,
     market_signals_used: marketSignals.length,
+    structured_data_used: structuredData !== null,
     reused: false,
   });
 });

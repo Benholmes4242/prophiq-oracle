@@ -13,6 +13,7 @@ import type {
 import { fetchResearchContext, perplexityChat } from "../perplexity.ts";
 import { formatPriorBlock, type PriorContext } from "../priorContext.ts";
 import { formatMarketSignalsBlock, type MarketSignal } from "../marketSignals.ts";
+import { formatStructuredDataBlock, type StructuredData } from "../structuredData.ts";
 import { coerceDiscoveredEvent, logSkip, safeExtractJsonArray } from "./_util.ts";
 
 const RESEARCH_PROMPT_VERSION = "entertainment.research.v1";
@@ -191,12 +192,14 @@ export const entertainmentAdapter: DomainAdapter = {
     research?: ResearchContext,
     priors?: PriorContext[],
     marketSignals?: MarketSignal[],
+    structuredData?: StructuredData | null,
   ): string {
     const researchBlock = research?.synthesised
       ? `\nLIVE RESEARCH CONTEXT (fetched ${research.fetched_at}):\n${research.synthesised}\n`
       : "";
     const priorBlock = formatPriorBlock(priors ?? []);
     const marketBlock = formatMarketSignalsBlock(marketSignals ?? []);
+    const structuredBlock = formatStructuredDataBlock(structuredData ?? null);
     return `Entertainment analysis task. Do NOT use betting or odds framing.
 
 Event: ${event.title}
@@ -205,8 +208,13 @@ Scheduled: ${event.starts_at}
 
 Outcomes:
 ${outcomes.map((o, i) => `${i + 1}. ${o.label}`).join("\n")}
-${researchBlock}${priorBlock}${marketBlock}
+${researchBlock}${priorBlock}${marketBlock}${structuredBlock}
 Rank every outcome from most likely (rank 1) to least likely. For each, provide a probability (0-1), a fit_score (0-1), and 1-3 short reasons grounded in critic reception, precursor awards, industry buzz, historical base rates, and the research above when present.`;
+  },
+
+  gatherStructuredData(): Promise<StructuredData | null> {
+    // Phase 3.3 follow-on brief will wire TMDB + awards-history integration here.
+    return Promise.resolve(null);
   },
 };
 

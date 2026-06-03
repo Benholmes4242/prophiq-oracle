@@ -7,6 +7,7 @@ import { ALL_LLM_CALLERS, type LlmCaller } from "./llm.ts";
 import type { ResearchContext } from "./domain.ts";
 import type { PriorContext } from "./priorContext.ts";
 import type { MarketSignal } from "./marketSignals.ts";
+import type { StructuredData } from "./structuredData.ts";
 
 export interface RunConsensusInput {
   prompt: string;
@@ -21,6 +22,8 @@ export interface RunConsensusInput {
   priors?: PriorContext[] | null;
   /** Market signals that were woven into the prompt. For lineage only. */
   marketSignals?: MarketSignal[] | null;
+  /** Structured data that was woven into the prompt. For lineage only. */
+  structuredData?: StructuredData | null;
 }
 
 export interface RunConsensusOutput {
