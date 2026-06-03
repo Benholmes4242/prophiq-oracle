@@ -86,48 +86,37 @@ function HomePage() {
           />
         </>
       ) : (
-        <>
-          <section className="px-4 pt-3">
+      <>
+        <section className="px-4 pt-3">
+          <div
+            className="entry-animate mb-2 flex items-center gap-2.5"
+            data-stagger="0"
+          >
             <div
-              className="entry-animate mb-2 flex items-center gap-2.5"
-              data-stagger="0"
+              className="font-mono text-[10px] font-semibold uppercase"
+              style={{ letterSpacing: "0.22em", color: "var(--amber-2)" }}
             >
-              <div
-                className="font-mono text-[10px] font-semibold uppercase"
-                style={{ letterSpacing: "0.22em", color: "var(--amber-2)" }}
-              >
-                Today's Forecasts
-              </div>
-              <div
-                className="h-px flex-1"
-                style={{ background: "var(--line)" }}
-              />
+              Today's Forecasts
             </div>
-            {feature && <FeatureCard pick={feature} stagger={1} />}
-          </section>
-
-          <SupportingTilesGrid picks={supporting} />
-
-          <div className="entry-animate" data-stagger="6">
-            <BottomCTA
-              showChips
-              draft={draft}
-              onDraftChange={setDraft}
-              onSubmit={ask}
+            <div
+              className="h-px flex-1"
+              style={{ background: "var(--line)" }}
             />
           </div>
-            <BottomCTA
-              showChips
-              draft={draft}
-              onDraftChange={setDraft}
-              onSubmit={ask}
-            />
-          </div>
-        </>
-      )}
-    </div>
-  );
-}
+          {feature && <FeatureCard pick={feature} stagger={1} />}
+        </section>
+
+        <SupportingTilesGrid picks={supporting} />
+
+        <div className="entry-animate" data-stagger="6">
+          <BottomCTA
+            showChips
+            draft={draft}
+            onDraftChange={setDraft}
+            onSubmit={ask}
+          />
+        </div>
+      </>
 
 function BottomCTA({
   showChips,
