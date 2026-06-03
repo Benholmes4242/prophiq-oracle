@@ -698,7 +698,7 @@ function AggregateSection() {
         <span style={{ color: "var(--amber)" }}>?</span>
       </SectionHeading>
       <EditorialP>
-        Across the events we've called and that have since resolved:
+        Across our resolved forecasts:
       </EditorialP>
       <div
         style={{
