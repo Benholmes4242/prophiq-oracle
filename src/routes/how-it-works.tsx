@@ -687,6 +687,8 @@ function FeaturedCallCard({ call }: { call: FeaturedCall }) {
 }
 
 function AggregateSection() {
+  const { data: calibration } = useCalibrationHeadline();
+  if (!calibration) return null;
   return (
     <section style={{ marginBottom: 48 }}>
       <SectionEyebrow>The big picture</SectionEyebrow>
@@ -717,7 +719,7 @@ function AggregateSection() {
             marginBottom: 8,
           }}
         >
-          {AGGREGATE.resolvedCount}{" "}
+          {calibration.n_resolved}{" "}
           <span style={{ color: "var(--amber)" }}>resolved</span>
         </div>
         <p
@@ -732,14 +734,18 @@ function AggregateSection() {
           When Prophiq said something had a given probability, on average it
           landed within{" "}
           <strong style={{ color: "var(--ink)", fontWeight: 600 }}>
-            {AGGREGATE.avgCalibrationErrorPp} percentage points
+            {calibration.avg_calibration_error_pp !== null
+              ? calibration.avg_calibration_error_pp.toFixed(1)
+              : "-"}{" "}
+            percentage points
           </strong>{" "}
-          of that - across all four domains. Updated monthly.
+          of that - across all four domains. Updated every six hours.
         </p>
       </div>
     </section>
   );
 }
+
 
 function Closing() {
   return (
