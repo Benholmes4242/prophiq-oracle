@@ -92,7 +92,15 @@ export interface DomainAdapter {
     research?: ResearchContext,
     priors?: import("./priorContext.ts").PriorContext[],
     marketSignals?: import("./marketSignals.ts").MarketSignal[],
+    structuredData?: import("./structuredData.ts").StructuredData | null,
   ): string;
+  /** Optional per-domain structured-data fetcher. Returns null when not
+   * applicable (e.g. non-football sport event, stub adapter). */
+  gatherStructuredData?(
+    supabase: import("https://esm.sh/@supabase/supabase-js@2.45.4").SupabaseClient,
+    event: DomainEvent,
+    outcomes: EventOutcome[],
+  ): Promise<import("./structuredData.ts").StructuredData | null>;
 }
 
 export interface ResolutionResult {
