@@ -7,7 +7,7 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import Stripe from "https://esm.sh/stripe@17.5.0?target=deno";
-import { getStripeClient, mapStripeStatus, stripeTimestampToIso } from "../_shared/stripe.ts";
+import { getStripeClient, mapStripeStatus, stripeTimestampToIso, extractSubscriptionPeriod } from "../_shared/stripe.ts";
 import { handleCorsPreflight, jsonResponse, errorResponse } from "../_shared/http.ts";
 
 const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
