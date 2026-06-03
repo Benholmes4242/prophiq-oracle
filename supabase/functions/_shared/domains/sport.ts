@@ -7,10 +7,37 @@ import type {
   DomainAdapter,
   DomainEvent,
   EventOutcome,
+  ResearchContext,
   ResolutionResult,
 } from "../domain.ts";
-import { perplexityChat } from "../perplexity.ts";
+import { fetchResearchContext, perplexityChat } from "../perplexity.ts";
 import { coerceDiscoveredEvent, logSkip, safeExtractJsonArray } from "./_util.ts";
+
+const RESEARCH_PROMPT_VERSION = "sport.research.v1";
+
+const RESEARCH_SYSTEM = `You are a sports analyst providing concise pre-match research. Return ONLY the research findings as 4-6 short paragraphs of plain prose. No preamble, no markdown headers, no bullet points unless they're inline within a sentence.`;
+
+function buildSportResearchUser(event: DomainEvent, outcomes: EventOutcome[]): string {
+  const labels = outcomes.map((o, i) => `${i + 1}. ${o.label}`).join("\n");
+  return `Research the following upcoming sporting event:
+
+Event: ${event.title}
+Question: ${event.question}
+Scheduled: ${event.starts_at}
+
+Outcomes being considered:
+${labels}
+
+In 200-400 words, cover anything material to forecasting the outcome:
+- Recent form of each named contender (last 3-5 outings)
+- Head-to-head record if applicable
+- Notable injuries, suspensions, or absences
+- Venue, weather, or surface factors where relevant
+- Betting market signals if publicly available (do not name specific bookmakers)
+- Any breaking news from the last 7 days that bears on the contest
+
+Be factual. Cite specific recent events and dates inline. Do not speculate beyond what current public information supports. Do not produce a prediction yourself - just the research a good analyst would assemble.`;
+}
 
 const DOMAIN_ID = "sport";
 
