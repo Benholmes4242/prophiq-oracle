@@ -97,7 +97,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       {
         name: "description",
         content:
-          "Calibrated predictions across sport, politics, markets, and entertainment.",
+          "Built for one job: calibrated probabilistic forecasting across sport, politics, markets, and entertainment. An ensemble of frontier AI models, grounded in live research and our own resolved-forecast record.",
       },
       { name: "author", content: "prophiq" },
       { name: "theme-color", content: "#F4731A" },
@@ -106,15 +106,15 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       {
         property: "og:description",
         content:
-          "Calibrated predictions across sport, politics, markets, and entertainment.",
+          "Built for one job: calibrated probabilistic forecasting across sport, politics, markets, and entertainment. An ensemble of frontier AI models, grounded in live research and our own resolved-forecast record.",
       },
       { property: "og:type", content: "website" },
       { property: "og:image", content: "/api/og/home" },
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:title", content: "prophiq." },
-      { name: "description", content: "Prophiq is an AI-powered application that helps users understand complex events and make informed predictions." },
-      { property: "og:description", content: "Prophiq is an AI-powered application that helps users understand complex events and make informed predictions." },
-      { name: "twitter:description", content: "Prophiq is an AI-powered application that helps users understand complex events and make informed predictions." },
+      { name: "description", content: "Built for one job: calibrated probabilistic forecasting across sport, politics, markets, and entertainment. An ensemble of frontier AI models, grounded in live research and our own resolved-forecast record." },
+      { property: "og:description", content: "Built for one job: calibrated probabilistic forecasting across sport, politics, markets, and entertainment. An ensemble of frontier AI models, grounded in live research and our own resolved-forecast record." },
+      { name: "twitter:description", content: "Built for one job: calibrated probabilistic forecasting across sport, politics, markets, and entertainment. An ensemble of frontier AI models, grounded in live research and our own resolved-forecast record." },
       { name: "twitter:image", content: "/api/og/home" },
     ],
     links: [
