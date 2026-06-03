@@ -192,6 +192,7 @@ export const sportAdapter: DomainAdapter = {
     outcomes: EventOutcome[],
     mode: "prediction" | "odds" = "prediction",
     research?: ResearchContext,
+    priors?: PriorContext[],
   ): string {
     const oddsHint = mode === "odds"
       ? "Frame your analysis in terms of bookmaker-style implied probabilities and fair odds. Justify each rank with what the market should price."
@@ -199,6 +200,7 @@ export const sportAdapter: DomainAdapter = {
     const researchBlock = research?.synthesised
       ? `\nLIVE RESEARCH CONTEXT (fetched ${research.fetched_at}):\n${research.synthesised}\n`
       : "";
+    const priorBlock = formatPriorBlock(priors ?? []);
     return `Sports analysis task.
 
 Event: ${event.title}
@@ -207,7 +209,7 @@ Kickoff: ${event.starts_at}
 
 Outcomes:
 ${outcomes.map((o, i) => `${i + 1}. ${o.label}`).join("\n")}
-${researchBlock}
+${researchBlock}${priorBlock}
 ${oddsHint}
 
 Use the live research context above (when present) as your primary input. Rank every outcome from most likely (rank 1) to least likely. For each, provide a probability (0-1), a fit_score (0-1) for how strongly the data supports it, and 1-3 short reasons grounded in form, head-to-head, injuries, venue, and the research above.`;
