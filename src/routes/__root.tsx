@@ -12,6 +12,8 @@ import { useEffect, useState, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
+import { ensureAnonymousSession } from "../lib/auth";
+import { reclaimLegacyAskedHistory } from "../lib/migrateLocalStorageHistory";
 import { Toaster } from "@/components/ui/sonner";
 import { AppHeader } from "@/components/site/AppHeader";
 import { Drawer } from "@/components/site/Drawer";
