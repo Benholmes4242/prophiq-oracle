@@ -12,14 +12,15 @@
 
 import { registerAllDomains } from "../_shared/domains/index.ts";
 import { getDomain, tryGetDomain } from "../_shared/domains/registry.ts";
-import { check, truncateQuestion, type RateLimitChecker } from "../_shared/rateLimit.ts";
+import { truncateQuestion } from "../_shared/rateLimit.ts";
 import { preFilter, runModeration, defaultResolvesAt } from "../_shared/moderation.ts";
 import { stableEventId } from "../_shared/domains/_util.ts";
 import { runConsensus } from "../_shared/runConsensus.ts";
 import { getServiceClient } from "../_shared/supabaseClient.ts";
 import { scoreToConfidence } from "../_shared/confidence.ts";
+import { requireAuthenticatedUser, type AuthedUser } from "../_shared/auth.ts";
 import {
-  handleCorsPreflight, errorResponse, jsonResponse,
+  handleCorsPreflight, errorResponse,
   SseStream, getFingerprint, getClientIp, hashIp,
 } from "../_shared/http.ts";
 
