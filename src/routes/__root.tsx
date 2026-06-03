@@ -79,6 +79,16 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
 }
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
+  beforeLoad: async () => {
+    if (typeof window === "undefined") return;
+    try {
+      await ensureAnonymousSession();
+      // fire-and-forget; never block route load on history reclaim
+      reclaimLegacyAskedHistory().catch(() => {});
+    } catch (err) {
+      console.error("[root] auth bootstrap failed:", err);
+    }
+  },
   head: () => ({
     meta: [
       { charSet: "utf-8" },
