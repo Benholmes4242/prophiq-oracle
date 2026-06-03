@@ -1,23 +1,36 @@
 // POST /functions/v1/generate-prediction
-// Body: { event_id: string, force?: boolean }
+// Body: { event_id: string, mode?: "prediction"|"odds", force?: boolean }
 //
-// Loads the event + outcomes, builds the domain-specific prompt, fans out to
-// Claude/GPT/Gemini in parallel, runs weighted Borda consensus, and writes a
-// new `predictions` row (marking the prior current-prediction stale).
+// Loads the event + outcomes, fetches live research via Perplexity, builds
+// the domain-specific prompt with research, fans out to Claude/GPT/Gemini in
+// parallel, runs weighted Borda consensus, and writes a new `predictions`
+// row (marking the prior current-prediction stale). The research payload is
+// stored on the row for lineage.
 
 import { registerAllDomains } from "../_shared/domains/index.ts";
 import { getDomain } from "../_shared/domains/registry.ts";
 import { runConsensus } from "../_shared/runConsensus.ts";
 import { getServiceClient } from "../_shared/supabaseClient.ts";
 import { handleCorsPreflight, jsonResponse, errorResponse } from "../_shared/http.ts";
-import type { DomainEvent, EventOutcome } from "../_shared/domain.ts";
+import type {
+  DomainEvent,
+  EventOutcome,
+  ResearchContext,
+  ResearchContextError,
+} from "../_shared/domain.ts";
 
 registerAllDomains();
 
-const PROMPT_VERSION = "v1.0.0";
+const PROMPT_VERSION = "v1.1.0"; // bumped from v1.0.0 - research-enriched prompts
 const STALE_AFTER_MS = 6 * 60 * 60 * 1000; // 6 hours
+const RESEARCH_CACHE_TTL_MS = 30 * 60 * 1000; // 30 minutes
 
 interface Body { event_id?: string; mode?: "prediction" | "odds"; force?: boolean; }
+
+// In-memory research cache, scoped to this function instance. Keyed by
+// event_id. Edge function instances are short-lived but burst traffic for
+// the same event can hit this and avoid duplicate Perplexity calls.
+const researchCache = new Map<string, { research: ResearchContext; cached_at: number }>();
 
 Deno.serve(async (req) => {
   const cors = handleCorsPreflight(req); if (cors) return cors;
@@ -55,13 +68,48 @@ Deno.serve(async (req) => {
   }
 
   const adapter = getDomain(event.domain);
-  const prompt = adapter.buildPrompt(event as DomainEvent, outcomes as EventOutcome[], mode);
 
+  // ----- Fetch live research with in-memory cache + graceful fallback -----
+  let research: ResearchContext | null = null;
+  let researchError: ResearchContextError | null = null;
+
+  const cached = researchCache.get(body.event_id);
+  if (cached && Date.now() - cached.cached_at < RESEARCH_CACHE_TTL_MS) {
+    research = cached.research;
+    console.log(`[generate-prediction] event=${body.event_id} research_cache_hit=true`);
+  } else {
+    const startedAt = Date.now();
+    try {
+      research = await adapter.gatherResearch(event as DomainEvent, outcomes as EventOutcome[]);
+      if (research) {
+        researchCache.set(body.event_id, { research, cached_at: Date.now() });
+        console.log(
+          `[generate-prediction] event=${body.event_id} research_fetched_in=${Date.now() - startedAt}ms model=${research.model} tokens=${research.tokens_used ?? "?"}`,
+        );
+      }
+    } catch (e) {
+      const reason = (e as Error).message || "unknown research fetch error";
+      console.warn(`[generate-prediction] research fetch failed for event ${body.event_id}: ${reason}`);
+      researchError = { error: true, reason, fetched_at: new Date().toISOString() };
+      research = null;
+    }
+  }
+
+  // ----- Build prompt with research woven in -----
+  const prompt = adapter.buildPrompt(
+    event as DomainEvent,
+    outcomes as EventOutcome[],
+    mode,
+    research ?? undefined,
+  );
+
+  // ----- Run consensus -----
   let consensusOut;
   try {
     consensusOut = await runConsensus({
       prompt,
       outcomes: (outcomes as EventOutcome[]).map((o) => ({ id: o.id, label: o.label })),
+      research,
     });
   } catch (e) {
     return errorResponse(`consensus failed: ${(e as Error).message}`, 502);
@@ -79,6 +127,8 @@ Deno.serve(async (req) => {
   await supabase.from("predictions").update({ is_current: false })
     .eq("event_id", body.event_id).eq("mode", mode);
 
+  const research_context = research ?? researchError;
+
   const { data: inserted, error: insErr } = await supabase.from("predictions").insert({
     event_id: body.event_id,
     mode,
@@ -88,7 +138,7 @@ Deno.serve(async (req) => {
     consensus_score: consensusOut.consensus.consensus_score,
     agreement_score: consensusOut.consensus.agreement_score,
     model_results: consensusOut.model_results,
-    research_context: null,
+    research_context,
     prompt_version: PROMPT_VERSION,
     is_current: true,
     expires_at: new Date(Date.now() + STALE_AFTER_MS).toISOString(),
@@ -98,6 +148,7 @@ Deno.serve(async (req) => {
   return jsonResponse({
     prediction: inserted,
     consensus: consensusOut.consensus,
+    research_fetched: research !== null,
     reused: false,
   });
 });
