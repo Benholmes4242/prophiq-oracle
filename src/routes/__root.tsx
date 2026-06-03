@@ -102,7 +102,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "author", content: "prophiq" },
       { name: "theme-color", content: "#F4731A" },
       { property: "og:site_name", content: "prophiq" },
-      { property: "og:title", content: "prophiq. — Predict what happens next" },
+      { property: "og:title", content: "prophiq." },
       {
         property: "og:description",
         content:
@@ -111,6 +111,11 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { property: "og:type", content: "website" },
       { property: "og:image", content: "/api/og/home" },
       { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:title", content: "prophiq." },
+      { name: "description", content: "Prophiq is an AI-powered application that helps users understand complex events and make informed predictions." },
+      { property: "og:description", content: "Prophiq is an AI-powered application that helps users understand complex events and make informed predictions." },
+      { name: "twitter:description", content: "Prophiq is an AI-powered application that helps users understand complex events and make informed predictions." },
+      { name: "twitter:image", content: "/api/og/home" },
     ],
     links: [
       {
