@@ -1,13 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import {
-  clearHistory,
-  getHistory,
-  type QuestionHistoryEntry,
-} from "@/lib/questionHistory";
+import { supabase } from "@/lib/supabase";
 import { domainLabel } from "@/lib/domainLabel";
 import { itemTimeLabel, groupByDay, type DayGroup } from "@/lib/relativeTime";
 import { PhiMark } from "@/components/brand/PhiMark";
+import type { QuestionHistoryEntry } from "@/lib/questionHistory";
 
 export const Route = createFileRoute("/asked")({
   head: () => ({
@@ -15,7 +12,7 @@ export const Route = createFileRoute("/asked")({
       { title: "Asked — prophiq." },
       {
         name: "description",
-        content: "Your recent Prophiq questions. Stored only on this device.",
+        content: "Your recent Prophiq questions.",
       },
       { name: "robots", content: "noindex" },
     ],
@@ -23,44 +20,69 @@ export const Route = createFileRoute("/asked")({
   component: AskedPage,
 });
 
+interface AskedRow {
+  id: string;
+  title: string;
+  question: string;
+  slug: string;
+  domain: string;
+  submitted_at: string | null;
+  moderation_status: string;
+}
+
+async function loadAsked(): Promise<QuestionHistoryEntry[]> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return [];
+  const { data, error } = await supabase
+    .from("events")
+    .select(
+      "id, title, question, slug, domain, submitted_at, moderation_status",
+    )
+    .eq("submitted_by_user_id", user.id)
+    .order("submitted_at", { ascending: false })
+    .limit(200);
+  if (error) {
+    console.warn("[asked] fetch failed:", error.message);
+    return [];
+  }
+  return (data ?? []).map((row: AskedRow) => ({
+    id: row.id,
+    question: row.question ?? row.title,
+    submittedAt: row.submitted_at ?? new Date().toISOString(),
+    eventSlug: row.slug,
+    eventDomain: row.domain,
+  }));
+}
+
 function AskedPage() {
   const [history, setHistory] = useState<QuestionHistoryEntry[]>([]);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    setHistory(getHistory());
-    setMounted(true);
+    let active = true;
+    loadAsked().then((rows) => {
+      if (!active) return;
+      setHistory(rows);
+      setMounted(true);
+    });
+    return () => {
+      active = false;
+    };
   }, []);
 
   const groups = useMemo(() => groupByDay(history), [history]);
-
-  function handleClear() {
-    if (
-      typeof window !== "undefined" &&
-      window.confirm("Clear your question history?")
-    ) {
-      clearHistory();
-      setHistory([]);
-    }
-  }
 
   const isEmpty = mounted && history.length === 0;
 
   return (
     <main className="mx-auto max-w-2xl px-5 pb-16 pt-9">
-      <PageHeader hasItems={history.length > 0} onClear={handleClear} />
+      <PageHeader />
       {isEmpty ? <EmptyState /> : <DayGroups groups={groups} />}
     </main>
   );
 }
 
-function PageHeader({
-  hasItems,
-  onClear,
-}: {
-  hasItems: boolean;
-  onClear: () => void;
-}) {
+function PageHeader() {
   return (
     <div className="mb-7">
       <div className="flex items-start justify-between gap-4">
@@ -75,22 +97,6 @@ function PageHeader({
         >
           Asked<span style={{ color: "var(--amber)" }}>.</span>
         </h1>
-        {hasItems && (
-          <button
-            type="button"
-            onClick={onClear}
-            className="font-body text-[13px] transition-ios-colors"
-            style={{ color: "var(--ink-faint)" }}
-            onMouseEnter={(e) =>
-              (e.currentTarget.style.color = "var(--ink)")
-            }
-            onMouseLeave={(e) =>
-              (e.currentTarget.style.color = "var(--ink-faint)")
-            }
-          >
-            Clear
-          </button>
-        )}
       </div>
       <PrivacyNote />
     </div>
@@ -113,7 +119,7 @@ function PrivacyNote() {
           className="inline-block rounded-full"
           style={{ width: 6, height: 6, background: "var(--amber)" }}
         />
-        Stored only on this device
+        Tied to your session
       </div>
       <Link
         to="/how-it-works"
@@ -246,12 +252,6 @@ function EmptyState() {
         to="/"
         className="mt-6 inline-flex items-center rounded-full px-5 py-2.5 font-body text-[14px] font-semibold transition-ios"
         style={{ background: "var(--amber)", color: "#fff" }}
-        onMouseEnter={(e) =>
-          (e.currentTarget.style.transform = "translateY(-1px)")
-        }
-        onMouseLeave={(e) =>
-          (e.currentTarget.style.transform = "translateY(0)")
-        }
       >
         Ask something →
       </Link>
