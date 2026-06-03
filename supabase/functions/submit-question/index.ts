@@ -61,38 +61,34 @@ Deno.serve(async (req) => {
     const recordOutcome = async (outcome: "accepted" | "rejected_moderation" | "rejected_rate_limit" | "failed") => {
       try {
         await supabase.from("submission_rate_limits").insert({
-          fingerprint, ip_hash: ipHash, endpoint: "submit_question",
+          fingerprint: fingerprint ?? authedUser.user_id, ip_hash: ipHash, endpoint: "submit_question",
           question: truncateQuestion(question), outcome,
         });
       } catch { /* audit failure should not break the user flow */ }
     };
 
     try {
-      // ----- 1. RATE LIMIT -----
+      // ----- 1. RATE LIMIT (per user_id, free-tier daily cap) -----
       sse.send({ stage: "rate_limit", status: "start" });
-      const checker: RateLimitChecker = {
-        async countAccepted({ fingerprint: fp, ipHash: ih, endpoints, sinceIso }) {
-          let q = supabase.from("submission_rate_limits").select("id", { count: "exact", head: true })
-            .in("endpoint", endpoints).eq("outcome", "accepted").gte("submitted_at", sinceIso);
-          if (fp) q = q.eq("fingerprint", fp);
-          if (ih) q = q.eq("ip_hash", ih);
-          const { count } = await q;
-          return count ?? 0;
-        },
-        async record() { /* unused — we record outcomes explicitly below */ },
-      };
-      const decision = await check(checker, {
-        endpoint: "submit_question",
-        fingerprint, ipHash, question,
-        countEndpoints: ["submit_question", "chat_message"],
-      });
-      if (!decision.ok) {
-        sse.send({ stage: "rate_limit", status: "error", message: `Limit reached (${decision.reason}). Try again later.`, data: decision });
-        await recordOutcome("rejected_rate_limit");
-        sse.close();
-        return;
+      const FREE_DAILY_CAP = 3;
+      const { data: usageRow, error: usageErr } = await supabase
+        .rpc("get_usage_today_for_user", { p_user_id: authedUser.user_id })
+        .single();
+      if (usageErr) {
+        console.error("[submit-question] usage RPC failed:", usageErr.message);
+        sse.send({ stage: "rate_limit", status: "error", message: "Could not check usage quota" });
+        await recordOutcome("failed"); sse.close(); return;
       }
-      sse.send({ stage: "rate_limit", status: "done", data: decision });
+      const used = (usageRow as { questions_submitted_today?: number } | null)?.questions_submitted_today ?? 0;
+      if (used >= FREE_DAILY_CAP) {
+        sse.send({
+          stage: "rate_limit", status: "error",
+          message: `Daily question limit reached (${used}/${FREE_DAILY_CAP}).`,
+          data: { code: "DAILY_LIMIT_REACHED", used, cap: FREE_DAILY_CAP },
+        });
+        await recordOutcome("rejected_rate_limit"); sse.close(); return;
+      }
+      sse.send({ stage: "rate_limit", status: "done", data: { used, cap: FREE_DAILY_CAP } });
 
       // ----- 2. PRE-FILTER -----
       sse.send({ stage: "pre_filter", status: "start" });
