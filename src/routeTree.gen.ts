@@ -20,6 +20,7 @@ import { Route as PredictionsRouteImport } from './routes/predictions'
 import { Route as PoliticsRouteImport } from './routes/politics'
 import { Route as MyQuestionsRouteImport } from './routes/my-questions'
 import { Route as MarketsRouteImport } from './routes/markets'
+import { Route as HowItWorksRouteImport } from './routes/how-it-works'
 import { Route as HealthcheckRouteImport } from './routes/healthcheck'
 import { Route as EntertainmentRouteImport } from './routes/entertainment'
 import { Route as ContactRouteImport } from './routes/contact'
@@ -86,6 +87,11 @@ const MyQuestionsRoute = MyQuestionsRouteImport.update({
 const MarketsRoute = MarketsRouteImport.update({
   id: '/markets',
   path: '/markets',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HowItWorksRoute = HowItWorksRouteImport.update({
+  id: '/how-it-works',
+  path: '/how-it-works',
   getParentRoute: () => rootRouteImport,
 } as any)
 const HealthcheckRoute = HealthcheckRouteImport.update({
@@ -158,6 +164,7 @@ export interface FileRoutesByFullPath {
   '/contact': typeof ContactRoute
   '/entertainment': typeof EntertainmentRoute
   '/healthcheck': typeof HealthcheckRoute
+  '/how-it-works': typeof HowItWorksRoute
   '/markets': typeof MarketsRoute
   '/my-questions': typeof MyQuestionsRoute
   '/politics': typeof PoliticsRoute
@@ -183,6 +190,7 @@ export interface FileRoutesByTo {
   '/contact': typeof ContactRoute
   '/entertainment': typeof EntertainmentRoute
   '/healthcheck': typeof HealthcheckRoute
+  '/how-it-works': typeof HowItWorksRoute
   '/markets': typeof MarketsRoute
   '/my-questions': typeof MyQuestionsRoute
   '/politics': typeof PoliticsRoute
@@ -209,6 +217,7 @@ export interface FileRoutesById {
   '/contact': typeof ContactRoute
   '/entertainment': typeof EntertainmentRoute
   '/healthcheck': typeof HealthcheckRoute
+  '/how-it-works': typeof HowItWorksRoute
   '/markets': typeof MarketsRoute
   '/my-questions': typeof MyQuestionsRoute
   '/politics': typeof PoliticsRoute
@@ -236,6 +245,7 @@ export interface FileRouteTypes {
     | '/contact'
     | '/entertainment'
     | '/healthcheck'
+    | '/how-it-works'
     | '/markets'
     | '/my-questions'
     | '/politics'
@@ -261,6 +271,7 @@ export interface FileRouteTypes {
     | '/contact'
     | '/entertainment'
     | '/healthcheck'
+    | '/how-it-works'
     | '/markets'
     | '/my-questions'
     | '/politics'
@@ -286,6 +297,7 @@ export interface FileRouteTypes {
     | '/contact'
     | '/entertainment'
     | '/healthcheck'
+    | '/how-it-works'
     | '/markets'
     | '/my-questions'
     | '/politics'
@@ -312,6 +324,7 @@ export interface RootRouteChildren {
   ContactRoute: typeof ContactRoute
   EntertainmentRoute: typeof EntertainmentRoute
   HealthcheckRoute: typeof HealthcheckRoute
+  HowItWorksRoute: typeof HowItWorksRoute
   MarketsRoute: typeof MarketsRoute
   MyQuestionsRoute: typeof MyQuestionsRoute
   PoliticsRoute: typeof PoliticsRoute
@@ -406,6 +419,13 @@ declare module '@tanstack/react-router' {
       path: '/markets'
       fullPath: '/markets'
       preLoaderRoute: typeof MarketsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/how-it-works': {
+      id: '/how-it-works'
+      path: '/how-it-works'
+      fullPath: '/how-it-works'
+      preLoaderRoute: typeof HowItWorksRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/healthcheck': {
@@ -504,6 +524,7 @@ const rootRouteChildren: RootRouteChildren = {
   ContactRoute: ContactRoute,
   EntertainmentRoute: EntertainmentRoute,
   HealthcheckRoute: HealthcheckRoute,
+  HowItWorksRoute: HowItWorksRoute,
   MarketsRoute: MarketsRoute,
   MyQuestionsRoute: MyQuestionsRoute,
   PoliticsRoute: PoliticsRoute,

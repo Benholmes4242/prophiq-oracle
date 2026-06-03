@@ -17,6 +17,7 @@ const SECTIONS: Array<{
       { label: "Home", to: "/" },
       { label: "Search", to: "/search" },
       { label: "Asked", to: "/asked" },
+      { label: "How it works", to: "/how-it-works" },
     ],
   },
   {
@@ -33,7 +34,6 @@ const SECTIONS: Array<{
     items: [
       { label: "Receipts", to: "/receipts" },
       { label: "All predictions", to: "/predictions" },
-      { label: "How it works", to: "/about" },
     ],
   },
   {
