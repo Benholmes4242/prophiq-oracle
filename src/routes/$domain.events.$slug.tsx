@@ -116,6 +116,22 @@ function EventError({ error, reset }: { error: Error; reset: () => void }) {
   );
 }
 
+function buildCallHeading(picks: RankedOutcome[], topPickLabel: string): string {
+  const pct = (p?: number) => Math.round((p ?? 0) > 1 ? (p as number) : (p ?? 0) * 100);
+  const topPct = pct(picks[0]?.probability);
+  const named = picks.filter(
+    (p) => !FIELD_LABEL_PATTERN.test((p.outcome_label ?? "").trim()),
+  );
+  const namedSum = named.reduce((s, p) => s + pct(p.probability), 0);
+
+  if (topPct < 30 && namedSum < 80) {
+    return `${topPickLabel} leads a wide field.`;
+  }
+  if (topPct >= 75) return `${topPickLabel}, with strong conviction.`;
+  if (topPct >= 50) return `A clear lean toward ${topPickLabel.toLowerCase()}.`;
+  return `${topPickLabel} as the most likely outcome.`;
+}
+
 function EventDetailPage() {
   const { event } = Route.useLoaderData();
   const mode: "prediction" | "odds" = event.mode === "odds" ? "odds" : "prediction";
@@ -135,12 +151,17 @@ function EventDetailPage() {
 
   const ranked = prediction?.ranked_outcomes ?? [];
   const top = ranked[0] ?? null;
-  const others = ranked.slice(1);
-  const topPct = top?.probability != null ? Math.round(top.probability) : null;
+  const topPickLabel =
+    top?.outcome_label ?? top?.outcome_id ?? "the most likely outcome";
+
+  const subcategoryRaw = domainId ? classifyEvent(event.title, domainId) : null;
+  const subcategory =
+    subcategoryRaw && subcategoryRaw !== "All" && subcategoryRaw !== "Other"
+      ? subcategoryRaw
+      : null;
 
   return (
     <div className="flex min-h-full flex-col" style={{ background: "var(--bg)" }}>
-      {domainId && <DomainDisclaimer domain={domainId} />}
       <div className="mx-auto w-full max-w-2xl flex-1 px-4 pt-3 pb-2 sm:px-6">
         <article className="min-w-0">
           {isResolved && resolution && (
@@ -154,32 +175,39 @@ function EventDetailPage() {
             </div>
           )}
 
-          <EventHero
-            event={event}
-            topPickLabel={top?.outcome_label ?? null}
-            topPickPct={topPct}
-          />
+          <EventHero event={event} subcategory={subcategory} />
 
-          {top ? (
-            <ReasoningCard pick={top} rank={1} />
+          {ranked.length > 0 ? (
+            <CallSection
+              picks={ranked}
+              heading={buildCallHeading(ranked, topPickLabel)}
+            />
           ) : isLoading ? (
-            <div className="h-32 animate-pulse rounded-2xl" style={{ background: "var(--bg-card)" }} />
+            <div
+              className="h-32 animate-pulse rounded-2xl mb-6"
+              style={{ background: "var(--bg-card)" }}
+            />
           ) : (
             <p
               className="rounded-lg p-4 font-body text-sm mb-6"
               style={{ border: "1px dashed var(--border-soft)", color: "var(--ink-soft)" }}
             >
-              Prophiq is thinking — check back in a few minutes.
+              Prophiq is thinking - check back in a few minutes.
             </p>
           )}
 
-          {others.length > 0 && <OtherContenders picks={others} />}
-
-          <MethodologyCard />
+          {top && (
+            <Reasoning
+              pickLabel={topPickLabel}
+              reasons={top.reasons ?? []}
+            />
+          )}
 
           {domainId && (
             <RelatedEvents domain={domainId} excludeId={event.id} limit={3} />
           )}
+
+          {domainId && <DomainDisclaimer domain={domainId} />}
 
           <p className="disclaimer">
             Forecasts are informational only. Markets coverage is not financial
