@@ -12,6 +12,8 @@ import { getDomain } from "../_shared/domains/registry.ts";
 import { runConsensus } from "../_shared/runConsensus.ts";
 import { getServiceClient } from "../_shared/supabaseClient.ts";
 import { handleCorsPreflight, jsonResponse, errorResponse } from "../_shared/http.ts";
+import { extractSignalsUsed, estimatePromptTokens } from "../_shared/signals.ts";
+import { extractEntities } from "../_shared/entities.ts";
 import type {
   DomainEvent,
   EventOutcome,
@@ -68,6 +70,9 @@ Deno.serve(async (req) => {
   }
 
   const adapter = getDomain(event.domain);
+
+  // Capture when inputs were assembled - before any LLM calls fire.
+  const timeOfCall = Date.now();
 
   // ----- Fetch live research with in-memory cache + graceful fallback -----
   let research: ResearchContext | null = null;
@@ -144,6 +149,64 @@ Deno.serve(async (req) => {
     expires_at: new Date(Date.now() + STALE_AFTER_MS).toISOString(),
   }).select("*").single();
   if (insErr) return errorResponse(`insert failed: ${insErr.message}`, 500);
+
+  // =============================================================
+  // prediction_inputs lineage row (best-effort, do not fail forecast)
+  // =============================================================
+  try {
+    const signals = extractSignalsUsed(event.domain, consensusOut.model_results);
+    const researchTokens = research?.tokens_used ?? null;
+    const promptTokens = estimatePromptTokens(prompt);
+
+    const { error: lineageErr } = await supabase.from("prediction_inputs").insert({
+      prediction_id: inserted.id,
+      event_id: body.event_id,
+      prompt_resolved: prompt,
+      signals_used: signals,
+      time_of_call: new Date(timeOfCall).toISOString(),
+      research_tokens_used: researchTokens,
+      llm_input_tokens_est: promptTokens,
+      prompt_version: PROMPT_VERSION,
+    });
+    if (lineageErr) throw new Error(lineageErr.message);
+  } catch (e) {
+    console.warn(
+      `[generate-prediction] prediction_inputs insert failed for ${inserted.id}: ${(e as Error).message}`,
+    );
+  }
+
+  // =============================================================
+  // Entity extraction (cached per event, best-effort)
+  // =============================================================
+  try {
+    const { count } = await supabase
+      .from("event_entities")
+      .select("*", { count: "exact", head: true })
+      .eq("event_id", body.event_id);
+
+    if ((count ?? 0) === 0) {
+      const entities = await extractEntities(event.question);
+      if (entities.length > 0) {
+        const { error: entErr } = await supabase.from("event_entities").insert(
+          entities.map((e) => ({
+            event_id: body.event_id,
+            entity_value: e.value,
+            entity_type: e.type,
+            confidence: e.confidence,
+            extractor: "claude-haiku-4-5",
+          })),
+        );
+        if (entErr) throw new Error(entErr.message);
+        console.log(
+          `[generate-prediction] event=${body.event_id} extracted ${entities.length} entities`,
+        );
+      }
+    }
+  } catch (e) {
+    console.warn(
+      `[generate-prediction] entity extraction failed for event ${body.event_id}: ${(e as Error).message}`,
+    );
+  }
 
   return jsonResponse({
     prediction: inserted,
