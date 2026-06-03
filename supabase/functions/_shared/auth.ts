@@ -6,6 +6,7 @@
 // endpoints that work with or without auth, like generate-prediction).
 
 import { type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.45.4";
+import { errorResponse } from "./http.ts";
 
 export interface AuthedUser {
   user_id: string;
