@@ -54,13 +54,14 @@ export async function reclaimLegacyAskedHistory(): Promise<void> {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return; // session not ready; retry next mount
 
-    const { error, count } = await supabase
+    const { data: updated, error } = await supabase
       .from("events")
       .update({ submitted_by_user_id: user.id })
       .is("submitted_by_user_id", null)
       .in("id", Array.from(eventIds))
-      .select("id", { count: "exact", head: true });
+      .select("id");
 
+    const count = updated?.length ?? 0;
     if (error) {
       console.warn("[reclaim] update failed:", error.message);
       return; // don't set flag; retry next mount
