@@ -14,6 +14,7 @@ import { getServiceClient } from "../_shared/supabaseClient.ts";
 import { handleCorsPreflight, jsonResponse, errorResponse } from "../_shared/http.ts";
 import { extractSignalsUsed, estimatePromptTokens } from "../_shared/signals.ts";
 import { extractEntities } from "../_shared/entities.ts";
+import { embedText, buildEmbeddingInput, EMBEDDING_MODEL_ID } from "../_shared/embeddings.ts";
 import type {
   DomainEvent,
   EventOutcome,
@@ -66,6 +67,39 @@ Deno.serve(async (req) => {
     if (existing) {
       const age = Date.now() - new Date(existing.generated_at).getTime();
       if (age < STALE_AFTER_MS) return jsonResponse({ prediction: existing, reused: true });
+    }
+  }
+
+  // ============================================================
+  // Lazy embedding for this event (best-effort).
+  // Placed AFTER cached-prediction reuse (so cached paths don't burn an
+  // OpenAI call) and BEFORE research fetch.
+  // ============================================================
+  if (!event.embedding) {
+    try {
+      const input = buildEmbeddingInput({
+        title: event.title,
+        question: event.question,
+      });
+      if (input.length > 0) {
+        const embedding = await embedText(input);
+        const { error: embErr } = await supabase
+          .from("events")
+          .update({
+            embedding,
+            embedding_model: EMBEDDING_MODEL_ID,
+            embedded_at: new Date().toISOString(),
+          })
+          .eq("id", body.event_id);
+        if (embErr) throw new Error(embErr.message);
+        console.log(
+          `[generate-prediction] event=${body.event_id} embedded model=${EMBEDDING_MODEL_ID}`,
+        );
+      }
+    } catch (e) {
+      console.warn(
+        `[generate-prediction] embedding failed for event ${body.event_id}: ${(e as Error).message}`,
+      );
     }
   }
 
