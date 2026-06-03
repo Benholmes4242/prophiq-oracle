@@ -62,3 +62,32 @@ export function stripeTimestampToIso(unix: number | null | undefined): string | 
   if (typeof unix !== "number") return null;
   return new Date(unix * 1000).toISOString();
 }
+
+/**
+ * Extracts the current period start/end from a Stripe Subscription.
+ *
+ * In Stripe API version 2026-05-27 and later, current_period_start/end were
+ * moved from the Subscription object onto SubscriptionItem objects (since
+ * theoretically each item can have its own billing period). We always create
+ * single-item subscriptions, so reading from the first item is correct.
+ *
+ * Falls back to the subscription-level fields for older API versions / robustness.
+ */
+export function extractSubscriptionPeriod(sub: Stripe.Subscription): {
+  current_period_start: number | null;
+  current_period_end: number | null;
+} {
+  const item = sub.items?.data?.[0] as (Stripe.SubscriptionItem & {
+    current_period_start?: number;
+    current_period_end?: number;
+  }) | undefined;
+
+  const start = item?.current_period_start
+    ?? (sub as Stripe.Subscription & { current_period_start?: number }).current_period_start
+    ?? null;
+  const end = item?.current_period_end
+    ?? (sub as Stripe.Subscription & { current_period_end?: number }).current_period_end
+    ?? null;
+
+  return { current_period_start: start, current_period_end: end };
+}

@@ -7,7 +7,7 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import Stripe from "https://esm.sh/stripe@17.5.0?target=deno";
-import { getStripeClient, mapStripeStatus, stripeTimestampToIso } from "../_shared/stripe.ts";
+import { getStripeClient, mapStripeStatus, stripeTimestampToIso, extractSubscriptionPeriod } from "../_shared/stripe.ts";
 import { handleCorsPreflight, jsonResponse, errorResponse } from "../_shared/http.ts";
 
 const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -161,14 +161,21 @@ async function upsertSubscription(
     return;
   }
 
+  const { current_period_start, current_period_end } = extractSubscriptionPeriod(sub);
+
+  if (current_period_start === null || current_period_end === null) {
+    console.error(`[upsertSubscription] missing period dates for subscription ${sub.id}`);
+    return;
+  }
+
   const row = {
     user_id: (profile as { id: string }).id,
     stripe_subscription_id: sub.id,
     stripe_customer_id: stripeCustomerId,
     stripe_price_id: priceId,
     status: mapStripeStatus(sub.status),
-    current_period_start: stripeTimestampToIso(sub.current_period_start)!,
-    current_period_end: stripeTimestampToIso(sub.current_period_end)!,
+    current_period_start: stripeTimestampToIso(current_period_start)!,
+    current_period_end: stripeTimestampToIso(current_period_end)!,
     cancel_at_period_end: sub.cancel_at_period_end,
     canceled_at: stripeTimestampToIso(sub.canceled_at),
     trial_start: stripeTimestampToIso(sub.trial_start),
