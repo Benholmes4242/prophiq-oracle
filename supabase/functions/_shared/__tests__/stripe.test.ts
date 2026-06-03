@@ -1,4 +1,4 @@
-import { mapStripeStatus, stripeTimestampToIso } from "../stripe.ts";
+import { extractSubscriptionPeriod, mapStripeStatus, stripeTimestampToIso } from "../stripe.ts";
 
 let passed = 0;
 let failed = 0;
