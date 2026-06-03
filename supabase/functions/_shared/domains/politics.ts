@@ -171,7 +171,25 @@ export const politicsAdapter: DomainAdapter = {
     return parseResolution(response.content, outcomes);
   },
 
-  buildPrompt(event: DomainEvent, outcomes: EventOutcome[]): string {
+  async gatherResearch(event: DomainEvent, outcomes: EventOutcome[]): Promise<ResearchContext> {
+    return await fetchResearchContext({
+      systemPrompt: RESEARCH_SYSTEM,
+      userPrompt: buildPoliticsResearchUser(event, outcomes),
+      researchPromptVersion: RESEARCH_PROMPT_VERSION,
+      recencyFilter: "week",
+      maxTokens: 800,
+    });
+  },
+
+  buildPrompt(
+    event: DomainEvent,
+    outcomes: EventOutcome[],
+    _mode?: "prediction" | "odds",
+    research?: ResearchContext,
+  ): string {
+    const researchBlock = research?.synthesised
+      ? `\nLIVE RESEARCH CONTEXT (fetched ${research.fetched_at}):\n${research.synthesised}\n`
+      : "";
     return `Political analysis task. Use neutral, non-partisan language. Do NOT use betting or odds framing.
 
 Event: ${event.title}
@@ -180,8 +198,8 @@ Date: ${event.starts_at}
 
 Outcomes:
 ${outcomes.map((o, i) => `${i + 1}. ${o.label}`).join("\n")}
-
-Rank every outcome from most likely (rank 1) to least likely. For each, provide a probability (0-1), a fit_score (0-1), and 1-3 short reasons grounded in polling, recent statements, historical base rates, and current political dynamics.`;
+${researchBlock}
+Rank every outcome from most likely (rank 1) to least likely. For each, provide a probability (0-1), a fit_score (0-1), and 1-3 short reasons grounded in polling, recent statements, historical base rates, current political dynamics, and the research above when present.`;
   },
 };
 
