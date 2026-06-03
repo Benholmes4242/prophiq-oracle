@@ -119,7 +119,11 @@ async function handleCheckoutCompleted(
     try {
       const { data: { user } } = await supabase.auth.admin.getUserById(userId);
       if (user && (user as { is_anonymous?: boolean }).is_anonymous) {
-        await supabase.auth.admin.updateUserById(userId, { email });
+        await supabase.auth.admin.updateUserById(userId, {
+          email,
+          email_confirm: true,
+          user_metadata: { promoted_from_anonymous_at: new Date().toISOString() },
+        });
         console.log(`[handleCheckoutCompleted] upgraded anonymous user ${userId} -> ${email}`);
       }
     } catch (e) {
