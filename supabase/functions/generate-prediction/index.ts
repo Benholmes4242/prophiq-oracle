@@ -207,7 +207,33 @@ Deno.serve(async (req) => {
     }
   }
 
-  // ----- Build prompt with research + priors + market signals woven in -----
+  // ============================================================
+  // Phase 3: Structured data feeds (best-effort, per-domain)
+  // ============================================================
+  const structuredDataEnabled =
+    (Deno.env.get("STRUCTURED_DATA_ENABLED") ?? "true").toLowerCase() !== "false";
+  let structuredData: StructuredData | null = null;
+  if (structuredDataEnabled && typeof adapter.gatherStructuredData === "function") {
+    try {
+      structuredData = await adapter.gatherStructuredData(
+        supabase,
+        event as DomainEvent,
+        outcomes as EventOutcome[],
+      );
+      if (structuredData) {
+        console.log(
+          `[generate-prediction] event=${body.event_id} structured_data_loaded source=${structuredData.source} lines=${structuredData.summary_lines.length}`,
+        );
+      }
+    } catch (e) {
+      console.warn(
+        `[generate-prediction] structured data fetch failed for event ${body.event_id}: ${(e as Error).message}`,
+      );
+      structuredData = null;
+    }
+  }
+
+  // ----- Build prompt with research + priors + markets + structured woven in -----
   const prompt = adapter.buildPrompt(
     event as DomainEvent,
     outcomes as EventOutcome[],
@@ -215,6 +241,7 @@ Deno.serve(async (req) => {
     research ?? undefined,
     priors.length > 0 ? priors : undefined,
     marketSignals.length > 0 ? marketSignals : undefined,
+    structuredData,
   );
 
   // ----- Run consensus -----
@@ -226,6 +253,7 @@ Deno.serve(async (req) => {
       research,
       priors: priors.length > 0 ? priors : null,
       marketSignals: marketSignals.length > 0 ? marketSignals : null,
+      structuredData,
     });
   } catch (e) {
     return errorResponse(`consensus failed: ${(e as Error).message}`, 502);
