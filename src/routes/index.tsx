@@ -5,7 +5,6 @@ import { AskInlinePanel, type AskPanelState } from "@/components/site/AskInlineP
 
 import { FeatureCard } from "@/components/site/FeatureCard";
 import { SupportingTilesGrid } from "@/components/site/SupportingTilesGrid";
-import { TrackRecord } from "@/components/site/TrackRecord";
 import { useHomepagePicks } from "@/hooks/useEvents";
 import { getPublicBaseUrl } from "@/lib/publicUrl";
 
@@ -107,20 +106,16 @@ function HomePage() {
             {feature && <FeatureCard pick={feature} stagger={1} />}
           </section>
 
-          <div className="space-y-3">
-            <SupportingTilesGrid picks={supporting} />
-            <TrackRecord stagger={6} />
-            <a
-              href="/predictions"
-              className="entry-animate block px-4 py-1 text-center font-body text-[13px] font-semibold"
-              data-stagger="7"
-              style={{ color: "var(--amber-2)" }}
-            >
-              See all picks →
-            </a>
-          </div>
+          <SupportingTilesGrid picks={supporting} />
 
-          <div className="entry-animate" data-stagger="8">
+          <div className="entry-animate" data-stagger="6">
+            <BottomCTA
+              showChips
+              draft={draft}
+              onDraftChange={setDraft}
+              onSubmit={ask}
+            />
+          </div>
             <BottomCTA
               showChips
               draft={draft}
