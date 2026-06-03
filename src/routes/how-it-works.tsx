@@ -412,13 +412,14 @@ function DataMoatSection() {
             letterSpacing: "-0.005em",
           }}
         >
-          Today, Prophiq's analysis is built on real-time external research.{" "}
+          Every forecast Prophiq makes is structured, scored, and folded back
+          into the system.{" "}
           <strong style={{ color: "var(--ink)", fontWeight: 600 }}>
-            Tomorrow, it's built on real-time research plus Prophiq's own
-            accumulating record of what we said and what actually happened.
+            That feedback loop runs on every call - the layer no generalist AI
+            carries.
           </strong>{" "}
-          That second layer is the one that grows exponentially - and it only
-          gets built by running.
+          It's what makes Prophiq the right tool for decisions where calibration
+          matters.
         </p>
       </div>
     </section>
