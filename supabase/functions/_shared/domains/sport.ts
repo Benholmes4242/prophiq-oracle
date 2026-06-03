@@ -13,6 +13,20 @@ import type {
 import { fetchResearchContext, perplexityChat } from "../perplexity.ts";
 import { formatPriorBlock, type PriorContext } from "../priorContext.ts";
 import { formatMarketSignalsBlock, type MarketSignal } from "../marketSignals.ts";
+import {
+  formatStructuredDataBlock,
+  loadCachedStructuredData,
+  persistStructuredData,
+  type StructuredData,
+} from "../structuredData.ts";
+import {
+  apiSportsVersionTag,
+  getHeadToHead,
+  getTeamRecentForm,
+  searchTeamByName,
+  type ApiSportsFixture,
+} from "../dataSources/apiSports.ts";
+import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.45.4";
 import { coerceDiscoveredEvent, logSkip, safeExtractJsonArray } from "./_util.ts";
 
 const RESEARCH_PROMPT_VERSION = "sport.research.v1";
