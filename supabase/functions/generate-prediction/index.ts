@@ -139,12 +139,43 @@ Deno.serve(async (req) => {
     }
   }
 
-  // ----- Build prompt with research woven in -----
+  // ============================================================
+  // Prior context: similar resolved past forecasts (Brief W).
+  // Feature-flagged for safe rollout. Best-effort: failure logs but
+  // does not block the forecast (falls through to research-only).
+  // ============================================================
+  const priorContextEnabled =
+    (Deno.env.get("PRIOR_CONTEXT_ENABLED") ?? "true").toLowerCase() !== "false";
+  let priors: PriorContext[] = [];
+  if (priorContextEnabled) {
+    try {
+      const { data, error } = await supabase.rpc("get_prior_context_for_event", {
+        p_query_event_id: body.event_id,
+        p_limit: PRIOR_CONTEXT_LIMIT,
+        p_min_similarity: PRIOR_CONTEXT_MIN_SIMILARITY,
+      });
+      if (error) throw new Error(error.message);
+      if (Array.isArray(data) && data.length > 0) {
+        priors = data as PriorContext[];
+        console.log(
+          `[generate-prediction] event=${body.event_id} priors_loaded=${priors.length}`,
+        );
+      }
+    } catch (e) {
+      console.warn(
+        `[generate-prediction] prior context fetch failed for event ${body.event_id}: ${(e as Error).message}`,
+      );
+      priors = [];
+    }
+  }
+
+  // ----- Build prompt with research + priors woven in -----
   const prompt = adapter.buildPrompt(
     event as DomainEvent,
     outcomes as EventOutcome[],
     mode,
     research ?? undefined,
+    priors.length > 0 ? priors : undefined,
   );
 
   // ----- Run consensus -----
@@ -154,6 +185,7 @@ Deno.serve(async (req) => {
       prompt,
       outcomes: (outcomes as EventOutcome[]).map((o) => ({ id: o.id, label: o.label })),
       research,
+      priors: priors.length > 0 ? priors : null,
     });
   } catch (e) {
     return errorResponse(`consensus failed: ${(e as Error).message}`, 502);
