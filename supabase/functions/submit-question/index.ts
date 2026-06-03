@@ -38,13 +38,21 @@ Deno.serve(async (req) => {
   try { body = await req.json(); } catch { return errorResponse("invalid JSON body"); }
 
   const question = (body.question ?? "").trim();
-  const fingerprint = getFingerprint(body, req);
+  const fingerprint = getFingerprint(body, req) ?? null;
   if (!question) return errorResponse("question required");
-  if (!fingerprint) return errorResponse("fingerprint required");
+
+  const supabase = getServiceClient();
+
+  // ----- AUTH (anonymous JWTs pass; missing/invalid -> 401) -----
+  let authedUser: AuthedUser;
+  try {
+    authedUser = await requireAuthenticatedUser(req, supabase);
+  } catch (r) {
+    return r as Response;
+  }
 
   const ip = getClientIp(req);
   const ipHash = await hashIp(ip);
-  const supabase = getServiceClient();
   const sse = new SseStream();
   const response = sse.response();
 
