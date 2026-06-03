@@ -191,12 +191,14 @@ export const politicsAdapter: DomainAdapter = {
     research?: ResearchContext,
     priors?: PriorContext[],
     marketSignals?: MarketSignal[],
+    structuredData?: StructuredData | null,
   ): string {
     const researchBlock = research?.synthesised
       ? `\nLIVE RESEARCH CONTEXT (fetched ${research.fetched_at}):\n${research.synthesised}\n`
       : "";
     const priorBlock = formatPriorBlock(priors ?? []);
     const marketBlock = formatMarketSignalsBlock(marketSignals ?? []);
+    const structuredBlock = formatStructuredDataBlock(structuredData ?? null);
     return `Political analysis task. Use neutral, non-partisan language. Do NOT use betting or odds framing.
 
 Event: ${event.title}
@@ -205,8 +207,13 @@ Date: ${event.starts_at}
 
 Outcomes:
 ${outcomes.map((o, i) => `${i + 1}. ${o.label}`).join("\n")}
-${researchBlock}${priorBlock}${marketBlock}
+${researchBlock}${priorBlock}${marketBlock}${structuredBlock}
 Rank every outcome from most likely (rank 1) to least likely. For each, provide a probability (0-1), a fit_score (0-1), and 1-3 short reasons grounded in polling, recent statements, historical base rates, current political dynamics, and the research above when present.`;
+  },
+
+  gatherStructuredData(): Promise<StructuredData | null> {
+    // Phase 3.1 follow-on brief will wire polling aggregator here.
+    return Promise.resolve(null);
   },
 };
 
