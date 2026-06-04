@@ -1,17 +1,26 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabase";
 import { useInvalidateSubscriptionState } from "../../hooks/useActiveSubscription";
+import { OTPInput } from "./OTPInput";
 
 interface LoginModalProps {
   open: boolean;
   onClose: () => void;
 }
 
+type State =
+  | { kind: "enter-email" }
+  | { kind: "enter-code"; email: string; cooldownUntil: number | null }
+  | { kind: "verifying"; email: string }
+  | { kind: "success"; email: string };
+
 export function LoginModal({ open, onClose }: LoginModalProps) {
+  const [state, setState] = useState<State>({ kind: "enter-email" });
   const [email, setEmail] = useState("");
+  const [code, setCode] = useState("");
   const [sending, setSending] = useState(false);
-  const [sent, setSent] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [cooldownSeconds, setCooldownSeconds] = useState(0);
   const invalidate = useInvalidateSubscriptionState();
 
   useEffect(() => {
@@ -38,40 +47,130 @@ export function LoginModal({ open, onClose }: LoginModalProps) {
 
   useEffect(() => {
     if (!open) {
+      setState({ kind: "enter-email" });
       setEmail("");
-      setSent(false);
+      setCode("");
       setError(null);
+      setSending(false);
+      setCooldownSeconds(0);
     }
   }, [open]);
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!email || sending) return;
+  useEffect(() => {
+    if (state.kind !== "enter-code" || !state.cooldownUntil) {
+      setCooldownSeconds(0);
+      return;
+    }
+    const until = state.cooldownUntil;
+    const tick = () => {
+      const remaining = Math.max(0, Math.ceil((until - Date.now()) / 1000));
+      setCooldownSeconds(remaining);
+    };
+    tick();
+    const interval = setInterval(tick, 250);
+    return () => clearInterval(interval);
+  }, [state]);
 
+  async function sendCode(targetEmail: string) {
     setSending(true);
     setError(null);
     try {
       const { error: authError } = await supabase.auth.signInWithOtp({
-        email,
+        email: targetEmail,
         options: { shouldCreateUser: false },
       });
       if (authError) {
         const msg = authError.message.toLowerCase();
-        if (msg.includes("user not found") || msg.includes("does not exist") || msg.includes("signups not allowed")) {
+        if (
+          msg.includes("user not found") ||
+          msg.includes("does not exist") ||
+          msg.includes("not allowed")
+        ) {
           setError(
-            "We couldn't find an account with that email. Double-check the address or sign up via /pricing.",
+            "We couldn't find an account with that email. Double-check the address or subscribe via /pricing.",
           );
         } else {
           setError(authError.message);
         }
-      } else {
-        setSent(true);
+        return false;
       }
+      return true;
     } catch (err) {
       setError((err as Error).message);
+      return false;
     } finally {
       setSending(false);
     }
+  }
+
+  async function handleEmailSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!email || sending) return;
+    const ok = await sendCode(email);
+    if (ok) {
+      setState({
+        kind: "enter-code",
+        email,
+        cooldownUntil: Date.now() + 30_000,
+      });
+      setCode("");
+    }
+  }
+
+  async function handleCodeSubmit(codeValue: string) {
+    if (state.kind !== "enter-code") return;
+    const targetEmail = state.email;
+    setState({ kind: "verifying", email: targetEmail });
+    setError(null);
+    try {
+      const { error: verifyError } = await supabase.auth.verifyOtp({
+        email: targetEmail,
+        token: codeValue,
+        type: "email",
+      });
+      if (verifyError) {
+        setError(
+          verifyError.message.toLowerCase().includes("invalid")
+            ? "That code didn't work. Check your email and try again."
+            : verifyError.message,
+        );
+        setState({
+          kind: "enter-code",
+          email: targetEmail,
+          cooldownUntil: null,
+        });
+        setCode("");
+        return;
+      }
+      setState({ kind: "success", email: targetEmail });
+    } catch (err) {
+      setError((err as Error).message);
+      setState({
+        kind: "enter-code",
+        email: targetEmail,
+        cooldownUntil: null,
+      });
+      setCode("");
+    }
+  }
+
+  async function handleResend() {
+    if (state.kind !== "enter-code" || cooldownSeconds > 0) return;
+    const ok = await sendCode(state.email);
+    if (ok) {
+      setState({
+        kind: "enter-code",
+        email: state.email,
+        cooldownUntil: Date.now() + 30_000,
+      });
+      setCode("");
+    }
+  }
+
+  function handleGoBack() {
+    setState({ kind: "enter-email" });
+    setCode("");
+    setError(null);
   }
 
   if (!open) return null;
@@ -103,34 +202,15 @@ export function LoginModal({ open, onClose }: LoginModalProps) {
           </svg>
         </button>
 
-        {sent ? (
-          <>
-            <h2 className="text-xl font-bold mb-2" style={{ color: "var(--ink)" }}>
-              Check your email
-            </h2>
-            <p className="text-sm mb-4" style={{ color: "var(--ink)" }}>
-              We sent a login link to <strong>{email}</strong>. Click it to log into your account.
-            </p>
-            <p className="text-xs text-[var(--ink)]/60 mb-4">
-              The link will expire in 1 hour. If you don't see the email, check your spam folder.
-            </p>
-            <button
-              onClick={onClose}
-              className="w-full py-2.5 px-4 rounded-lg font-medium text-sm"
-              style={{ background: "var(--ink)", color: "white" }}
-            >
-              Done
-            </button>
-          </>
-        ) : (
+        {state.kind === "enter-email" && (
           <>
             <h2 className="text-xl font-bold mb-2" style={{ color: "var(--ink)" }}>
               Log in
             </h2>
             <p className="text-sm text-[var(--ink)]/70 mb-6">
-              Enter the email you used to sign up. We'll send you a magic link.
+              Enter the email you used to sign up. We'll send you a 6-digit code.
             </p>
-            <form onSubmit={handleSubmit}>
+            <form onSubmit={handleEmailSubmit}>
               <input
                 type="email"
                 value={email}
@@ -152,7 +232,7 @@ export function LoginModal({ open, onClose }: LoginModalProps) {
                 className="w-full py-2.5 px-4 rounded-lg font-medium text-sm disabled:opacity-50"
                 style={{ background: "var(--ink)", color: "white" }}
               >
-                {sending ? "Sending..." : "Send login link"}
+                {sending ? "Sending..." : "Send code"}
               </button>
             </form>
             {error && (
@@ -168,6 +248,60 @@ export function LoginModal({ open, onClose }: LoginModalProps) {
                 View pricing
               </a>
             </p>
+          </>
+        )}
+
+        {(state.kind === "enter-code" || state.kind === "verifying") && (
+          <>
+            <h2 className="text-xl font-bold mb-2" style={{ color: "var(--ink)" }}>
+              Check your email
+            </h2>
+            <p className="text-sm mb-6" style={{ color: "var(--ink)" }}>
+              We sent a 6-digit code to <strong>{state.email}</strong>. Enter it below.
+            </p>
+            <div className="mb-4">
+              <OTPInput
+                value={code}
+                onChange={setCode}
+                onComplete={(v) => handleCodeSubmit(v)}
+                disabled={state.kind === "verifying"}
+              />
+            </div>
+            {state.kind === "verifying" && (
+              <p className="text-xs text-[var(--ink)]/60 text-center mb-3">
+                Verifying...
+              </p>
+            )}
+            {error && (
+              <p className="mb-3 text-xs text-red-600 text-center">{error}</p>
+            )}
+            <div className="flex flex-col items-center gap-3 mt-2">
+              <button
+                onClick={handleResend}
+                disabled={cooldownSeconds > 0 || state.kind === "verifying" || sending}
+                className="text-sm text-[var(--ink)]/70 hover:text-[var(--ink)] disabled:opacity-50"
+              >
+                {cooldownSeconds > 0
+                  ? `Didn't get it? Resend in ${cooldownSeconds}s`
+                  : "Didn't get it? Send a new code"}
+              </button>
+              <button
+                onClick={handleGoBack}
+                disabled={state.kind === "verifying"}
+                className="text-xs text-[var(--ink)]/60 hover:text-[var(--ink)] underline"
+              >
+                Wrong email? Go back
+              </button>
+            </div>
+          </>
+        )}
+
+        {state.kind === "success" && (
+          <>
+            <h2 className="text-xl font-bold mb-2" style={{ color: "var(--ink)" }}>
+              You're in.
+            </h2>
+            <p className="text-sm text-[var(--ink)]/70">Loading your account...</p>
           </>
         )}
       </div>
