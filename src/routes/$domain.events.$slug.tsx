@@ -19,11 +19,13 @@ import { RelatedEvents } from "@/components/site/RelatedEvents";
 import { StickyBottomCTA } from "@/components/site/StickyBottomCTA";
 import { ChatSheet } from "@/components/site/ChatSheet";
 import { SubQuestionCard } from "@/components/event/SubQuestionCard";
+import { ForecastGeneratingScreen } from "@/components/event/ForecastGeneratingScreen";
 import {
   fetchEventFamilyBySlug,
   fetchEventResolution,
   type EventFamily,
 } from "@/lib/queries";
+import { triggerOnDemandPrediction } from "@/lib/triggers";
 import { getPublicBaseUrl } from "@/lib/publicUrl";
 import { classifyEvent } from "@/lib/subcategory";
 import { DOMAINS, DOMAIN_LABEL } from "@/lib/types";
@@ -66,8 +68,22 @@ export const Route = createFileRoute("/$domain/events/$slug")({
     }
     const event = family.parent.event;
     if (event.domain !== params.domain) throw notFound();
+
+    // On-demand generation: if the parent has no current prediction and the
+    // event isn't resolved, kick off the edge function and re-fetch the
+    // family once it returns. The pendingComponent renders during the wait.
+    if (!family.parent.prediction && event.status !== "resolved") {
+      const result = await triggerOnDemandPrediction(event.id, "prediction");
+      if (result.ok) {
+        const refreshed = await fetchEventFamilyBySlug(event.slug);
+        if (refreshed) family = refreshed;
+      }
+    }
+
     return { family, event };
   },
+  pendingMs: 100,
+  pendingComponent: ForecastGeneratingScreen,
 
   head: ({ loaderData, params }) => {
     const event = loaderData?.event;
