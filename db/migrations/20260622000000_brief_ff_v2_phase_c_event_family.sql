@@ -183,7 +183,7 @@ BEGIN
         FROM public.v_predictions_public p
         WHERE p.event_id = e.id
           AND p.is_current = true
-          AND p.mode = e.mode::text
+          AND p.mode = (CASE WHEN e.mode = 'odds' THEN 'odds' ELSE 'prediction' END)
         ORDER BY p.generated_at DESC
         LIMIT 1
       ) AS prediction
@@ -199,7 +199,7 @@ BEGIN
           FROM public.v_predictions_public p
           WHERE p.event_id = c.id
             AND p.is_current = true
-            AND p.mode = c.mode::text
+            AND p.mode = (CASE WHEN c.mode = 'odds' THEN 'odds' ELSE 'prediction' END)
           ORDER BY p.generated_at DESC
           LIMIT 1
         )
@@ -209,6 +209,7 @@ BEGIN
     FROM public.events c
     WHERE c.parent_event_id = v_parent_id
   )
+
   SELECT jsonb_build_object(
     'resolved_from_child', v_resolved,
     'parent', jsonb_build_object(
