@@ -196,7 +196,7 @@ export async function runForecast(opts: RunForecastOpts): Promise<void> {
         if (pred?.confidence) confidence = pred.confidence as ConfidenceTier;
       }
     } catch {
-      /* swallow — we still surface the slug/domain via Open full view */
+      /* swallow; we still surface the slug/domain via Open full view */
     }
 
     onResult?.({
