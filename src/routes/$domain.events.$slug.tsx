@@ -2,7 +2,7 @@
 // data. AppHeader comes from __root.tsx; this page provides its own bottom
 // UX (disclaimer + sticky CTA + chat sheet) and does NOT render SiteShell.
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   createFileRoute,
   notFound,
