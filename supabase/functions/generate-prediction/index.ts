@@ -38,7 +38,8 @@ import { extractUserIfAuthenticated } from "../_shared/auth.ts";
 registerAllDomains();
 
 const PROMPT_VERSION = "v1.4.0"; // bumped from v1.3.0 - structured data injection
-const STALE_AFTER_MS = 6 * 60 * 60 * 1000; // 6 hours
+import { PREDICTION_CACHE_TTL_MS } from "../_shared/cacheTtl.ts";
+const STALE_AFTER_MS = PREDICTION_CACHE_TTL_MS;
 const RESEARCH_CACHE_TTL_MS = 30 * 60 * 1000; // 30 minutes
 
 interface Body { event_id?: string; mode?: "prediction" | "odds"; force?: boolean; }

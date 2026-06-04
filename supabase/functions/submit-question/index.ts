@@ -235,7 +235,7 @@ Deno.serve(async (req) => {
         research_context: null,
         prompt_version: PROMPT_VERSION,
         is_current: true,
-        expires_at: new Date(Date.now() + 6 * 60 * 60 * 1000).toISOString(),
+        expires_at: new Date(Date.now() + PREDICTION_CACHE_TTL_MS).toISOString(),
       }).select("*").single();
       if (pErr) {
         sse.send({ stage: "consensus", status: "error", message: `prediction insert failed: ${pErr.message}` });
