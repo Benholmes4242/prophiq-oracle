@@ -52,6 +52,7 @@ Deno.serve(async (req) => {
     for (const ev of events) {
       try {
         const eventMetadata = ev.metadata ?? null;
+        console.log(`[discover-events:${id}] upserting event:`, JSON.stringify({ slug: ev.slug, metadata: eventMetadata }));
         const { data: upserted, error } = await supabase
           .from("events")
           .upsert({
