@@ -365,3 +365,30 @@ export async function fetchEventResolution(
       (pa?.top_pick_correct as boolean | null | undefined) ?? null,
   };
 }
+
+// ============================================================
+// Event family (parent + children) — Brief FF v2 Phase C.
+// Backed by RPC public.get_event_with_children(p_slug).
+// ============================================================
+
+export interface EventFamilyMember {
+  event: EventRow;
+  prediction: PredictionRow | null;
+}
+
+export interface EventFamily {
+  resolved_from_child: boolean;
+  parent: EventFamilyMember;
+  children: EventFamilyMember[];
+}
+
+export async function fetchEventFamilyBySlug(
+  slug: string,
+): Promise<EventFamily | null> {
+  const { data, error } = await supabase.rpc("get_event_with_children", {
+    p_slug: slug,
+  });
+  if (error) throw error;
+  if (!data) return null;
+  return data as EventFamily;
+}
