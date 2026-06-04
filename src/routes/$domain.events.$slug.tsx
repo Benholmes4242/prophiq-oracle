@@ -3,7 +3,12 @@
 // UX (disclaimer + sticky CTA + chat sheet) and does NOT render SiteShell.
 
 import { useState } from "react";
-import { createFileRoute, notFound, useRouter } from "@tanstack/react-router";
+import {
+  createFileRoute,
+  notFound,
+  redirect,
+  useRouter,
+} from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { DomainDisclaimer } from "@/components/site/DisclaimerBanner";
 import { EventResolvedBanner } from "@/components/site/EventResolvedBanner";
@@ -13,8 +18,12 @@ import { Reasoning } from "@/components/site/Reasoning";
 import { RelatedEvents } from "@/components/site/RelatedEvents";
 import { StickyBottomCTA } from "@/components/site/StickyBottomCTA";
 import { ChatSheet } from "@/components/site/ChatSheet";
-import { useCurrentPrediction } from "@/hooks/usePrediction";
-import { fetchEventBySlug, fetchEventResolution } from "@/lib/queries";
+import { SubQuestionCard } from "@/components/event/SubQuestionCard";
+import {
+  fetchEventFamilyBySlug,
+  fetchEventResolution,
+  type EventFamily,
+} from "@/lib/queries";
 import { getPublicBaseUrl } from "@/lib/publicUrl";
 import { classifyEvent } from "@/lib/subcategory";
 import { DOMAINS, DOMAIN_LABEL } from "@/lib/types";
@@ -22,10 +31,24 @@ import type { DomainId, RankedOutcome } from "@/lib/types";
 
 export const Route = createFileRoute("/$domain/events/$slug")({
   loader: async ({ params }) => {
-    const event = await fetchEventBySlug(params.slug);
-    if (!event || event.domain !== params.domain) throw notFound();
-    return { event };
+    const family = await fetchEventFamilyBySlug(params.slug);
+    if (!family) throw notFound();
+    // Child slug → redirect to the parent's canonical URL.
+    if (family.resolved_from_child) {
+      throw redirect({
+        to: "/$domain/events/$slug",
+        params: {
+          domain: family.parent.event.domain,
+          slug: family.parent.event.slug,
+        },
+        replace: true,
+      });
+    }
+    const event = family.parent.event;
+    if (event.domain !== params.domain) throw notFound();
+    return { family, event };
   },
+
   head: ({ loaderData, params }) => {
     const event = loaderData?.event;
     if (!event) {
