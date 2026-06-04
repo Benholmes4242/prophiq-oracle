@@ -90,10 +90,18 @@ async function run() {
   // ---- markets injects informationalOnly ----
   // Use the markets discover() path indirectly via coerce + adapter rule
   const marketsEv = await coerceDiscoveredEvent(
-    { title: "FOMC decision", question: "What will the Fed do?", starts_at: "2026-06-12T18:00:00Z", outcomes: [{ label: "Hold" }, { label: "Cut 25bps" }] },
+    { title: "FOMC decision", question: "What will the Fed do?", starts_at: "2026-06-12T18:00:00Z", outcomes: [{ label: "Hold" }, { label: "Cut 25bps" }], metadata: { sub_category: "central_bank", favorite_label: "Hold", field_size: 2 } },
     { defaultMode: "prediction", slugPrefix: "markets", extraMetadata: { informationalOnly: true } },
   );
   assert(marketsEv?.metadata?.informationalOnly === true, "markets coerce: informationalOnly flag set");
+  assert(marketsEv?.metadata?.sub_category === "central_bank", "markets coerce: nested LLM metadata preserved");
+
+  const flattenedSportEv = await coerceDiscoveredEvent(
+    { title: "Belmont Stakes 2026", question: "Who wins?", starts_at: "2026-06-06T18:00:00Z", outcomes: [{ label: "Sovereignty" }, { label: "Journalism" }], sub_category: "horse_racing", favorite_label: "Sovereignty", field_size: "2" },
+    { defaultMode: "both", slugPrefix: "sport", extraMetadata: { supportsOddsMode: true } },
+  );
+  assert(flattenedSportEv?.metadata?.sub_category === "horse_racing", "coerce: flattened LLM metadata preserved");
+  assert(flattenedSportEv?.metadata?.field_size === 2, "coerce: flattened field_size coerced to number");
 
   // ---- buildPrompt rules ----
   const sportPrompt = sportAdapter.buildPrompt(
