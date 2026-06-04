@@ -17,8 +17,15 @@ import {
   formatStructuredDataBlock,
   loadCachedStructuredData,
   persistStructuredData,
+  STRUCTURED_DATA_TIMEOUT_MS,
   type StructuredData,
+  type StructuredDataContext,
+  type StructuredDataError,
+  type StructuredDataSource,
+  withTimeout,
 } from "../structuredData.ts";
+import { fetchFootballDataContext } from "../dataSources/footballData.ts";
+import { fetchTheSportsDBContext } from "../dataSources/theSportsDB.ts";
 import {
   apiSportsVersionTag,
   getHeadToHead,
