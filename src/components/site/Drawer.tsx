@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { Link, useLocation } from "@tanstack/react-router";
 import { PhiMark } from "@/components/brand/PhiMark";
 import { Wordmark } from "@/components/brand/Wordmark";
+import { OddsFormatPicker } from "@/components/site/OddsFormatPicker";
 
 interface DrawerProps {
   open: boolean;
