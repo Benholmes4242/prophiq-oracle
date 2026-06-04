@@ -228,7 +228,7 @@ function EventDetailPage() {
                 <span className="section-rule" />
               </div>
               <div className="mt-3 flex flex-col gap-3">
-                {children.map((c) => (
+                {children.map((c: EventFamily["children"][number]) => (
                   <SubQuestionCard
                     key={c.event.id}
                     event={c.event}
