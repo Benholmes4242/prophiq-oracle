@@ -416,6 +416,11 @@ Deno.serve(async (req) => {
             line_count: structuredData.summary_lines.length,
           }
         : {},
+      structured_data_sources: structuredSources.sources.map((s) => ({
+        name: s.name,
+        fetched_at: s.fetched_at,
+        duration_ms: s.duration_ms,
+      })),
     });
     if (lineageErr) throw new Error(lineageErr.message);
   } catch (e) {
