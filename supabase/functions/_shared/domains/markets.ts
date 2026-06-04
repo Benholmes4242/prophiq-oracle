@@ -13,7 +13,17 @@ import type {
 import { fetchResearchContext, perplexityChat } from "../perplexity.ts";
 import { formatPriorBlock, type PriorContext } from "../priorContext.ts";
 import { formatMarketSignalsBlock, type MarketSignal } from "../marketSignals.ts";
-import { formatStructuredDataBlock, type StructuredData } from "../structuredData.ts";
+import {
+  formatStructuredDataBlock,
+  STRUCTURED_DATA_TIMEOUT_MS,
+  type StructuredData,
+  type StructuredDataContext,
+  type StructuredDataError,
+  type StructuredDataSource,
+  withTimeout,
+} from "../structuredData.ts";
+import { fetchFredMacroSnapshot } from "../dataSources/fred.ts";
+import { fetchAlphaVantageContext } from "../dataSources/alphaVantage.ts";
 import { coerceDiscoveredEvent, logSkip, safeExtractJsonArray } from "./_util.ts";
 
 const RESEARCH_PROMPT_VERSION = "markets.research.v1";
