@@ -13,7 +13,17 @@ import type {
 import { fetchResearchContext, perplexityChat } from "../perplexity.ts";
 import { formatPriorBlock, type PriorContext } from "../priorContext.ts";
 import { formatMarketSignalsBlock, type MarketSignal } from "../marketSignals.ts";
-import { formatStructuredDataBlock, type StructuredData } from "../structuredData.ts";
+import {
+  formatStructuredDataBlock,
+  STRUCTURED_DATA_TIMEOUT_MS,
+  type StructuredData,
+  type StructuredDataContext,
+  type StructuredDataError,
+  type StructuredDataSource,
+  withTimeout,
+} from "../structuredData.ts";
+import { fetchTmdbContext } from "../dataSources/tmdb.ts";
+import { fetchSpotifyContext } from "../dataSources/spotify.ts";
 import { coerceDiscoveredEvent, logSkip, safeExtractJsonArray } from "./_util.ts";
 
 const RESEARCH_PROMPT_VERSION = "entertainment.research.v1";
@@ -238,10 +248,84 @@ Rank every outcome from most likely (rank 1) to least likely. For each, provide 
   },
 
   gatherStructuredData(): Promise<StructuredData | null> {
-    // Phase 3.3 follow-on brief will wire TMDB + awards-history integration here.
+    // Legacy single-source path is unused; Brief GG uses gatherStructuredSources.
     return Promise.resolve(null);
   },
+
+  async gatherStructuredSources(
+    _supabase,
+    event: DomainEvent,
+    _outcomes: EventOutcome[],
+  ): Promise<StructuredDataContext> {
+    const t0 = Date.now();
+    const tmdbKey = readEnv("TMDB_API_KEY") ?? "";
+    const spotifyClientId = readEnv("SPOTIFY_CLIENT_ID") ?? "";
+    const spotifyClientSecret = readEnv("SPOTIFY_CLIENT_SECRET") ?? "";
+    const hints = {
+      metadata: event.metadata as Record<string, unknown> | null,
+      title: event.title,
+      question: event.question,
+      starts_at: event.starts_at,
+    };
+
+    const [tmdbRes, spotifyRes] = await Promise.allSettled([
+      runSource("tmdb", () => fetchTmdbContext(tmdbKey, hints)),
+      runSource("spotify", () => fetchSpotifyContext(spotifyClientId, spotifyClientSecret, hints)),
+    ]);
+
+    const sources: StructuredDataSource[] = [];
+    const errors: StructuredDataError[] = [];
+    for (const res of [tmdbRes, spotifyRes]) {
+      if (res.status === "fulfilled") {
+        if (res.value.kind === "ok") sources.push(res.value.source);
+        else errors.push(res.value.error);
+      } else {
+        errors.push({
+          source: "unknown",
+          message: (res.reason as Error)?.message ?? "rejected",
+          duration_ms: 0,
+        });
+      }
+    }
+
+    return { sources, errors, total_duration_ms: Date.now() - t0 };
+  },
 };
+
+type SourceResult =
+  | { kind: "ok"; source: StructuredDataSource }
+  | { kind: "err"; error: StructuredDataError };
+
+async function runSource(
+  name: string,
+  fetcher: () => Promise<unknown>,
+): Promise<SourceResult> {
+  const start = Date.now();
+  try {
+    const data = await withTimeout(fetcher(), STRUCTURED_DATA_TIMEOUT_MS, name);
+    const duration_ms = Date.now() - start;
+    return {
+      kind: "ok",
+      source: { name, data, fetched_at: new Date().toISOString(), duration_ms },
+    };
+  } catch (err) {
+    return {
+      kind: "err",
+      error: {
+        source: name,
+        message: (err as Error).message,
+        duration_ms: Date.now() - start,
+      },
+    };
+  }
+}
+
+function readEnv(name: string): string | undefined {
+  const deno = (globalThis as { Deno?: { env: { get(k: string): string | undefined } } }).Deno;
+  if (deno) return deno.env.get(name);
+  const proc = (globalThis as { process?: { env: Record<string, string | undefined> } }).process;
+  return proc?.env?.[name];
+}
 
 function parseResolution(content: string, outcomes: EventOutcome[]): ResolutionResult | null {
   try {
