@@ -13,7 +13,17 @@ import type {
 import { fetchResearchContext, perplexityChat } from "../perplexity.ts";
 import { formatPriorBlock, type PriorContext } from "../priorContext.ts";
 import { formatMarketSignalsBlock, type MarketSignal } from "../marketSignals.ts";
-import { formatStructuredDataBlock, type StructuredData } from "../structuredData.ts";
+import {
+  formatStructuredDataBlock,
+  STRUCTURED_DATA_TIMEOUT_MS,
+  type StructuredData,
+  type StructuredDataContext,
+  type StructuredDataError,
+  type StructuredDataSource,
+  withTimeout,
+} from "../structuredData.ts";
+import { searchPolymarketMarkets } from "../marketVenues/polymarket.ts";
+import { searchKalshiMarkets } from "../marketVenues/kalshi.ts";
 import { coerceDiscoveredEvent, logSkip, safeExtractJsonArray } from "./_util.ts";
 
 const RESEARCH_PROMPT_VERSION = "politics.research.v1";
@@ -237,10 +247,110 @@ Rank every outcome from most likely (rank 1) to least likely. For each, provide 
   },
 
   gatherStructuredData(): Promise<StructuredData | null> {
-    // Phase 3.1 follow-on brief will wire polling aggregator here.
+    // Legacy single-source slot reserved for a future polling aggregator.
+    // Brief GG multi-source feeds (Polymarket + Kalshi) live in
+    // gatherStructuredSources below.
     return Promise.resolve(null);
   },
+
+  async gatherStructuredSources(
+    _supabase,
+    event: DomainEvent,
+    _outcomes: EventOutcome[],
+  ): Promise<StructuredDataContext> {
+    const t0 = Date.now();
+    const query = `${event.title} ${event.question ?? ""}`.trim();
+
+    const [polyRes, kalshiRes] = await Promise.allSettled([
+      runSource("polymarket", () => fetchPolymarketSignals(query)),
+      runSource("kalshi", () => fetchKalshiSignals(query)),
+    ]);
+
+    const sources: StructuredDataSource[] = [];
+    const errors: StructuredDataError[] = [];
+    for (const res of [polyRes, kalshiRes]) {
+      if (res.status === "fulfilled") {
+        if (res.value.kind === "ok") sources.push(res.value.source);
+        else errors.push(res.value.error);
+      } else {
+        errors.push({
+          source: "unknown",
+          message: (res.reason as Error)?.message ?? "rejected",
+          duration_ms: 0,
+        });
+      }
+    }
+
+    return { sources, errors, total_duration_ms: Date.now() - t0 };
+  },
 };
+
+type SourceResult =
+  | { kind: "ok"; source: StructuredDataSource }
+  | { kind: "err"; error: StructuredDataError };
+
+async function runSource(
+  name: string,
+  fetcher: () => Promise<unknown>,
+): Promise<SourceResult> {
+  const start = Date.now();
+  try {
+    const data = await withTimeout(fetcher(), STRUCTURED_DATA_TIMEOUT_MS, name);
+    const duration_ms = Date.now() - start;
+    return {
+      kind: "ok",
+      source: {
+        name,
+        data,
+        fetched_at: new Date().toISOString(),
+        duration_ms,
+      },
+    };
+  } catch (err) {
+    return {
+      kind: "err",
+      error: {
+        source: name,
+        message: (err as Error).message,
+        duration_ms: Date.now() - start,
+      },
+    };
+  }
+}
+
+async function fetchPolymarketSignals(query: string) {
+  const markets = await searchPolymarketMarkets(query, 5);
+  if (markets.length === 0) return { matches: [], note: "no Polymarket markets matched" };
+  return {
+    matches: markets.map((m) => ({
+      question: m.question,
+      slug: m.slug,
+      end_date: m.end_date,
+      volume_usd: m.volume_usd,
+      outcomes: m.outcomes.map((o) => ({
+        label: o.label,
+        implied_probability: o.price,
+      })),
+    })),
+  };
+}
+
+async function fetchKalshiSignals(query: string) {
+  const markets = await searchKalshiMarkets(query, 5);
+  if (markets.length === 0) return { matches: [], note: "no Kalshi markets matched" };
+  return {
+    matches: markets.map((m) => ({
+      ticker: m.ticker,
+      event_ticker: m.event_ticker,
+      title: m.title,
+      subtitle: m.subtitle,
+      close_time: m.close_time,
+      volume: m.volume,
+      yes_implied_probability: m.yes_price,
+      no_implied_probability: m.no_price,
+    })),
+  };
+}
 
 function parseResolution(content: string, outcomes: EventOutcome[]): ResolutionResult | null {
   try {
