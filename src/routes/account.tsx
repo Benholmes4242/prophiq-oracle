@@ -7,6 +7,9 @@ import {
 import { useUsageQuota } from "../hooks/useUsageQuota";
 import { createCustomerPortalSession } from "../lib/billing";
 import { Wordmark } from "../components/brand/Wordmark";
+import { DeleteAccountModal } from "../components/account/DeleteAccountModal";
+import { supabase } from "../lib/supabase";
+
 
 export const Route = createFileRoute("/account")({
   component: AccountPage,
@@ -21,11 +24,24 @@ function AccountPage() {
   const invalidate = useInvalidateSubscriptionState();
   const [portalLoading, setPortalLoading] = useState(false);
   const [portalError, setPortalError] = useState<string | null>(null);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [userEmail, setUserEmail] = useState<string | null>(null);
 
   // Refresh on mount in case the user just returned from Stripe Customer Portal.
   useEffect(() => {
     void invalidate();
   }, [invalidate]);
+
+  useEffect(() => {
+    let mounted = true;
+    void supabase.auth.getUser().then(({ data: { user } }) => {
+      if (mounted) setUserEmail(user?.email ?? null);
+    });
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
 
   async function handleManageSubscription() {
     setPortalLoading(true);
@@ -163,9 +179,42 @@ function AccountPage() {
                 <p className="mt-2 text-xs text-[var(--ink)]/60">Resets at midnight UTC.</p>
               </div>
             )}
+
+            <div
+              className="rounded-2xl border p-6 mt-6"
+              style={{ background: "var(--bg)", borderColor: "#FECACA" }}
+            >
+              <h2
+                className="text-lg font-semibold mb-2"
+                style={{ color: "var(--ink)" }}
+              >
+                Danger zone
+              </h2>
+              <p className="text-sm text-[var(--ink)]/70 mb-4">
+                Permanently delete your Prophiq account, cancel your
+                subscription, and remove all your data.
+              </p>
+              <button
+                onClick={() => setDeleteOpen(true)}
+                className="py-2.5 px-4 rounded-lg font-medium text-sm border"
+                style={{
+                  background: "var(--bg)",
+                  color: "#B91C1C",
+                  borderColor: "#B91C1C",
+                }}
+              >
+                Delete my account
+              </button>
+            </div>
           </>
         )}
       </div>
+      <DeleteAccountModal
+        open={deleteOpen}
+        onClose={() => setDeleteOpen(false)}
+        userEmail={userEmail}
+      />
     </div>
+
   );
 }
