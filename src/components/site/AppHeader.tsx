@@ -11,6 +11,8 @@ export function AppHeader({ onMenuClick }: AppHeaderProps) {
   const isSearchPage = useRouterState({
     select: (s) => s.location.pathname === "/search",
   });
+  const { usage } = useUsageQuota();
+  const showPricingLink = !usage || usage.tier === "free";
   return (
     <header
       className="flex items-center justify-between px-4 pb-1 pt-2.5"
@@ -44,25 +46,37 @@ export function AppHeader({ onMenuClick }: AppHeaderProps) {
         <PhiMark size={32} strokeWidth={11} ariaLabel="Prophiq home" />
       </Link>
 
-      <Link
-        to="/search"
-        aria-label="Search"
-        aria-current={isSearchPage ? "page" : undefined}
-        className="grid h-11 w-11 place-items-center rounded-full transition-ios-colors hover:bg-[rgba(11,18,32,0.05)]"
-        style={{ color: isSearchPage ? "var(--amber-2)" : "var(--ink)" }}
-      >
-        <svg
-          width="20"
-          height="20"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
+      <div className="flex items-center gap-2">
+        {showPricingLink && (
+          <Link
+            to="/pricing"
+            className="hidden sm:inline-block text-sm font-medium hover:opacity-70"
+            style={{ color: "var(--ink)" }}
+          >
+            Pricing
+          </Link>
+        )}
+        <TierBadge />
+        <Link
+          to="/search"
+          aria-label="Search"
+          aria-current={isSearchPage ? "page" : undefined}
+          className="grid h-11 w-11 place-items-center rounded-full transition-ios-colors hover:bg-[rgba(11,18,32,0.05)]"
+          style={{ color: isSearchPage ? "var(--amber-2)" : "var(--ink)" }}
         >
-          <circle cx="11" cy="11" r="7" />
-          <line x1="21" y1="21" x2="16.5" y2="16.5" strokeLinecap="round" />
-        </svg>
-      </Link>
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+          >
+            <circle cx="11" cy="11" r="7" />
+            <line x1="21" y1="21" x2="16.5" y2="16.5" strokeLinecap="round" />
+          </svg>
+        </Link>
+      </div>
     </header>
   );
 }
