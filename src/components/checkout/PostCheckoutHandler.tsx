@@ -139,6 +139,7 @@ export function PostCheckoutHandler() {
         setCode("");
         return;
       }
+      await supabase.auth.refreshSession();
       await invalidate();
       setState({ kind: "success", email: targetEmail });
     } catch (err) {
