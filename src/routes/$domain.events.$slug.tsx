@@ -287,6 +287,10 @@ function EventDetailPage() {
       ? subcategoryRaw
       : null;
 
+  if (isGenerating) {
+    return <ForecastGeneratingScreen />;
+  }
+
   return (
     <div className="flex min-h-full flex-col" style={{ background: "var(--bg)" }}>
       <div className="mx-auto w-full max-w-2xl flex-1 px-4 pt-3 pb-2 sm:px-6">
