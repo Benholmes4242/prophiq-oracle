@@ -19,6 +19,7 @@ import { runConsensus } from "../_shared/runConsensus.ts";
 import { getServiceClient } from "../_shared/supabaseClient.ts";
 import { scoreToConfidence } from "../_shared/confidence.ts";
 import { requireAuthenticatedUser, type AuthedUser } from "../_shared/auth.ts";
+import { PREDICTION_CACHE_TTL_MS } from "../_shared/cacheTtl.ts";
 import {
   handleCorsPreflight, errorResponse,
   SseStream, getFingerprint, getClientIp, hashIp,
