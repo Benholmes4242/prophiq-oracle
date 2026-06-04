@@ -255,7 +255,7 @@ COMMENT ON FUNCTION public.refresh_homepage_picks_daily IS
 -- ============================================================
 CREATE OR REPLACE FUNCTION public.get_today_homepage_picks()
 RETURNS TABLE (
-  position          int,
+  slot              int,
   event_id          uuid,
   prediction_id     uuid,
   domain            text,
@@ -279,7 +279,7 @@ AS $$
     SELECT MAX(featured_date) AS d FROM public.homepage_picks_daily
   )
   SELECT
-    hp.position,
+    hp.position AS slot,
     hp.event_id,
     hp.prediction_id,
     e.domain,
