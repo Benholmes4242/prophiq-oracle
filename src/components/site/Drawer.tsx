@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { Link, useLocation } from "@tanstack/react-router";
 import { PhiMark } from "@/components/brand/PhiMark";
 import { Wordmark } from "@/components/brand/Wordmark";
+import { OddsFormatPicker } from "@/components/site/OddsFormatPicker";
 
 interface DrawerProps {
   open: boolean;
@@ -136,6 +137,19 @@ export function Drawer({ open, onClose }: DrawerProps) {
             })}
           </div>
         ))}
+
+        <div
+          className="border-t py-3.5"
+          style={{ borderColor: "var(--border-soft)" }}
+        >
+          <div
+            className="mb-1.5 px-5 font-mono text-[10px] font-semibold uppercase"
+            style={{ letterSpacing: "0.22em", color: "var(--ink-faint)" }}
+          >
+            SETTINGS
+          </div>
+          <OddsFormatPicker />
+        </div>
 
         <div
           className="mt-auto border-t px-5 pb-6 pt-4 font-body text-[11.5px] leading-[1.4]"

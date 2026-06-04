@@ -1,10 +1,11 @@
 // SubQuestionCard — renders one binary sub-question under a parent event's
-// "Other forecasts on this event" section. Phase C scope per Brief FF v2:
-// side-question eyebrow + question + confidence pill + updated-at timestamp.
-// Odds display, format picker, frequentist framing, and visual cues are
-// deliberately deferred to Phase D.
+// "Other forecasts on this event" section. Brief FF v2 Phase D adds odds
+// display (where the domain doesn't disable it) and the shared
+// UpdatedTimestamp pill.
 
 import { ConfidenceLabel } from "@/components/site/ConfidenceLabel";
+import { OddsDisplay } from "@/components/site/OddsDisplay";
+import { UpdatedTimestamp } from "@/components/site/UpdatedTimestamp";
 import type { EventRow, PredictionRow } from "@/lib/types";
 
 interface Props {
@@ -15,6 +16,7 @@ interface Props {
 export function SubQuestionCard({ event, prediction }: Props) {
   const top = prediction?.ranked_outcomes?.[0] ?? null;
   const updatedAt = prediction?.generated_at ?? null;
+  const topProb = top?.probability ?? null;
 
   return (
     <article
@@ -49,38 +51,21 @@ export function SubQuestionCard({ event, prediction }: Props) {
             PENDING
           </span>
         )}
-        {updatedAt && (
-          <span
-            className="font-mono text-[10px]"
-            style={{ color: "var(--ink-soft)" }}
-            suppressHydrationWarning
-          >
-            Updated {formatUpdated(updatedAt)}
-          </span>
-        )}
+        <UpdatedTimestamp iso={updatedAt} />
       </div>
 
       {top?.outcome_label && (
         <div
-          className="mt-2 font-body text-xs"
+          className="mt-2 flex items-center justify-between gap-3 font-body text-xs"
           style={{ color: "var(--ink-soft)" }}
         >
-          Lean: <span style={{ color: "var(--ink)" }}>{top.outcome_label}</span>
+          <span>
+            Lean:{" "}
+            <span style={{ color: "var(--ink)" }}>{top.outcome_label}</span>
+          </span>
+          <OddsDisplay probability={topProb} domain={event.domain} />
         </div>
       )}
     </article>
   );
-}
-
-function formatUpdated(iso: string): string {
-  const d = new Date(iso);
-  const now = Date.now();
-  const diffMin = Math.max(0, Math.floor((now - d.getTime()) / 60_000));
-  if (diffMin < 1) return "just now";
-  if (diffMin < 60) return `${diffMin}m ago`;
-  const diffHr = Math.floor(diffMin / 60);
-  if (diffHr < 24) return `${diffHr}h ago`;
-  const diffDay = Math.floor(diffHr / 24);
-  if (diffDay < 7) return `${diffDay}d ago`;
-  return d.toLocaleDateString(undefined, { day: "numeric", month: "short" });
 }
