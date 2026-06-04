@@ -6,6 +6,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getStripeClient } from "../_shared/stripe.ts";
 import { requireAuthenticatedUser } from "../_shared/auth.ts";
 import { handleCorsPreflight, jsonResponse, errorResponse } from "../_shared/http.ts";
+import { sendEmail } from "../_shared/email.ts";
+import { subscriptionCanceledEmail } from "../_shared/email-templates.ts";
 
 const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
 const supabaseServiceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -42,6 +44,29 @@ Deno.serve(async (req: Request) => {
     | { id: string; stripe_customer_id: string | null; email: string | null }
     | null;
   const stripeCustomerId = profileRow?.stripe_customer_id ?? null;
+
+  // Send the cancellation email NOW, while we still have the user's email.
+  // Once we delete the Supabase user below, CASCADE removes the profile, and
+  // the stripe-webhook handler for customer.subscription.deleted won't be
+  // able to find the email anymore (race condition). Best-effort: if email
+  // send fails, continue with deletion; the user explicitly chose to delete.
+  if (profileRow?.email) {
+    try {
+      const siteUrl = Deno.env.get("SITE_URL") ?? "https://prophiq.io";
+      const template = subscriptionCanceledEmail({
+        email: profileRow.email,
+        siteUrl,
+        reason: "user_canceled",
+      });
+      await sendEmail({
+        to: profileRow.email,
+        subject: template.subject,
+        html: template.html,
+      });
+    } catch (err) {
+      console.warn(`[delete-account] cancellation email failed: ${(err as Error).message}`);
+    }
+  }
 
   if (stripeCustomerId) {
     let stripe;
