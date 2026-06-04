@@ -27,7 +27,7 @@ import {
 import { getPublicBaseUrl } from "@/lib/publicUrl";
 import { classifyEvent } from "@/lib/subcategory";
 import { DOMAINS, DOMAIN_LABEL } from "@/lib/types";
-import type { DomainId, RankedOutcome } from "@/lib/types";
+import type { DomainId, EventRow, RankedOutcome } from "@/lib/types";
 
 export const Route = createFileRoute("/$domain/events/$slug")({
   loader: async ({ params }) => {
