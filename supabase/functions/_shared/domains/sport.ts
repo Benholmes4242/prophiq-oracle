@@ -132,7 +132,7 @@ export const sportAdapter: DomainAdapter = {
                         description: { type: "string" },
                         starts_at: { type: "string" },
                         resolves_at: { type: "string" },
-                        outcomes: {
+                      outcomes: {
                           type: "array",
                           items: {
                             type: "object",
@@ -140,8 +140,20 @@ export const sportAdapter: DomainAdapter = {
                             required: ["label"],
                           },
                         },
+                        metadata: {
+                          type: "object",
+                          properties: {
+                            sub_category: { type: "string" },
+                            favorite_label: { type: ["string", "null"] },
+                            field_size: { type: "integer" },
+                            league: { type: "string" },
+                            sport: { type: "string" },
+                          },
+                          required: ["sub_category", "favorite_label", "field_size"],
+                          additionalProperties: true,
+                        },
                       },
-                      required: ["title", "question", "starts_at", "outcomes"],
+                      required: ["title", "question", "starts_at", "outcomes", "metadata"],
                     },
                   },
                 },
@@ -158,6 +170,7 @@ export const sportAdapter: DomainAdapter = {
 
 
     const items = safeExtractJsonArray(response.content);
+    console.log(`[domain:${DOMAIN_ID}] raw response preview:`, response.content.slice(0, 800));
     const out: DiscoveredEvent[] = [];
     for (const item of items) {
       try {

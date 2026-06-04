@@ -108,8 +108,20 @@ const DISCOVERY_SCHEMA = {
               required: ["label"],
             },
           },
+          metadata: {
+            type: "object",
+            properties: {
+              sub_category: { type: "string" },
+              favorite_label: { type: ["string", "null"] },
+              field_size: { type: "integer" },
+              instrument: { type: "string" },
+              region: { type: "string" },
+            },
+            required: ["sub_category", "favorite_label", "field_size"],
+            additionalProperties: true,
+          },
         },
-        required: ["title", "question", "starts_at", "outcomes"],
+        required: ["title", "question", "starts_at", "outcomes", "metadata"],
       },
     },
   },
@@ -143,6 +155,7 @@ export const marketsAdapter: DomainAdapter = {
       return [];
     }
 
+    console.log(`[domain:${DOMAIN_ID}] raw response preview:`, response.content.slice(0, 800));
     const items = safeExtractJsonArray(response.content);
     const out: DiscoveredEvent[] = [];
     for (const item of items) {
