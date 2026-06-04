@@ -230,7 +230,37 @@ function ParentEventEyebrows({
 
 
 function EventDetailPage() {
-  const { family, event } = Route.useLoaderData();
+  const { family: initialFamily, event: initialEvent } = Route.useLoaderData();
+  const [family, setFamily] = useState(initialFamily);
+  const [event, setEvent] = useState(initialEvent);
+  const needsGeneration =
+    !initialFamily.parent.prediction && initialEvent.status !== "resolved";
+  const [isGenerating, setIsGenerating] = useState(needsGeneration);
+
+  useEffect(() => {
+    if (!needsGeneration) return;
+    let cancelled = false;
+    (async () => {
+      const mode =
+        (initialEvent.mode as "odds" | "prediction" | undefined) === "odds"
+          ? "odds"
+          : "prediction";
+      await triggerOnDemandPrediction(initialEvent.id, mode);
+      if (cancelled) return;
+      const refreshed = await fetchEventFamilyBySlug(initialEvent.slug);
+      if (cancelled) return;
+      if (refreshed) {
+        setFamily(refreshed);
+        setEvent(refreshed.parent.event);
+      }
+      setIsGenerating(false);
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialEvent.id]);
+
   const prediction = family.parent.prediction;
   const children = family.children ?? [];
   const isResolved = event.status === "resolved";
