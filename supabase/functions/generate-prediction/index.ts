@@ -228,28 +228,54 @@ Deno.serve(async (req) => {
   const structuredDataEnabled =
     (Deno.env.get("STRUCTURED_DATA_ENABLED") ?? "true").toLowerCase() !== "false";
   let structuredData: StructuredData | null = null;
-  if (structuredDataEnabled && typeof adapter.gatherStructuredData === "function") {
-    try {
-      structuredData = await adapter.gatherStructuredData(
-        supabase,
-        event as DomainEvent,
-        outcomes as EventOutcome[],
-      );
+  let structuredSources: StructuredDataContext = emptyStructuredDataContext();
+  if (structuredDataEnabled) {
+    const [legacyRes, sourcesRes] = await Promise.allSettled([
+      typeof adapter.gatherStructuredData === "function"
+        ? adapter.gatherStructuredData(
+            supabase,
+            event as DomainEvent,
+            outcomes as EventOutcome[],
+          )
+        : Promise.resolve(null),
+      typeof adapter.gatherStructuredSources === "function"
+        ? adapter.gatherStructuredSources(
+            supabase,
+            event as DomainEvent,
+            outcomes as EventOutcome[],
+          )
+        : Promise.resolve(emptyStructuredDataContext()),
+    ]);
+
+    if (legacyRes.status === "fulfilled") {
+      structuredData = legacyRes.value;
       if (structuredData) {
         console.log(
           `[generate-prediction] event=${body.event_id} structured_data_loaded source=${structuredData.source} lines=${structuredData.summary_lines.length}`,
         );
       }
-    } catch (e) {
+    } else {
       console.warn(
-        `[generate-prediction] structured data fetch failed for event ${body.event_id}: ${(e as Error).message}`,
+        `[generate-prediction] structured data fetch failed for event ${body.event_id}: ${(legacyRes.reason as Error).message}`,
       );
-      structuredData = null;
+    }
+
+    if (sourcesRes.status === "fulfilled") {
+      structuredSources = sourcesRes.value;
+      if (structuredSources.sources.length > 0) {
+        console.log(
+          `[generate-prediction] event=${body.event_id} structured_sources_loaded=${structuredSources.sources.map((s) => s.name).join(",")} errors=${structuredSources.errors.length}`,
+        );
+      }
+    } else {
+      console.warn(
+        `[generate-prediction] structured sources fetch failed for event ${body.event_id}: ${(sourcesRes.reason as Error).message}`,
+      );
     }
   }
 
   // ----- Build prompt with research + priors + markets + structured woven in -----
-  const prompt = adapter.buildPrompt(
+  let prompt = adapter.buildPrompt(
     event as DomainEvent,
     outcomes as EventOutcome[],
     mode,
@@ -258,6 +284,12 @@ Deno.serve(async (req) => {
     marketSignals.length > 0 ? marketSignals : undefined,
     structuredData,
   );
+
+  // Brief GG: append multi-source STRUCTURED DATA block (empty string when
+  // no adapter implements gatherStructuredSources yet, so this is a no-op
+  // during Phase A rollout).
+  const sourcesBlock = formatStructuredSourcesBlock(structuredSources);
+  if (sourcesBlock.length > 0) prompt = `${prompt}\n${sourcesBlock}`;
 
   // ----- Run consensus -----
   let consensusOut;
