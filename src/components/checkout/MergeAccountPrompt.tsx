@@ -95,6 +95,7 @@ export function MergeAccountPrompt({ email, onDismiss }: MergeAccountPromptProps
         setCode("");
         return;
       }
+      await supabase.auth.refreshSession();
       await invalidate();
       setState({ kind: "success" });
     } catch (err) {

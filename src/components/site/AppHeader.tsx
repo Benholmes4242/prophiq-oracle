@@ -22,15 +22,22 @@ export function AppHeader({ onMenuClick }: AppHeaderProps) {
 
   useEffect(() => {
     let mounted = true;
-    async function check() {
+    async function refresh() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!mounted) return;
       setIsAnonymous(user?.is_anonymous ?? true);
     }
-    check();
+    refresh();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setIsAnonymous(session?.user?.is_anonymous ?? true);
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (
+        event === "SIGNED_IN" ||
+        event === "SIGNED_OUT" ||
+        event === "USER_UPDATED" ||
+        event === "TOKEN_REFRESHED"
+      ) {
+        refresh();
+      }
     });
 
     return () => {
