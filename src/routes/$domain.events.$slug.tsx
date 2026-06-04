@@ -68,22 +68,8 @@ export const Route = createFileRoute("/$domain/events/$slug")({
     }
     const event = family.parent.event;
     if (event.domain !== params.domain) throw notFound();
-
-    // On-demand generation: if the parent has no current prediction and the
-    // event isn't resolved, kick off the edge function and re-fetch the
-    // family once it returns. The pendingComponent renders during the wait.
-    if (!family.parent.prediction && event.status !== "resolved") {
-      const result = await triggerOnDemandPrediction(event.id, "prediction");
-      if (result.ok) {
-        const refreshed = await fetchEventFamilyBySlug(event.slug);
-        if (refreshed) family = refreshed;
-      }
-    }
-
     return { family, event };
   },
-  pendingMs: 100,
-  pendingComponent: ForecastGeneratingScreen,
 
   head: ({ loaderData, params }) => {
     const event = loaderData?.event;
