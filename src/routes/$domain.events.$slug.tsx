@@ -31,10 +31,30 @@ import type { DomainId, RankedOutcome } from "@/lib/types";
 
 export const Route = createFileRoute("/$domain/events/$slug")({
   loader: async ({ params }) => {
-    const family = await fetchEventFamilyBySlug(params.slug);
+    let family = await fetchEventFamilyBySlug(params.slug);
+    // Defensive fallback: if the RPC returns null but the slug exists as a
+    // child, look up its parent slug directly and retry from there.
+    if (!family) {
+      const { supabase } = await import("@/lib/supabase");
+      const { data: row } = await supabase
+        .from("events")
+        .select("slug, parent_event_id")
+        .eq("slug", params.slug)
+        .maybeSingle();
+      if (row?.parent_event_id) {
+        const { data: parentRow } = await supabase
+          .from("events")
+          .select("slug, domain")
+          .eq("id", row.parent_event_id)
+          .maybeSingle();
+        if (parentRow?.slug) {
+          family = await fetchEventFamilyBySlug(parentRow.slug);
+        }
+      }
+    }
     if (!family) throw notFound();
     // Child slug → redirect to the parent's canonical URL.
-    if (family.resolved_from_child) {
+    if (family.resolved_from_child || family.parent.event.slug !== params.slug) {
       throw redirect({
         to: "/$domain/events/$slug",
         params: {
