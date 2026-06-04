@@ -62,7 +62,13 @@ Return a JSON array. Each element:
     { "label": "Cut 25bps" },
     { "label": "Cut 50bps" }
   ],
-  "metadata": { "asset": "...", "event_type": "earnings|cb|macro|ipo" }
+  "metadata": {
+    "asset": "...",
+    "event_type": "earnings|cb|macro|ipo",
+    "sub_category": "REQUIRED. One of: central_bank, earnings, ipo, economic_data, currency, commodity, other",
+    "favorite_label": "Label of the most likely outcome (must exactly match one of the outcome labels), or null if uncertain",
+    "field_size": 0
+  }
 }
 
 CRITICAL RULES FOR OUTCOMES:
@@ -73,6 +79,11 @@ CRITICAL RULES FOR OUTCOMES:
 3. For events with many possible competitors (e.g. F1, MotoGP, athletics, golf majors), list the 3-6 most likely contenders by name.
 4. For head-to-head fixtures, name both sides ("Liverpool win", "Draw", "Manchester City win").
 5. For tournaments, name the favourites.
+
+CRITICAL RULES FOR METADATA:
+- sub_category is MANDATORY and MUST be one of the listed enum values for this domain.
+- favorite_label MUST exactly match one of the outcome labels, or be null if uncertain.
+- field_size is the integer count of outcomes (use outcomes.length when uncertain).
 
 Outcome labels should be directional moves or numeric ranges (e.g. "Beat consensus", "In line", "Miss"; "Hold", "Cut 25bps", "Hike 25bps"; "Above $X", "Between $X-$Y", "Below $Y"). INFORMATIONAL ONLY — never use betting language. Return as many real, scheduled events as you can find using economic calendars, earnings calendars, and central-bank schedules. If you genuinely can't find any, return [].`;
 

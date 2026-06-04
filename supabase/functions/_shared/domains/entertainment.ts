@@ -61,7 +61,13 @@ Return a JSON array. Each element:
     { "label": "Nominee A" },
     { "label": "Nominee B" }
   ],
-  "metadata": { "category": "...", "event_type": "awards|release|finale" }
+  "metadata": {
+    "category": "...",
+    "event_type": "awards|release|finale",
+    "sub_category": "REQUIRED. One of: awards, film_release, album_release, reality_show, other",
+    "favorite_label": "Name of the most likely winner / chart-topper (must exactly match one of the outcome labels), or null if uncertain",
+    "field_size": 0
+  }
 }
 
 CRITICAL RULES FOR OUTCOMES:
@@ -72,6 +78,11 @@ CRITICAL RULES FOR OUTCOMES:
 3. For events with many possible competitors (e.g. F1, MotoGP, athletics, golf majors), list the 3-6 most likely contenders by name.
 4. For head-to-head fixtures, name both sides ("Liverpool win", "Draw", "Manchester City win").
 5. For tournaments, name the favourites.
+
+CRITICAL RULES FOR METADATA:
+- sub_category is MANDATORY and MUST be one of the listed enum values for this domain.
+- favorite_label MUST exactly match one of the outcome labels, or be null if uncertain.
+- field_size is the integer count of nominees/outcomes (use outcomes.length when uncertain).
 
 Return as many real, scheduled events as you can find. Use awards-show calendars, release schedules, and industry trade coverage. If you genuinely can't find any, return [].`;
 

@@ -19,6 +19,7 @@ import { runConsensus } from "../_shared/runConsensus.ts";
 import { getServiceClient } from "../_shared/supabaseClient.ts";
 import { scoreToConfidence } from "../_shared/confidence.ts";
 import { requireAuthenticatedUser, type AuthedUser } from "../_shared/auth.ts";
+import { PREDICTION_CACHE_TTL_MS } from "../_shared/cacheTtl.ts";
 import {
   handleCorsPreflight, errorResponse,
   SseStream, getFingerprint, getClientIp, hashIp,
@@ -235,7 +236,7 @@ Deno.serve(async (req) => {
         research_context: null,
         prompt_version: PROMPT_VERSION,
         is_current: true,
-        expires_at: new Date(Date.now() + 6 * 60 * 60 * 1000).toISOString(),
+        expires_at: new Date(Date.now() + PREDICTION_CACHE_TTL_MS).toISOString(),
       }).select("*").single();
       if (pErr) {
         sse.send({ stage: "consensus", status: "error", message: `prediction insert failed: ${pErr.message}` });

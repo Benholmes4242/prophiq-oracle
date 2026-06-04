@@ -10,6 +10,7 @@ import { registerAllDomains } from "../_shared/domains/index.ts";
 import { listDomains, getDomain } from "../_shared/domains/registry.ts";
 import { getServiceClient } from "../_shared/supabaseClient.ts";
 import { handleCorsPreflight, jsonResponse, errorResponse } from "../_shared/http.ts";
+import { generateSubQuestions } from "../_shared/subQuestions.ts";
 
 registerAllDomains();
 
@@ -80,6 +81,24 @@ Deno.serve(async (req) => {
         }));
         const { error: oErr } = await supabase.from("event_outcomes").upsert(rows, { onConflict: "event_id,external_id" });
         if (oErr) res.errors.push(`outcomes upsert: ${oErr.message}`);
+
+        // Phase A: generate binary sub-questions from templates (no-op when
+        // metadata.sub_category is absent). Best-effort; do not fail parent.
+        try {
+          const sq = await generateSubQuestions(supabase, {
+            id: upserted!.id,
+            domain: id,
+            slug: ev.slug,
+            title: ev.title,
+            starts_at: ev.starts_at,
+            resolves_at: ev.resolves_at,
+            mode: ev.mode,
+            metadata: ev.metadata ?? null,
+          });
+          if (sq.errors.length) res.errors.push(`sub-questions: ${sq.errors.join("; ")}`);
+        } catch (sqErr) {
+          res.errors.push(`sub-questions error: ${(sqErr as Error).message}`);
+        }
       } catch (e) {
         res.errors.push(`event error: ${(e as Error).message}`); res.skipped++;
       }

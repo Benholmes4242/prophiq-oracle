@@ -75,7 +75,13 @@ Return a JSON array. Each element:
     // Race/tournament: { "label": "Max Verstappen" }, { "label": "Lando Norris" }, { "label": "Charles Leclerc" }, { "label": "Lewis Hamilton" }
     // Athletics: { "label": "Noah Lyles" }, { "label": "Letsile Tebogo" }, { "label": "Kishane Thompson" }
   ],
-  "metadata": { "league": "...", "sport": "..." }
+  "metadata": {
+    "league": "...",
+    "sport": "...",
+    "sub_category": "REQUIRED. One of: horse_racing, football, basketball, baseball, american_football, hockey, golf, tennis, f1, mma, cricket, college_sports, other",
+    "favorite_label": "Name of the most likely winner (must exactly match one of the outcome labels), or null if the field/favorite isn't yet identifiable",
+    "field_size": 0
+  }
 }
 
 CRITICAL RULES FOR OUTCOMES:
@@ -86,6 +92,11 @@ CRITICAL RULES FOR OUTCOMES:
 3. For events with many possible competitors (e.g. F1, MotoGP, athletics, golf majors), list the 3-6 most likely contenders by name.
 4. For head-to-head fixtures, name both sides ("Liverpool win", "Draw", "Manchester City win").
 5. For tournaments, name the favourites.
+
+CRITICAL RULES FOR METADATA:
+- sub_category is MANDATORY and MUST be one of the listed enum values for this domain.
+- favorite_label MUST exactly match one of the outcome labels, or be null if no clear favorite exists yet.
+- field_size is the integer count of contestants/outcomes (use outcomes.length when uncertain).
 
 Return as many real, scheduled events as you can find in this window. Use fixture lists, official league schedules, and pre-event coverage. If you genuinely can't find any, return [].`;
 
