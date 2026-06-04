@@ -142,6 +142,7 @@ export function LoginModal({ open, onClose }: LoginModalProps) {
         setCode("");
         return;
       }
+      await supabase.auth.refreshSession();
       setState({ kind: "success", email: targetEmail });
     } catch (err) {
       setError((err as Error).message);
