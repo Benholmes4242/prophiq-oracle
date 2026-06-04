@@ -252,10 +252,84 @@ Rank every outcome from most likely (rank 1) to least likely. For each, provide 
   },
 
   gatherStructuredData(): Promise<StructuredData | null> {
-    // Phase 3.2 follow-on brief will wire FRED economic-data integration here.
+    // Legacy single-source slot. Brief GG multi-source feeds (FRED +
+    // Alpha Vantage) live in gatherStructuredSources below.
     return Promise.resolve(null);
   },
+
+  async gatherStructuredSources(
+    _supabase,
+    event: DomainEvent,
+    _outcomes: EventOutcome[],
+  ): Promise<StructuredDataContext> {
+    const t0 = Date.now();
+    const fredKey = readEnv("FRED_API_KEY") ?? "";
+    const avKey = readEnv("ALPHA_VANTAGE_API_KEY") ?? "";
+
+    const [fredRes, avRes] = await Promise.allSettled([
+      runSource("fred", () => fetchFredMacroSnapshot(fredKey)),
+      runSource("alphaVantage", () =>
+        fetchAlphaVantageContext(avKey, {
+          metadata: event.metadata,
+          title: event.title,
+          question: event.question,
+        }),
+      ),
+    ]);
+
+    const sources: StructuredDataSource[] = [];
+    const errors: StructuredDataError[] = [];
+    for (const res of [fredRes, avRes]) {
+      if (res.status === "fulfilled") {
+        if (res.value.kind === "ok") sources.push(res.value.source);
+        else errors.push(res.value.error);
+      } else {
+        errors.push({
+          source: "unknown",
+          message: (res.reason as Error)?.message ?? "rejected",
+          duration_ms: 0,
+        });
+      }
+    }
+
+    return { sources, errors, total_duration_ms: Date.now() - t0 };
+  },
 };
+
+type SourceResult =
+  | { kind: "ok"; source: StructuredDataSource }
+  | { kind: "err"; error: StructuredDataError };
+
+async function runSource(
+  name: string,
+  fetcher: () => Promise<unknown>,
+): Promise<SourceResult> {
+  const start = Date.now();
+  try {
+    const data = await withTimeout(fetcher(), STRUCTURED_DATA_TIMEOUT_MS, name);
+    const duration_ms = Date.now() - start;
+    return {
+      kind: "ok",
+      source: { name, data, fetched_at: new Date().toISOString(), duration_ms },
+    };
+  } catch (err) {
+    return {
+      kind: "err",
+      error: {
+        source: name,
+        message: (err as Error).message,
+        duration_ms: Date.now() - start,
+      },
+    };
+  }
+}
+
+function readEnv(name: string): string | undefined {
+  const deno = (globalThis as { Deno?: { env: { get(k: string): string | undefined } } }).Deno;
+  if (deno) return deno.env.get(name);
+  const proc = (globalThis as { process?: { env: Record<string, string | undefined> } }).process;
+  return proc?.env?.[name];
+}
 
 function parseResolution(content: string, outcomes: EventOutcome[]): ResolutionResult | null {
   try {
