@@ -101,6 +101,15 @@ export interface DomainAdapter {
     event: DomainEvent,
     outcomes: EventOutcome[],
   ): Promise<import("./structuredData.ts").StructuredData | null>;
+  /** Brief GG: optional multi-source structured-data fetcher. Adapters
+   * implement this to pull from 2+ feeds in parallel (e.g. Polymarket +
+   * Kalshi for politics). Best-effort: failures inside the adapter should
+   * be captured as `errors` on the returned context, not thrown. */
+  gatherStructuredSources?(
+    supabase: import("https://esm.sh/@supabase/supabase-js@2.45.4").SupabaseClient,
+    event: DomainEvent,
+    outcomes: EventOutcome[],
+  ): Promise<import("./structuredData.ts").StructuredDataContext>;
 }
 
 export interface ResolutionResult {

@@ -75,3 +75,95 @@ export function formatStructuredDataBlock(data: StructuredData | null): string {
     "",
   ].join("\n");
 }
+
+// ============================================================
+// Brief GG: multi-source structured-data context.
+//
+// The legacy `StructuredData` shape above is a single source per call
+// (api-sports football v3). Brief GG introduces a multi-source aggregation
+// shape so each domain can pull from 2+ feeds in parallel (e.g. politics
+// gets Polymarket + Kalshi). Adapters opt in by implementing
+// `gatherStructuredSources` on the DomainAdapter interface. The orchestrator
+// runs the call alongside research+priors+markets, formats the result via
+// `formatStructuredSourcesBlock`, and appends the block to the prompt.
+// ============================================================
+
+export interface StructuredDataSource {
+  name: string;
+  // deno-lint-ignore no-explicit-any
+  data: any;
+  fetched_at: string;
+  duration_ms: number;
+}
+
+export interface StructuredDataError {
+  source: string;
+  message: string;
+  duration_ms: number;
+}
+
+export interface StructuredDataContext {
+  sources: StructuredDataSource[];
+  errors: StructuredDataError[];
+  total_duration_ms: number;
+}
+
+export const STRUCTURED_DATA_TIMEOUT_MS = 5000;
+
+export function emptyStructuredDataContext(): StructuredDataContext {
+  return { sources: [], errors: [], total_duration_ms: 0 };
+}
+
+export async function withTimeout<T>(
+  promise: Promise<T>,
+  timeoutMs: number,
+  label: string,
+): Promise<T> {
+  let timeoutHandle: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<never>((_, reject) => {
+    timeoutHandle = setTimeout(
+      () => reject(new Error(`${label} timed out after ${timeoutMs}ms`)),
+      timeoutMs,
+    );
+  });
+  try {
+    return await Promise.race([promise, timeout]);
+  } finally {
+    if (timeoutHandle !== undefined) clearTimeout(timeoutHandle);
+  }
+}
+
+/**
+ * Render the multi-source STRUCTURED DATA block. Returns empty string when
+ * no sources contributed (safe to concatenate unconditionally). The block
+ * sits between LIVE RESEARCH CONTEXT and PRIOR FORECASTS in the prompt.
+ */
+export function formatStructuredSourcesBlock(ctx: StructuredDataContext): string {
+  if (ctx.sources.length === 0) return "";
+
+  const lines: string[] = ["", "STRUCTURED DATA FROM EXTERNAL SOURCES:", ""];
+
+  for (const source of ctx.sources) {
+    lines.push(`[${source.name}]`);
+    lines.push(
+      typeof source.data === "string"
+        ? source.data
+        : JSON.stringify(source.data, null, 2),
+    );
+    lines.push("");
+  }
+
+  if (ctx.errors.length > 0) {
+    lines.push(
+      `(Some sources were unavailable: ${ctx.errors.map((e) => e.source).join(", ")})`,
+    );
+    lines.push("");
+  }
+
+  lines.push(
+    "Consider this structured data alongside the live research. Where they conflict, prefer structured data for numeric facts and recent prices, and prefer live research for context and qualitative reasoning.",
+  );
+  lines.push("");
+
+  return lines.join("\n");
+}
