@@ -155,6 +155,7 @@ export const politicsAdapter: DomainAdapter = {
 
     console.log(`[domain:${DOMAIN_ID}] raw response preview:`, response.content.slice(0, 800));
     const items = safeExtractJsonArray(response.content);
+    console.log(`[domain:${DOMAIN_ID}] parsed event[0] keys:`, items[0] && typeof items[0] === "object" ? Object.keys(items[0] as object) : null, "metadata:", JSON.stringify((items[0] as { metadata?: unknown } | undefined)?.metadata));
     const out: DiscoveredEvent[] = [];
     for (const item of items) {
       try {

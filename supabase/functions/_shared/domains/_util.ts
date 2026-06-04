@@ -142,6 +142,8 @@ export async function coerceDiscoveredEvent(
 
   const llmMetadata = extractDiscoveryMetadata(r);
   const metadata: Record<string, unknown> = { ...llmMetadata, ...(opts.extraMetadata ?? {}) };
+  console.log(`[coerceDiscoveredEvent:${opts.slugPrefix}] r.metadata typeof=${typeof r.metadata} keys=${r.metadata && typeof r.metadata === "object" ? Object.keys(r.metadata as object).join(",") : "n/a"} | llmMetadata=${JSON.stringify(llmMetadata)} | final=${JSON.stringify(metadata)}`);
+
 
   return {
     external_id: externalId,
