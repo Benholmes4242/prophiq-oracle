@@ -140,8 +140,8 @@ export async function coerceDiscoveredEvent(
   const externalId = await stableEventId(title, startsAtDate);
   const slug = `${opts.slugPrefix}-${externalId.slice(0, 12)}`;
 
-  const metadata: Record<string, unknown> = { ...(opts.extraMetadata ?? {}) };
-  if (r.metadata && typeof r.metadata === "object") Object.assign(metadata, r.metadata);
+  const llmMetadata = extractDiscoveryMetadata(r);
+  const metadata: Record<string, unknown> = { ...llmMetadata, ...(opts.extraMetadata ?? {}) };
 
   return {
     external_id: externalId,
@@ -155,6 +155,63 @@ export async function coerceDiscoveredEvent(
     outcomes,
     metadata,
   };
+}
+
+const TOP_LEVEL_METADATA_KEYS = [
+  "sub_category",
+  "subCategory",
+  "favorite_label",
+  "favoriteLabel",
+  "field_size",
+  "fieldSize",
+  "league",
+  "sport",
+  "asset",
+  "event_type",
+  "eventType",
+  "instrument",
+  "region",
+  "country",
+  "type",
+  "chamber",
+  "category",
+  "franchise",
+  "network",
+] as const;
+
+function extractDiscoveryMetadata(r: Record<string, unknown>): Record<string, unknown> {
+  const metadata: Record<string, unknown> = {};
+
+  if (r.metadata && typeof r.metadata === "object" && !Array.isArray(r.metadata)) {
+    Object.assign(metadata, r.metadata as Record<string, unknown>);
+  }
+
+  // Be tolerant of providers/models that flatten metadata fields despite the
+  // nested schema. Without this, top-level sub_category/favorite_label/field_size
+  // are silently dropped and only adapter-controlled flags survive.
+  for (const key of TOP_LEVEL_METADATA_KEYS) {
+    if (r[key] !== undefined && metadata[key] === undefined) metadata[key] = r[key];
+  }
+
+  if (metadata.sub_category === undefined && typeof metadata.subCategory === "string") {
+    metadata.sub_category = metadata.subCategory;
+  }
+  if (metadata.favorite_label === undefined && (typeof metadata.favoriteLabel === "string" || metadata.favoriteLabel === null)) {
+    metadata.favorite_label = metadata.favoriteLabel;
+  }
+  if (metadata.field_size === undefined && metadata.fieldSize !== undefined) {
+    metadata.field_size = metadata.fieldSize;
+  }
+  if (metadata.event_type === undefined && typeof metadata.eventType === "string") {
+    metadata.event_type = metadata.eventType;
+  }
+
+  if (typeof metadata.field_size === "string") {
+    const parsed = Number.parseInt(metadata.field_size, 10);
+    if (Number.isFinite(parsed)) metadata.field_size = parsed;
+  }
+
+  return metadata;
 }
 
 export function logSkip(domain: string, reason: string, raw: unknown): void {
