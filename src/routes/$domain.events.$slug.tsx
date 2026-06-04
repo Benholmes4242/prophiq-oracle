@@ -156,9 +156,9 @@ function buildCallHeading(picks: RankedOutcome[], topPickLabel: string): string 
 }
 
 function EventDetailPage() {
-  const { event } = Route.useLoaderData();
-  const mode: "prediction" | "odds" = event.mode === "odds" ? "odds" : "prediction";
-  const { data: prediction, isLoading } = useCurrentPrediction(event.id, mode);
+  const { family, event } = Route.useLoaderData();
+  const prediction = family.parent.prediction;
+  const children = family.children ?? [];
   const isResolved = event.status === "resolved";
   const { data: resolution } = useQuery({
     queryKey: ["event-resolution", event.id],
@@ -205,11 +205,6 @@ function EventDetailPage() {
               picks={ranked}
               heading={buildCallHeading(ranked, topPickLabel)}
             />
-          ) : isLoading ? (
-            <div
-              className="h-32 animate-pulse rounded-2xl mb-6"
-              style={{ background: "var(--bg-card)" }}
-            />
           ) : (
             <p
               className="rounded-lg p-4 font-body text-sm mb-6"
@@ -225,6 +220,26 @@ function EventDetailPage() {
               reasons={top.reasons ?? []}
             />
           )}
+
+          {children.length > 0 && (
+            <section className="mt-6">
+              <div className="section-row">
+                <span className="section-eyebrow">OTHER FORECASTS ON THIS EVENT</span>
+                <span className="section-rule" />
+              </div>
+              <div className="mt-3 flex flex-col gap-3">
+                {children.map((c) => (
+                  <SubQuestionCard
+                    key={c.event.id}
+                    event={c.event}
+                    prediction={c.prediction}
+                  />
+                ))}
+              </div>
+            </section>
+          )}
+
+
 
           {domainId && (
             <RelatedEvents domain={domainId} excludeId={event.id} limit={3} />
