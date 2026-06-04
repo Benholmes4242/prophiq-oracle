@@ -16,6 +16,7 @@ import { Route as SearchRouteImport } from './routes/search'
 import { Route as RobotsDottxtRouteImport } from './routes/robots[.]txt'
 import { Route as ReceiptsRouteImport } from './routes/receipts'
 import { Route as PrivacyRouteImport } from './routes/privacy'
+import { Route as PricingRouteImport } from './routes/pricing'
 import { Route as PredictionsRouteImport } from './routes/predictions'
 import { Route as PoliticsRouteImport } from './routes/politics'
 import { Route as MyQuestionsRouteImport } from './routes/my-questions'
@@ -27,6 +28,7 @@ import { Route as ContactRouteImport } from './routes/contact'
 import { Route as AskedRouteImport } from './routes/asked'
 import { Route as AskRouteImport } from './routes/ask'
 import { Route as AdminRouteImport } from './routes/admin'
+import { Route as AccountRouteImport } from './routes/account'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as DomainTrackRecordRouteImport } from './routes/$domain.track-record'
@@ -67,6 +69,11 @@ const ReceiptsRoute = ReceiptsRouteImport.update({
 const PrivacyRoute = PrivacyRouteImport.update({
   id: '/privacy',
   path: '/privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PricingRoute = PricingRouteImport.update({
+  id: '/pricing',
+  path: '/pricing',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PredictionsRoute = PredictionsRouteImport.update({
@@ -124,6 +131,11 @@ const AdminRoute = AdminRouteImport.update({
   path: '/admin',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AccountRoute = AccountRouteImport.update({
+  id: '/account',
+  path: '/account',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AboutRoute = AboutRouteImport.update({
   id: '/about',
   path: '/about',
@@ -158,6 +170,7 @@ const ApiOgEventSlugRoute = ApiOgEventSlugRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
+  '/account': typeof AccountRoute
   '/admin': typeof AdminRoute
   '/ask': typeof AskRoute
   '/asked': typeof AskedRoute
@@ -169,6 +182,7 @@ export interface FileRoutesByFullPath {
   '/my-questions': typeof MyQuestionsRoute
   '/politics': typeof PoliticsRoute
   '/predictions': typeof PredictionsRoute
+  '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
   '/receipts': typeof ReceiptsRoute
   '/robots.txt': typeof RobotsDottxtRoute
@@ -184,6 +198,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
+  '/account': typeof AccountRoute
   '/admin': typeof AdminRoute
   '/ask': typeof AskRoute
   '/asked': typeof AskedRoute
@@ -195,6 +210,7 @@ export interface FileRoutesByTo {
   '/my-questions': typeof MyQuestionsRoute
   '/politics': typeof PoliticsRoute
   '/predictions': typeof PredictionsRoute
+  '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
   '/receipts': typeof ReceiptsRoute
   '/robots.txt': typeof RobotsDottxtRoute
@@ -211,6 +227,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
+  '/account': typeof AccountRoute
   '/admin': typeof AdminRoute
   '/ask': typeof AskRoute
   '/asked': typeof AskedRoute
@@ -222,6 +239,7 @@ export interface FileRoutesById {
   '/my-questions': typeof MyQuestionsRoute
   '/politics': typeof PoliticsRoute
   '/predictions': typeof PredictionsRoute
+  '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
   '/receipts': typeof ReceiptsRoute
   '/robots.txt': typeof RobotsDottxtRoute
@@ -239,6 +257,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/about'
+    | '/account'
     | '/admin'
     | '/ask'
     | '/asked'
@@ -250,6 +269,7 @@ export interface FileRouteTypes {
     | '/my-questions'
     | '/politics'
     | '/predictions'
+    | '/pricing'
     | '/privacy'
     | '/receipts'
     | '/robots.txt'
@@ -265,6 +285,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/about'
+    | '/account'
     | '/admin'
     | '/ask'
     | '/asked'
@@ -276,6 +297,7 @@ export interface FileRouteTypes {
     | '/my-questions'
     | '/politics'
     | '/predictions'
+    | '/pricing'
     | '/privacy'
     | '/receipts'
     | '/robots.txt'
@@ -291,6 +313,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/about'
+    | '/account'
     | '/admin'
     | '/ask'
     | '/asked'
@@ -302,6 +325,7 @@ export interface FileRouteTypes {
     | '/my-questions'
     | '/politics'
     | '/predictions'
+    | '/pricing'
     | '/privacy'
     | '/receipts'
     | '/robots.txt'
@@ -318,6 +342,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AboutRoute: typeof AboutRoute
+  AccountRoute: typeof AccountRoute
   AdminRoute: typeof AdminRoute
   AskRoute: typeof AskRoute
   AskedRoute: typeof AskedRoute
@@ -329,6 +354,7 @@ export interface RootRouteChildren {
   MyQuestionsRoute: typeof MyQuestionsRoute
   PoliticsRoute: typeof PoliticsRoute
   PredictionsRoute: typeof PredictionsRoute
+  PricingRoute: typeof PricingRoute
   PrivacyRoute: typeof PrivacyRoute
   ReceiptsRoute: typeof ReceiptsRoute
   RobotsDottxtRoute: typeof RobotsDottxtRoute
@@ -391,6 +417,13 @@ declare module '@tanstack/react-router' {
       path: '/privacy'
       fullPath: '/privacy'
       preLoaderRoute: typeof PrivacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pricing': {
+      id: '/pricing'
+      path: '/pricing'
+      fullPath: '/pricing'
+      preLoaderRoute: typeof PricingRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/predictions': {
@@ -470,6 +503,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/account': {
+      id: '/account'
+      path: '/account'
+      fullPath: '/account'
+      preLoaderRoute: typeof AccountRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/about': {
       id: '/about'
       path: '/about'
@@ -518,6 +558,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AboutRoute: AboutRoute,
+  AccountRoute: AccountRoute,
   AdminRoute: AdminRoute,
   AskRoute: AskRoute,
   AskedRoute: AskedRoute,
@@ -529,6 +570,7 @@ const rootRouteChildren: RootRouteChildren = {
   MyQuestionsRoute: MyQuestionsRoute,
   PoliticsRoute: PoliticsRoute,
   PredictionsRoute: PredictionsRoute,
+  PricingRoute: PricingRoute,
   PrivacyRoute: PrivacyRoute,
   ReceiptsRoute: ReceiptsRoute,
   RobotsDottxtRoute: RobotsDottxtRoute,

@@ -3,6 +3,8 @@
 
 import { getBrowserFingerprint } from "@/hooks/useBrowserFingerprint";
 import type { ConfidenceTier } from "@/lib/types";
+import { showPaywall, type PaywallQuotaInfo } from "@/components/paywall/PaywallModal";
+import { supabase } from "@/lib/supabase";
 
 export type AskTopic = "any" | "sport" | "politics" | "markets" | "entertainment";
 
@@ -48,12 +50,16 @@ export async function runForecast(opts: RunForecastOpts): Promise<void> {
     const fingerprint = await getBrowserFingerprint();
     const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/submit-question`;
     const anon = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
+    // Send the user's JWT when available so the edge function can quota the
+    // authenticated user (anonymous or email). Falls back to the anon key.
+    const { data: { session } } = await supabase.auth.getSession();
+    const bearer = session?.access_token ?? anon;
 
     const res = await fetch(url, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${anon}`,
+        Authorization: `Bearer ${bearer}`,
         apikey: anon,
         Accept: "text/event-stream",
       },
@@ -67,7 +73,22 @@ export async function runForecast(opts: RunForecastOpts): Promise<void> {
 
     if (!res.ok || !res.body) {
       if (res.status === 429) {
-        onError?.("You've hit the submission limit. Try again later.");
+        // Try to surface tier-aware paywall using the 429 body (Brief CC).
+        const body = await res.json().catch(() => null) as
+          | (PaywallQuotaInfo & { error?: string })
+          | null;
+        if (body && typeof body.daily_cap === "number") {
+          showPaywall({
+            daily_cap: body.daily_cap,
+            used_today: body.used_today ?? 0,
+            tier: body.tier ?? "free",
+            is_trialing: !!body.is_trialing,
+            trial_end: body.trial_end ?? null,
+          });
+          onError?.(body.error ?? "Daily forecast limit reached.");
+        } else {
+          onError?.("You've hit the submission limit. Try again later.");
+        }
       } else {
         onError?.(`Request failed (${res.status}). Please try again.`);
       }
