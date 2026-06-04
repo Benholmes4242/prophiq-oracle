@@ -149,9 +149,9 @@ export async function runForecast(opts: RunForecastOpts): Promise<void> {
         } else if (evt.status === "error") {
           const map: Record<string, string> = {
             moderation:
-              "We couldn't answer that — try a more specific public-event question.",
+              "We couldn't answer that. Try a more specific public-event question.",
             pre_filter:
-              "We couldn't answer that — try a more specific public-event question.",
+              "We couldn't answer that. Try a more specific public-event question.",
             rate_limit:
               evt.message ?? "You've reached today's submission limit.",
           };
@@ -212,6 +212,6 @@ export async function runForecast(opts: RunForecastOpts): Promise<void> {
     });
   } catch (err) {
     if ((err as Error).name === "AbortError") return;
-    onError?.("Network error — please try again.");
+    onError?.("Network error. Please try again.");
   }
 }
