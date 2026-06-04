@@ -10,6 +10,7 @@ import { registerAllDomains } from "../_shared/domains/index.ts";
 import { listDomains, getDomain } from "../_shared/domains/registry.ts";
 import { getServiceClient } from "../_shared/supabaseClient.ts";
 import { handleCorsPreflight, jsonResponse, errorResponse } from "../_shared/http.ts";
+import { generateSubQuestions } from "../_shared/subQuestions.ts";
 
 registerAllDomains();
 
