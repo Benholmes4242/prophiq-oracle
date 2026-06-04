@@ -3,6 +3,8 @@
 
 import { getBrowserFingerprint } from "@/hooks/useBrowserFingerprint";
 import type { ConfidenceTier } from "@/lib/types";
+import { showPaywall, type PaywallQuotaInfo } from "@/components/paywall/PaywallModal";
+import { supabase } from "@/lib/supabase";
 
 export type AskTopic = "any" | "sport" | "politics" | "markets" | "entertainment";
 
