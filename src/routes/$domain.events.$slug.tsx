@@ -175,6 +175,58 @@ function buildCallHeading(picks: RankedOutcome[], topPickLabel: string): string 
   return `${topPickLabel} as the most likely outcome.`;
 }
 
+function ParentEventEyebrows({
+  event,
+  ranked,
+}: {
+  event: EventRow;
+  ranked: RankedOutcome[];
+}) {
+  const meta = (event.metadata ?? {}) as Record<string, unknown>;
+  const fieldSizeRaw = meta.field_size;
+  const fieldSize =
+    typeof fieldSizeRaw === "number"
+      ? fieldSizeRaw
+      : typeof fieldSizeRaw === "string"
+        ? Number(fieldSizeRaw)
+        : null;
+  const showFieldOf = fieldSize != null && Number.isFinite(fieldSize) && fieldSize >= 10;
+
+  const pct = (p?: number) =>
+    Math.round((p ?? 0) > 1 ? (p as number) : (p ?? 0) * 100);
+  const named = ranked.filter(
+    (p) => !FIELD_LABEL_PATTERN.test((p.outcome_label ?? "").trim()),
+  );
+  const topPct = pct(named[0]?.probability);
+  const secondPct = pct(named[1]?.probability);
+  const dominant = secondPct > 0 && topPct >= 2 * secondPct;
+  const lead = topPct - secondPct;
+
+  if (!showFieldOf && !dominant) return null;
+
+  return (
+    <div className="mb-2 flex flex-wrap items-center gap-x-3 gap-y-1">
+      {showFieldOf && (
+        <span
+          className="font-mono text-[10px] font-bold tracking-[0.2em]"
+          style={{ color: "var(--amber-2)" }}
+        >
+          FIELD OF {fieldSize}
+        </span>
+      )}
+      {dominant && (
+        <span
+          className="font-mono text-[10px] font-bold tracking-[0.2em]"
+          style={{ color: "var(--amber-2)" }}
+        >
+          STRONGEST PICK BY {lead} POINTS
+        </span>
+      )}
+    </div>
+  );
+}
+
+
 function EventDetailPage() {
   const { family, event } = Route.useLoaderData();
   const prediction = family.parent.prediction;
