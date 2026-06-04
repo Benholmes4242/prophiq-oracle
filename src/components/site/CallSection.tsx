@@ -4,6 +4,10 @@
 // and a conditional "Rest of the field" row for incomplete probability spaces.
 
 import { Link } from "@tanstack/react-router";
+import { OddsDisplay } from "@/components/site/OddsDisplay";
+import { UpdatedTimestamp } from "@/components/site/UpdatedTimestamp";
+import { FrequentistFraming } from "@/components/site/FrequentistFraming";
+import type { DomainId } from "@/lib/types";
 
 interface RankedOutcome {
   outcome_label?: string | null;
@@ -15,6 +19,10 @@ interface CallSectionProps {
   picks: RankedOutcome[];
   heading: string;
   totalNamedTeamsHint?: number;
+  domain?: DomainId | null;
+  generatedAt?: string | null;
+  /** Show frequentist framing below the bars (parent events with 3+ outcomes). */
+  showFrequentistFraming?: boolean;
 }
 
 export const FIELD_LABEL_PATTERN = /^(other team|other|field|remaining|other outcomes?)$/i;
@@ -24,20 +32,29 @@ const MAX_NAMED_ROWS = 6;
 
 interface NormalisedPick extends RankedOutcome {
   pct: number;
+  prob01: number;
 }
 
-export function CallSection({ picks, heading, totalNamedTeamsHint }: CallSectionProps) {
+export function CallSection({
+  picks,
+  heading,
+  totalNamedTeamsHint,
+  domain,
+  generatedAt,
+  showFrequentistFraming = false,
+}: CallSectionProps) {
   const namedPicks: NormalisedPick[] = [];
   let backendFieldPct: number | null = null;
 
   for (const pick of picks) {
     const label = pick.outcome_label ?? pick.outcome_id ?? "";
     const prob = pick.probability ?? 0;
-    const pct = Math.round(prob > 1 ? prob : prob * 100);
+    const prob01 = prob > 1 ? prob / 100 : prob;
+    const pct = Math.round(prob01 * 100);
     if (FIELD_LABEL_PATTERN.test(label.trim())) {
       backendFieldPct = (backendFieldPct ?? 0) + pct;
     } else {
-      namedPicks.push({ ...pick, pct });
+      namedPicks.push({ ...pick, pct, prob01 });
     }
   }
 
@@ -52,7 +69,10 @@ export function CallSection({ picks, heading, totalNamedTeamsHint }: CallSection
   return (
     <>
       <section className="call-section">
-        <p className="call-heading">{heading}</p>
+        <div className="flex items-start justify-between gap-3">
+          <p className="call-heading">{heading}</p>
+          {generatedAt && <UpdatedTimestamp iso={generatedAt} />}
+        </div>
 
         <div className="call-list">
           {displayedNamed.map((pick, i) => {
@@ -63,7 +83,9 @@ export function CallSection({ picks, heading, totalNamedTeamsHint }: CallSection
                 rank={i + 1}
                 label={label}
                 pct={pick.pct}
+                prob01={pick.prob01}
                 isTop={i === 0}
+                domain={domain ?? null}
               />
             );
           })}
@@ -76,6 +98,10 @@ export function CallSection({ picks, heading, totalNamedTeamsHint }: CallSection
           )}
         </div>
       </section>
+
+      {showFrequentistFraming && (
+        <FrequentistFraming picks={picks as RankedOutcome[]} domain={domain ?? null} />
+      )}
 
       <div className="call-help-row">
         <Link to="/how-it-works" className="call-help-link">
@@ -90,12 +116,16 @@ function Row({
   rank,
   label,
   pct,
+  prob01,
   isTop,
+  domain,
 }: {
   rank: number;
   label: string;
   pct: number;
+  prob01: number;
   isTop: boolean;
+  domain: DomainId | null;
 }) {
   return (
     <div className={isTop ? "call-row call-row-top" : "call-row"}>
@@ -106,6 +136,11 @@ function Row({
           {pct}
           <span className="call-pct-unit">%</span>
         </span>
+        <OddsDisplay
+          probability={prob01}
+          domain={domain}
+          className="ml-2 shrink-0"
+        />
       </div>
       <div className="call-bar">
         <div className="call-bar-fill" style={{ width: `${pct}%` }} />
