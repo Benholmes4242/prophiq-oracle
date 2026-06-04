@@ -100,7 +100,16 @@ export function CallSection({
       </section>
 
       {showFrequentistFraming && (
-        <FrequentistFraming picks={picks as RankedOutcome[]} domain={domain ?? null} />
+        <FrequentistFraming
+          picks={picks.map((p, i) => ({
+            outcome_label: p.outcome_label ?? undefined,
+            outcome_id: p.outcome_id ?? undefined,
+            probability: p.probability,
+            rank: i + 1,
+          }))}
+          domain={domain ?? null}
+        />
+
       )}
 
       <div className="call-help-row">
