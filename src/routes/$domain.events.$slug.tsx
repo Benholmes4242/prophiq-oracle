@@ -218,12 +218,17 @@ function EventDetailPage() {
             </div>
           )}
 
+          <ParentEventEyebrows event={event} ranked={ranked} />
+
           <EventHero event={event} subcategory={subcategory} />
 
           {ranked.length > 0 ? (
             <CallSection
               picks={ranked}
               heading={buildCallHeading(ranked, topPickLabel)}
+              domain={domainId}
+              generatedAt={prediction?.generated_at ?? null}
+              showFrequentistFraming={ranked.length >= 3}
             />
           ) : (
             <p
@@ -233,6 +238,7 @@ function EventDetailPage() {
               Prophiq is thinking - check back in a few minutes.
             </p>
           )}
+
 
           {top && (
             <Reasoning
