@@ -128,7 +128,7 @@ function AccountPage() {
                   <Link
                     to="/pricing"
                     className="inline-block py-2.5 px-4 rounded-lg font-medium text-sm"
-                    style={{ background: "var(--amber)", color: "white" }}
+                    style={{ background: "var(--ink)", color: "white" }}
                   >
                     {"View pricing \u2192"}
                   </Link>
@@ -156,7 +156,7 @@ function AccountPage() {
                     className="h-full transition-all"
                     style={{
                       width: `${(usage.used / Math.max(1, usage.dailyCap)) * 100}%`,
-                      background: usage.remaining === 0 ? "var(--amber)" : "var(--ink)",
+                      background: "var(--ink)",
                     }}
                   />
                 </div>

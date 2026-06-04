@@ -118,7 +118,7 @@ export function PaywallModal({ open, onClose, quotaInfo }: PaywallModalProps) {
               onClick={() => handleUpgrade(PRO_MONTHLY_PRICE_ID)}
               disabled={loadingPriceId !== null}
               className="w-full py-3 px-4 rounded-lg font-medium text-sm disabled:opacity-50"
-              style={{ background: "var(--amber)", color: "white" }}
+              style={{ background: "var(--ink)", color: "white" }}
             >
               {loadingPriceId === PRO_MONTHLY_PRICE_ID
                 ? "Loading..."
