@@ -37,3 +37,19 @@ export function useActiveSubscription() {
     refetchOnWindowFocus: true,
   });
 }
+
+/**
+ * Invalidates the subscription/quota/prices caches. Call after returning
+ * from Stripe Checkout or Customer Portal so the entire app re-reads fresh
+ * state without prop drilling.
+ */
+export function useInvalidateSubscriptionState() {
+  const queryClient = useQueryClient();
+  return async () => {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ["active-subscription"] }),
+      queryClient.invalidateQueries({ queryKey: ["user-quota-today"] }),
+      queryClient.invalidateQueries({ queryKey: ["prophiq-prices"] }),
+    ]);
+  };
+}
