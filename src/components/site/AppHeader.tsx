@@ -1,7 +1,10 @@
+import { useEffect, useState } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
 import { PhiMark } from "@/components/brand/PhiMark";
 import { TierBadge } from "@/components/site/TierBadge";
+import { LoginModal } from "@/components/auth/LoginModal";
 import { useUsageQuota } from "@/hooks/useUsageQuota";
+import { supabase } from "@/lib/supabase";
 
 interface AppHeaderProps {
   onMenuClick: () => void;
@@ -13,6 +16,29 @@ export function AppHeader({ onMenuClick }: AppHeaderProps) {
   });
   const { usage } = useUsageQuota();
   const showPricingLink = !usage || usage.tier === "free";
+
+  const [loginOpen, setLoginOpen] = useState(false);
+  const [isAnonymous, setIsAnonymous] = useState(true);
+
+  useEffect(() => {
+    let mounted = true;
+    async function check() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!mounted) return;
+      setIsAnonymous(user?.is_anonymous ?? true);
+    }
+    check();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setIsAnonymous(session?.user?.is_anonymous ?? true);
+    });
+
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
+  }, []);
+
   return (
     <header
       className="flex items-center justify-between px-4 pb-1 pt-2.5"
@@ -56,6 +82,16 @@ export function AppHeader({ onMenuClick }: AppHeaderProps) {
             Pricing
           </Link>
         )}
+        {isAnonymous && (
+          <button
+            type="button"
+            onClick={() => setLoginOpen(true)}
+            className="text-sm font-medium hover:opacity-70"
+            style={{ color: "var(--ink)" }}
+          >
+            Log in
+          </button>
+        )}
         <TierBadge />
         <Link
           to="/search"
@@ -77,6 +113,8 @@ export function AppHeader({ onMenuClick }: AppHeaderProps) {
           </svg>
         </Link>
       </div>
+
+      <LoginModal open={loginOpen} onClose={() => setLoginOpen(false)} />
     </header>
   );
 }

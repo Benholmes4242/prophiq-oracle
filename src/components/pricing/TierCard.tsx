@@ -50,7 +50,7 @@ export function TierCard({
   return (
     <div
       className={`relative rounded-2xl border p-6 flex flex-col ${
-        isPopular ? "ring-2 ring-[var(--amber)]" : ""
+        isPopular ? "ring-2 ring-[var(--ink)]" : ""
       }`}
       style={{
         background: "var(--bg)",
@@ -59,13 +59,19 @@ export function TierCard({
     >
       {isPopular && (
         <span
-          className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full text-xs font-semibold"
+          className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full text-xs font-semibold inline-flex items-center gap-1.5"
           style={{
-            background: "var(--amber)",
-            color: "white",
+            background: "var(--bg)",
+            color: "var(--ink)",
+            border: "1px solid var(--line)",
             letterSpacing: "0.04em",
           }}
         >
+          <span
+            className="inline-block w-1.5 h-1.5 rounded-full"
+            style={{ background: "var(--amber)" }}
+            aria-hidden="true"
+          />
           MOST POPULAR
         </span>
       )}
@@ -101,7 +107,7 @@ export function TierCard({
         disabled={ctaDisabled || loading}
         className="w-full py-2.5 px-4 rounded-lg font-medium text-sm transition-opacity disabled:opacity-50"
         style={{
-          background: isPopular ? "var(--amber)" : "var(--ink)",
+          background: "var(--ink)",
           color: "white",
         }}
       >

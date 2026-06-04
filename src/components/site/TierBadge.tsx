@@ -19,8 +19,8 @@ export function TierBadge() {
       Math.ceil((trialEnd.getTime() - Date.now()) / (1000 * 60 * 60 * 24)),
     );
     label = `TRIAL \u00b7 ${daysLeft}d`;
-    bgColor = "var(--amber)";
-    textColor = "white";
+    bgColor = "var(--bg)";
+    textColor = "var(--amber)";
     borderColor = "var(--amber)";
   } else if (tier === "standard") {
     label = "STANDARD";
@@ -29,9 +29,9 @@ export function TierBadge() {
     borderColor = "var(--ink)";
   } else if (tier === "pro") {
     label = "PRO";
-    bgColor = "var(--amber)";
+    bgColor = "var(--ink)";
     textColor = "white";
-    borderColor = "var(--amber)";
+    borderColor = "var(--ink)";
   }
 
   return (
