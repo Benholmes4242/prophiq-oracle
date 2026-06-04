@@ -2,7 +2,7 @@
 // data. AppHeader comes from __root.tsx; this page provides its own bottom
 // UX (disclaimer + sticky CTA + chat sheet) and does NOT render SiteShell.
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   createFileRoute,
   notFound,
@@ -68,22 +68,8 @@ export const Route = createFileRoute("/$domain/events/$slug")({
     }
     const event = family.parent.event;
     if (event.domain !== params.domain) throw notFound();
-
-    // On-demand generation: if the parent has no current prediction and the
-    // event isn't resolved, kick off the edge function and re-fetch the
-    // family once it returns. The pendingComponent renders during the wait.
-    if (!family.parent.prediction && event.status !== "resolved") {
-      const result = await triggerOnDemandPrediction(event.id, "prediction");
-      if (result.ok) {
-        const refreshed = await fetchEventFamilyBySlug(event.slug);
-        if (refreshed) family = refreshed;
-      }
-    }
-
     return { family, event };
   },
-  pendingMs: 100,
-  pendingComponent: ForecastGeneratingScreen,
 
   head: ({ loaderData, params }) => {
     const event = loaderData?.event;
@@ -244,7 +230,37 @@ function ParentEventEyebrows({
 
 
 function EventDetailPage() {
-  const { family, event } = Route.useLoaderData();
+  const { family: initialFamily, event: initialEvent } = Route.useLoaderData();
+  const [family, setFamily] = useState(initialFamily);
+  const [event, setEvent] = useState(initialEvent);
+  const needsGeneration =
+    !initialFamily.parent.prediction && initialEvent.status !== "resolved";
+  const [isGenerating, setIsGenerating] = useState(needsGeneration);
+
+  useEffect(() => {
+    if (!needsGeneration) return;
+    let cancelled = false;
+    (async () => {
+      const mode =
+        (initialEvent.mode as "odds" | "prediction" | undefined) === "odds"
+          ? "odds"
+          : "prediction";
+      await triggerOnDemandPrediction(initialEvent.id, mode);
+      if (cancelled) return;
+      const refreshed = await fetchEventFamilyBySlug(initialEvent.slug);
+      if (cancelled) return;
+      if (refreshed) {
+        setFamily(refreshed);
+        setEvent(refreshed.parent.event);
+      }
+      setIsGenerating(false);
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialEvent.id]);
+
   const prediction = family.parent.prediction;
   const children = family.children ?? [];
   const isResolved = event.status === "resolved";
@@ -270,6 +286,10 @@ function EventDetailPage() {
     subcategoryRaw && subcategoryRaw !== "All" && subcategoryRaw !== "Other"
       ? subcategoryRaw
       : null;
+
+  if (isGenerating) {
+    return <ForecastGeneratingScreen />;
+  }
 
   return (
     <div className="flex min-h-full flex-col" style={{ background: "var(--bg)" }}>
