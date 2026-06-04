@@ -56,3 +56,30 @@ export async function createCustomerPortalSession(): Promise<string> {
   if (typeof url !== "string") throw new Error("No URL returned");
   return url;
 }
+
+/**
+ * Fetches info about a completed Stripe Checkout Session (email captured +
+ * whether that email collides with an existing different account). Called
+ * by PostCheckoutHandler after Stripe redirects back to the app.
+ */
+export async function getCheckoutSessionInfo(sessionId: string): Promise<{
+  email: string | null;
+  has_email_collision: boolean;
+}> {
+  const jwt = await getJwt();
+  const res = await fetch(`${FUNCTIONS_BASE}/get-checkout-session-info`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${jwt}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ session_id: sessionId }),
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error ?? `Checkout session info failed (${res.status})`);
+  }
+
+  return await res.json();
+}
