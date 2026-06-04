@@ -13,7 +13,17 @@ import type {
 import { fetchResearchContext, perplexityChat } from "../perplexity.ts";
 import { formatPriorBlock, type PriorContext } from "../priorContext.ts";
 import { formatMarketSignalsBlock, type MarketSignal } from "../marketSignals.ts";
-import { formatStructuredDataBlock, type StructuredData } from "../structuredData.ts";
+import {
+  formatStructuredDataBlock,
+  STRUCTURED_DATA_TIMEOUT_MS,
+  type StructuredData,
+  type StructuredDataContext,
+  type StructuredDataError,
+  type StructuredDataSource,
+  withTimeout,
+} from "../structuredData.ts";
+import { searchPolymarketMarkets } from "../marketVenues/polymarket.ts";
+import { searchKalshiMarkets } from "../marketVenues/kalshi.ts";
 import { coerceDiscoveredEvent, logSkip, safeExtractJsonArray } from "./_util.ts";
 
 const RESEARCH_PROMPT_VERSION = "politics.research.v1";
