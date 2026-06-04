@@ -1,5 +1,7 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import { PhiMark } from "@/components/brand/PhiMark";
+import { TierBadge } from "@/components/site/TierBadge";
+import { useUsageQuota } from "@/hooks/useUsageQuota";
 
 interface AppHeaderProps {
   onMenuClick: () => void;
