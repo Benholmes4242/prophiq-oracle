@@ -83,3 +83,25 @@ export async function getCheckoutSessionInfo(sessionId: string): Promise<{
 
   return await res.json();
 }
+
+/**
+ * Permanently deletes the current user's account. Cancels any active Stripe
+ * subscriptions, deletes the Stripe customer, and removes the Supabase user
+ * (CASCADE removes profile, subscriptions, and history). Irreversible.
+ */
+export async function deleteAccount(): Promise<void> {
+  const jwt = await getJwt();
+  const res = await fetch(`${FUNCTIONS_BASE}/delete-account`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${jwt}`,
+      "Content-Type": "application/json",
+    },
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error ?? `Account deletion failed (${res.status})`);
+  }
+}
+
