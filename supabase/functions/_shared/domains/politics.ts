@@ -60,7 +60,13 @@ Return a JSON array. Each element:
     { "label": "Candidate or option A" },
     { "label": "Candidate or option B" }
   ],
-  "metadata": { "country": "...", "type": "election|vote|leadership" }
+  "metadata": {
+    "country": "...",
+    "type": "election|vote|leadership",
+    "sub_category": "REQUIRED. One of: election, leadership_contest, parliamentary_vote, referendum, confirmation, other",
+    "favorite_label": "Name of the most likely winner (must exactly match one of the outcome labels), or null if no clear frontrunner",
+    "field_size": 0
+  }
 }
 
 CRITICAL RULES FOR OUTCOMES:
@@ -71,6 +77,11 @@ CRITICAL RULES FOR OUTCOMES:
 3. For events with many possible competitors (e.g. F1, MotoGP, athletics, golf majors), list the 3-6 most likely contenders by name.
 4. For head-to-head fixtures, name both sides ("Liverpool win", "Draw", "Manchester City win").
 5. For tournaments, name the favourites.
+
+CRITICAL RULES FOR METADATA:
+- sub_category is MANDATORY and MUST be one of the listed enum values for this domain.
+- favorite_label MUST exactly match one of the outcome labels, or be null if no clear favorite exists yet.
+- field_size is the integer count of candidates/outcomes (use outcomes.length when uncertain).
 
 Return as many real, scheduled events as you can find. Use official schedules, parliamentary calendars, election commissions, and reputable political reporting. If you genuinely can't find any, return [].`;
 
