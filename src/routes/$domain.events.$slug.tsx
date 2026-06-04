@@ -19,11 +19,13 @@ import { RelatedEvents } from "@/components/site/RelatedEvents";
 import { StickyBottomCTA } from "@/components/site/StickyBottomCTA";
 import { ChatSheet } from "@/components/site/ChatSheet";
 import { SubQuestionCard } from "@/components/event/SubQuestionCard";
+import { ForecastGeneratingScreen } from "@/components/event/ForecastGeneratingScreen";
 import {
   fetchEventFamilyBySlug,
   fetchEventResolution,
   type EventFamily,
 } from "@/lib/queries";
+import { triggerOnDemandPrediction } from "@/lib/triggers";
 import { getPublicBaseUrl } from "@/lib/publicUrl";
 import { classifyEvent } from "@/lib/subcategory";
 import { DOMAINS, DOMAIN_LABEL } from "@/lib/types";
