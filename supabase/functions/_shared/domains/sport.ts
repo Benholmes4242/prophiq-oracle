@@ -17,8 +17,15 @@ import {
   formatStructuredDataBlock,
   loadCachedStructuredData,
   persistStructuredData,
+  STRUCTURED_DATA_TIMEOUT_MS,
   type StructuredData,
+  type StructuredDataContext,
+  type StructuredDataError,
+  type StructuredDataSource,
+  withTimeout,
 } from "../structuredData.ts";
+import { fetchFootballDataContext } from "../dataSources/footballData.ts";
+import { fetchTheSportsDBContext } from "../dataSources/theSportsDB.ts";
 import {
   apiSportsVersionTag,
   getHeadToHead,
@@ -271,7 +278,81 @@ Use the structured data above as authoritative factual ground truth where presen
       return null;
     }
   },
+
+  async gatherStructuredSources(
+    _supabase,
+    event: DomainEvent,
+    _outcomes: EventOutcome[],
+  ): Promise<StructuredDataContext> {
+    const t0 = Date.now();
+    const fdKey = readEnv("FOOTBALL_DATA_API_KEY") ?? "";
+    const tsdbKey = readEnv("THESPORTSDB_API_KEY") ?? "";
+    const hints = {
+      metadata: event.metadata as Record<string, unknown> | null,
+      title: event.title,
+      question: event.question,
+      starts_at: event.starts_at,
+    };
+
+    const [fdRes, tsdbRes] = await Promise.allSettled([
+      runSource("footballData", () => fetchFootballDataContext(fdKey, hints)),
+      runSource("theSportsDB", () => fetchTheSportsDBContext(tsdbKey, hints)),
+    ]);
+
+    const sources: StructuredDataSource[] = [];
+    const errors: StructuredDataError[] = [];
+    for (const res of [fdRes, tsdbRes]) {
+      if (res.status === "fulfilled") {
+        if (res.value.kind === "ok") sources.push(res.value.source);
+        else errors.push(res.value.error);
+      } else {
+        errors.push({
+          source: "unknown",
+          message: (res.reason as Error)?.message ?? "rejected",
+          duration_ms: 0,
+        });
+      }
+    }
+
+    return { sources, errors, total_duration_ms: Date.now() - t0 };
+  },
 };
+
+type SourceResult =
+  | { kind: "ok"; source: StructuredDataSource }
+  | { kind: "err"; error: StructuredDataError };
+
+async function runSource(
+  name: string,
+  fetcher: () => Promise<unknown>,
+): Promise<SourceResult> {
+  const start = Date.now();
+  try {
+    const data = await withTimeout(fetcher(), STRUCTURED_DATA_TIMEOUT_MS, name);
+    const duration_ms = Date.now() - start;
+    return {
+      kind: "ok",
+      source: { name, data, fetched_at: new Date().toISOString(), duration_ms },
+    };
+  } catch (err) {
+    return {
+      kind: "err",
+      error: {
+        source: name,
+        message: (err as Error).message,
+        duration_ms: Date.now() - start,
+      },
+    };
+  }
+}
+
+function readEnv(name: string): string | undefined {
+  const deno = (globalThis as { Deno?: { env: { get(k: string): string | undefined } } }).Deno;
+  if (deno) return deno.env.get(name);
+  const proc = (globalThis as { process?: { env: Record<string, string | undefined> } }).process;
+  return proc?.env?.[name];
+}
+
 
 // ============================================================
 // Football structured-data helpers
