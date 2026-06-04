@@ -48,8 +48,10 @@ Deno.serve(async (req) => {
       res.errors.push(`discover failed: ${(e as Error).message}`); return res;
     }
     res.attempted = events.length;
+    console.log(`[discover-events:${id}] discovered ${events.length} events; metadata keys:`, events.slice(0, 3).map((ev) => Object.keys(ev.metadata ?? {})));
     for (const ev of events) {
       try {
+        const eventMetadata = ev.metadata ?? null;
         const { data: upserted, error } = await supabase
           .from("events")
           .upsert({
@@ -65,7 +67,7 @@ Deno.serve(async (req) => {
             mode: ev.mode,
             source: "discovered",
             moderation_status: "approved",
-            metadata: ev.metadata ?? null,
+            metadata: eventMetadata,
           }, { onConflict: "domain,external_id" })
           .select("id, created_at, updated_at")
           .single();
@@ -93,7 +95,7 @@ Deno.serve(async (req) => {
             starts_at: ev.starts_at,
             resolves_at: ev.resolves_at,
             mode: ev.mode,
-            metadata: ev.metadata ?? null,
+            metadata: eventMetadata,
           });
           if (sq.errors.length) res.errors.push(`sub-questions: ${sq.errors.join("; ")}`);
         } catch (sqErr) {
