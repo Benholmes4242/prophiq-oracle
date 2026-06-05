@@ -169,5 +169,6 @@ Deno.serve(async (req: Request) => {
       .in("id", ids);
   }
 
+  await logCron("succeeded", sent, { recipients: recipients.length, pending: rows.length }, null);
   return jsonResponse({ sent, recipients: recipients.length, pending: rows.length, subject });
 });
