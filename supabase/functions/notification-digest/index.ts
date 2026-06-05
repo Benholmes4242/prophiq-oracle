@@ -132,6 +132,7 @@ Deno.serve(async (req: Request) => {
   if (aErr) return jsonResponse({ error: aErr.message }, { status: 500 });
   const adminIds = (admins ?? []).map((a: { user_id: string }) => a.user_id);
   if (adminIds.length === 0) {
+    await logCron("succeeded", 0, { reason: "no active admins" }, null);
     return jsonResponse({ sent: 0, recipients: 0, reason: "no active admins" });
   }
 
@@ -143,6 +144,7 @@ Deno.serve(async (req: Request) => {
     if (email) recipients.push(email);
   }
   if (recipients.length === 0) {
+    await logCron("succeeded", 0, { reason: "no admin emails resolved" }, null);
     return jsonResponse({ sent: 0, recipients: 0, reason: "no admin emails resolved" });
   }
 
@@ -167,5 +169,6 @@ Deno.serve(async (req: Request) => {
       .in("id", ids);
   }
 
+  await logCron("succeeded", sent, { recipients: recipients.length, pending: rows.length }, null);
   return jsonResponse({ sent, recipients: recipients.length, pending: rows.length, subject });
 });
