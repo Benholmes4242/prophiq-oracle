@@ -36,6 +36,31 @@ function PricingPage() {
   const { data: subscription } = useActiveSubscription();
   const currentTier = subscription?.tier ?? "free";
 
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  useEffect(() => {
+    let mounted = true;
+    async function refresh() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!mounted) return;
+      setIsAuthenticated(!!user && !user.is_anonymous);
+    }
+    refresh();
+    const { data: { subscription: sub } } = supabase.auth.onAuthStateChange(() => refresh());
+    return () => {
+      mounted = false;
+      sub.unsubscribe();
+    };
+  }, []);
+
+  function handleTrialCta(priceId: string) {
+    sessionStorage.setItem("pendingCheckoutPriceId", priceId);
+    window.dispatchEvent(
+      new CustomEvent("prophiq:open-login", {
+        detail: { message: "Sign up to start your free 7-day Pro trial." },
+      }),
+    );
+  }
+
   const { data: prices = [] } = useQuery({
     queryKey: ["prophiq-prices"],
     queryFn: async (): Promise<PriceRow[]> => {
