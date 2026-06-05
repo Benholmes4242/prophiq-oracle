@@ -34,6 +34,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as AdminMarqueeRouteImport } from './routes/admin.marquee'
 import { Route as AdminHealthRouteImport } from './routes/admin.health'
+import { Route as AdminAuditRouteImport } from './routes/admin.audit'
 import { Route as DomainTrackRecordRouteImport } from './routes/$domain.track-record'
 import { Route as AdminUsersIndexRouteImport } from './routes/admin.users.index'
 import { Route as ApiOgHomeRouteImport } from './routes/api/og/home'
@@ -166,6 +167,11 @@ const AdminHealthRoute = AdminHealthRouteImport.update({
   path: '/health',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminAuditRoute = AdminAuditRouteImport.update({
+  id: '/audit',
+  path: '/audit',
+  getParentRoute: () => AdminRoute,
+} as any)
 const DomainTrackRecordRoute = DomainTrackRecordRouteImport.update({
   id: '/$domain/track-record',
   path: '/$domain/track-record',
@@ -221,6 +227,7 @@ export interface FileRoutesByFullPath {
   '/sport': typeof SportRoute
   '/terms': typeof TermsRoute
   '/$domain/track-record': typeof DomainTrackRecordRoute
+  '/admin/audit': typeof AdminAuditRoute
   '/admin/health': typeof AdminHealthRoute
   '/admin/marquee': typeof AdminMarqueeRoute
   '/admin/': typeof AdminIndexRoute
@@ -253,6 +260,7 @@ export interface FileRoutesByTo {
   '/sport': typeof SportRoute
   '/terms': typeof TermsRoute
   '/$domain/track-record': typeof DomainTrackRecordRoute
+  '/admin/audit': typeof AdminAuditRoute
   '/admin/health': typeof AdminHealthRoute
   '/admin/marquee': typeof AdminMarqueeRoute
   '/admin': typeof AdminIndexRoute
@@ -287,6 +295,7 @@ export interface FileRoutesById {
   '/sport': typeof SportRoute
   '/terms': typeof TermsRoute
   '/$domain/track-record': typeof DomainTrackRecordRoute
+  '/admin/audit': typeof AdminAuditRoute
   '/admin/health': typeof AdminHealthRoute
   '/admin/marquee': typeof AdminMarqueeRoute
   '/admin/': typeof AdminIndexRoute
@@ -322,6 +331,7 @@ export interface FileRouteTypes {
     | '/sport'
     | '/terms'
     | '/$domain/track-record'
+    | '/admin/audit'
     | '/admin/health'
     | '/admin/marquee'
     | '/admin/'
@@ -354,6 +364,7 @@ export interface FileRouteTypes {
     | '/sport'
     | '/terms'
     | '/$domain/track-record'
+    | '/admin/audit'
     | '/admin/health'
     | '/admin/marquee'
     | '/admin'
@@ -387,6 +398,7 @@ export interface FileRouteTypes {
     | '/sport'
     | '/terms'
     | '/$domain/track-record'
+    | '/admin/audit'
     | '/admin/health'
     | '/admin/marquee'
     | '/admin/'
@@ -603,6 +615,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminHealthRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/audit': {
+      id: '/admin/audit'
+      path: '/audit'
+      fullPath: '/admin/audit'
+      preLoaderRoute: typeof AdminAuditRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/$domain/track-record': {
       id: '/$domain/track-record'
       path: '/$domain/track-record'
@@ -649,6 +668,7 @@ declare module '@tanstack/react-router' {
 }
 
 interface AdminRouteChildren {
+  AdminAuditRoute: typeof AdminAuditRoute
   AdminHealthRoute: typeof AdminHealthRoute
   AdminMarqueeRoute: typeof AdminMarqueeRoute
   AdminIndexRoute: typeof AdminIndexRoute
@@ -657,6 +677,7 @@ interface AdminRouteChildren {
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
+  AdminAuditRoute: AdminAuditRoute,
   AdminHealthRoute: AdminHealthRoute,
   AdminMarqueeRoute: AdminMarqueeRoute,
   AdminIndexRoute: AdminIndexRoute,
