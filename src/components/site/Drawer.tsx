@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Link, useLocation } from "@tanstack/react-router";
 import { PhiMark } from "@/components/brand/PhiMark";
 import { Wordmark } from "@/components/brand/Wordmark";
@@ -50,6 +50,33 @@ function isActive(pathname: string, to: string): boolean {
 export function Drawer({ open, onClose }: DrawerProps) {
   const { pathname } = useLocation();
   const isAdmin = useIsAdmin();
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  useEffect(() => {
+    let mounted = true;
+    async function refresh() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!mounted) return;
+      setIsAuthenticated(!!user && !user.is_anonymous);
+    }
+    refresh();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (
+        event === "SIGNED_IN" ||
+        event === "SIGNED_OUT" ||
+        event === "USER_UPDATED" ||
+        event === "TOKEN_REFRESHED"
+      ) {
+        refresh();
+      }
+    });
+
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
+  }, []);
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -156,61 +183,80 @@ export function Drawer({ open, onClose }: DrawerProps) {
           >
             ACCOUNT
           </div>
-          {isAdmin && (
-            <Link
-              to="/admin/users"
-              onClick={onClose}
-              className="flex items-center gap-2 px-5 py-2.5 font-body text-[15px] transition-ios-colors hover:bg-[rgba(11,18,32,0.05)]"
-              style={{
-                color: isActive(pathname, "/admin/users") ? "var(--amber-strong)" : "var(--ink)",
-                fontWeight: isActive(pathname, "/admin/users") ? 600 : 500,
-              }}
-            >
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
+          {isAuthenticated ? (
+            <>
+              {isAdmin && (
+                <Link
+                  to="/admin/users"
+                  onClick={onClose}
+                  className="flex items-center gap-2 px-5 py-2.5 font-body text-[15px] transition-ios-colors hover:bg-[rgba(11,18,32,0.05)]"
+                  style={{
+                    color: isActive(pathname, "/admin/users") ? "var(--amber-strong)" : "var(--ink)",
+                    fontWeight: isActive(pathname, "/admin/users") ? 600 : 500,
+                  }}
+                >
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                  </svg>
+                  Admin
+                </Link>
+              )}
+              <Link
+                to="/account"
+                onClick={onClose}
+                className="block px-5 py-2.5 font-body text-[15px] transition-ios-colors hover:bg-[rgba(11,18,32,0.05)]"
+                style={{
+                  color: isActive(pathname, "/account") ? "var(--amber-strong)" : "var(--ink)",
+                  fontWeight: isActive(pathname, "/account") ? 600 : 500,
+                }}
               >
-                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-              </svg>
-              Admin
-            </Link>
+                Account
+              </Link>
+              <Link
+                to="/pricing"
+                onClick={onClose}
+                className="block px-5 py-2.5 font-body text-[15px] transition-ios-colors hover:bg-[rgba(11,18,32,0.05)]"
+                style={{
+                  color: isActive(pathname, "/pricing") ? "var(--amber-strong)" : "var(--ink)",
+                  fontWeight: isActive(pathname, "/pricing") ? 600 : 500,
+                }}
+              >
+                Pricing
+              </Link>
+              <button
+                type="button"
+                onClick={handleSignOut}
+                className="block w-full px-5 py-2.5 text-left font-body text-[15px] transition-ios-colors hover:bg-[rgba(11,18,32,0.05)]"
+                style={{ color: "var(--ink)", fontWeight: 500 }}
+              >
+                Sign out
+              </button>
+            </>
+          ) : (
+            <button
+              type="button"
+              onClick={() => {
+                onClose();
+                // Re-use the same login modal trigger that AppHeader uses.
+                // The simplest cross-component way is to dispatch a custom event
+                // that AppHeader listens for.
+                window.dispatchEvent(new CustomEvent("prophiq:open-login"));
+              }}
+              className="block w-full px-5 py-2.5 text-left font-body text-[15px] transition-ios-colors hover:bg-[rgba(11,18,32,0.05)]"
+              style={{ color: "var(--ink)", fontWeight: 500 }}
+            >
+              Log in
+            </button>
           )}
-          <Link
-            to="/account"
-            onClick={onClose}
-            className="block px-5 py-2.5 font-body text-[15px] transition-ios-colors hover:bg-[rgba(11,18,32,0.05)]"
-            style={{
-              color: isActive(pathname, "/account") ? "var(--amber-strong)" : "var(--ink)",
-              fontWeight: isActive(pathname, "/account") ? 600 : 500,
-            }}
-          >
-            Account
-          </Link>
-          <Link
-            to="/pricing"
-            onClick={onClose}
-            className="block px-5 py-2.5 font-body text-[15px] transition-ios-colors hover:bg-[rgba(11,18,32,0.05)]"
-            style={{
-              color: isActive(pathname, "/pricing") ? "var(--amber-strong)" : "var(--ink)",
-              fontWeight: isActive(pathname, "/pricing") ? 600 : 500,
-            }}
-          >
-            Pricing
-          </Link>
-          <button
-            type="button"
-            onClick={handleSignOut}
-            className="block w-full px-5 py-2.5 text-left font-body text-[15px] transition-ios-colors hover:bg-[rgba(11,18,32,0.05)]"
-            style={{ color: "var(--ink)", fontWeight: 500 }}
-          >
-            Sign out
-          </button>
         </div>
 
         <div

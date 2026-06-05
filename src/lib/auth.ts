@@ -1,25 +1,6 @@
-// Anonymous-first auth helpers. Every visitor gets a Supabase anonymous
-// session on first load; the same user_id later upgrades to email via the
-// paywall (Brief DD).
+// Auth helpers for Prophiq.
 
 import { supabase } from "./supabase";
-
-/**
- * Ensures the user has a valid Supabase session. If no session exists,
- * creates a new anonymous one. Safe to call multiple times - short-circuits
- * when a session already exists.
- */
-export async function ensureAnonymousSession(): Promise<void> {
-  if (typeof window === "undefined") return; // SSR: no session to manage
-  const { data: { session } } = await supabase.auth.getSession();
-  if (session) return;
-
-  const { error } = await supabase.auth.signInAnonymously();
-  if (error) {
-    console.error("[auth] anonymous sign-in failed:", error.message);
-    throw error;
-  }
-}
 
 /**
  * Triggers the email-upgrade flow for the current anonymous user. Used by the

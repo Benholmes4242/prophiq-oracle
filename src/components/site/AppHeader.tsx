@@ -114,14 +114,14 @@ export function AppHeader({ onMenuClick }: AppHeaderProps) {
   const showPricingLink = !usage || usage.tier === "free";
 
   const [loginOpen, setLoginOpen] = useState(false);
-  const [isAnonymous, setIsAnonymous] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
     let mounted = true;
     async function refresh() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!mounted) return;
-      setIsAnonymous(user?.is_anonymous ?? true);
+      setIsAuthenticated(!!user && !user.is_anonymous);
     }
     refresh();
 
@@ -140,6 +140,15 @@ export function AppHeader({ onMenuClick }: AppHeaderProps) {
       mounted = false;
       subscription.unsubscribe();
     };
+  }, []);
+
+  // Listen for cross-component login-open requests (e.g. from Drawer)
+  useEffect(() => {
+    function onOpenLogin() {
+      setLoginOpen(true);
+    }
+    window.addEventListener("prophiq:open-login", onOpenLogin);
+    return () => window.removeEventListener("prophiq:open-login", onOpenLogin);
   }, []);
 
   return (
@@ -185,7 +194,9 @@ export function AppHeader({ onMenuClick }: AppHeaderProps) {
             Pricing
           </Link>
         )}
-        {isAnonymous && (
+        {isAuthenticated ? (
+          <UserMenu />
+        ) : (
           <button
             type="button"
             onClick={() => setLoginOpen(true)}
@@ -195,7 +206,6 @@ export function AppHeader({ onMenuClick }: AppHeaderProps) {
             Log in
           </button>
         )}
-        <UserMenu />
         <Link
           to="/search"
           aria-label="Search"
@@ -221,4 +231,3 @@ export function AppHeader({ onMenuClick }: AppHeaderProps) {
     </header>
   );
 }
-
