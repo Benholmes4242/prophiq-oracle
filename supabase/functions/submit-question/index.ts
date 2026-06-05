@@ -115,6 +115,7 @@ Deno.serve(async (req) => {
             message: "This account cannot submit questions. Contact support.",
           });
           await recordOutcome("failed");
+          await logSearchQuery({ result_type: "failed" });
           sse.close();
           return;
         }
@@ -127,7 +128,7 @@ Deno.serve(async (req) => {
       if (quotaErr) {
         console.error("[submit-question] quota RPC failed:", quotaErr.message);
         sse.send({ stage: "rate_limit", status: "error", message: "Could not check usage quota" });
-        await recordOutcome("failed"); sse.close(); return;
+        await recordOutcome("failed"); await logSearchQuery({ result_type: "failed" }); sse.close(); return;
       }
       const quotaRow = (Array.isArray(quotaData) ? quotaData[0] : quotaData) as {
         used_today: number;
@@ -141,7 +142,7 @@ Deno.serve(async (req) => {
       if (!quotaRow) {
         console.error("[submit-question] quota RPC returned no row");
         sse.send({ stage: "rate_limit", status: "error", message: "Could not check usage quota" });
-        await recordOutcome("failed"); sse.close(); return;
+        await recordOutcome("failed"); await logSearchQuery({ result_type: "failed" }); sse.close(); return;
       }
       if (quotaRow.remaining <= 0) {
         sse.send({
@@ -159,7 +160,7 @@ Deno.serve(async (req) => {
             subscription_status: quotaRow.subscription_status,
           },
         });
-        await recordOutcome("rejected_rate_limit"); sse.close(); return;
+        await recordOutcome("rejected_rate_limit"); await logSearchQuery({ result_type: "failed" }); sse.close(); return;
       }
       sse.send({
         stage: "rate_limit", status: "done",
@@ -179,6 +180,7 @@ Deno.serve(async (req) => {
       if (!pre.ok) {
         sse.send({ stage: "pre_filter", status: "error", message: pre.reason });
         await recordOutcome("rejected_moderation");
+        await logSearchQuery({ result_type: "rejected" });
         sse.close(); return;
       }
       sse.send({ stage: "pre_filter", status: "done" });
@@ -190,12 +192,14 @@ Deno.serve(async (req) => {
       if (mod.decision === "reject") {
         sse.send({ stage: "moderation", status: "error", message: mod.reason ?? "rejected", data: mod });
         await recordOutcome("rejected_moderation");
+        await logSearchQuery({ result_type: "rejected", domain: (mod.domain && tryGetDomain(mod.domain)) ? mod.domain : null });
         sse.close(); return;
       }
       const domainId = mod.domain && tryGetDomain(mod.domain) ? mod.domain : null;
       if (!domainId) {
         sse.send({ stage: "moderation", status: "error", message: "We couldn't categorise this question. Try one more specific to sport, politics, markets, or entertainment.", data: mod });
         await recordOutcome("rejected_moderation");
+        await logSearchQuery({ result_type: "rejected" });
         sse.close(); return;
       }
       const normalized = mod.normalized_question ?? question;
@@ -214,6 +218,17 @@ Deno.serve(async (req) => {
       const externalId = await stableEventId(normalized, startsAt);
       const slug = `${domainId}-${externalId.slice(0, 12)}`;
       const outcomes = (mod.outcomes && mod.outcomes.length >= 2) ? mod.outcomes : ["Yes", "No"];
+
+      // Pre-upsert existence check: did the event already exist? Drives the
+      // matched-vs-generated distinction for search analytics. Cheap indexed
+      // lookup on (domain, external_id).
+      const { data: existing } = await supabase
+        .from("events")
+        .select("id")
+        .eq("domain", domainId)
+        .eq("external_id", externalId)
+        .maybeSingle();
+      const wasMatched = !!existing;
 
       const { data: event, error: evErr } = await supabase.from("events").upsert({
         domain: domainId,
@@ -237,7 +252,7 @@ Deno.serve(async (req) => {
       }, { onConflict: "domain,external_id" }).select("*").single();
       if (evErr || !event) {
         sse.send({ stage: "moderation", status: "error", message: `event upsert failed: ${evErr?.message}` });
-        await recordOutcome("failed"); sse.close(); return;
+        await recordOutcome("failed"); await logSearchQuery({ result_type: "failed", domain: domainId }); sse.close(); return;
       }
 
       const outcomeRows = outcomes.map((label) => ({
@@ -246,7 +261,7 @@ Deno.serve(async (req) => {
       const { error: oErr } = await supabase.from("event_outcomes").upsert(outcomeRows, { onConflict: "event_id,external_id" });
       if (oErr) {
         sse.send({ stage: "moderation", status: "error", message: `outcome upsert failed: ${oErr.message}` });
-        await recordOutcome("failed"); sse.close(); return;
+        await recordOutcome("failed"); await logSearchQuery({ result_type: "failed", domain: domainId, matched_event_id: event.id }); sse.close(); return;
       }
 
       const { data: outcomeIds } = await supabase
@@ -263,7 +278,7 @@ Deno.serve(async (req) => {
         consensusOut = await runConsensus({ prompt, outcomes: outcomePairs });
       } catch (e) {
         sse.send({ stage: "models", status: "error", message: (e as Error).message });
-        await recordOutcome("failed"); sse.close(); return;
+        await recordOutcome("failed"); await logSearchQuery({ result_type: "failed", domain: domainId, matched_event_id: event.id }); sse.close(); return;
       }
       sse.send({ stage: "models", status: "done", data: { models_used: consensusOut.consensus.models_used, models_failed: consensusOut.consensus.models_failed } });
 
@@ -291,12 +306,17 @@ Deno.serve(async (req) => {
       }).select("*").single();
       if (pErr) {
         sse.send({ stage: "consensus", status: "error", message: `prediction insert failed: ${pErr.message}` });
-        await recordOutcome("failed"); sse.close(); return;
+        await recordOutcome("failed"); await logSearchQuery({ result_type: "failed", domain: domainId, matched_event_id: event.id }); sse.close(); return;
       }
       sse.send({ stage: "consensus", status: "done", data: { confidence: scoreToConfidence(consensusOut.consensus.agreement_score) } });
 
       // ----- 7. DONE -----
       await recordOutcome("accepted");
+      await logSearchQuery({
+        result_type: wasMatched ? "matched" : "generated",
+        domain: domainId,
+        matched_event_id: event.id,
+      });
       sse.send({ stage: "done", status: "done", data: { event_id: event.id, prediction_id: prediction.id, slug: event.slug, domain: domainId } });
       sse.close();
     } catch (err) {
@@ -305,6 +325,7 @@ Deno.serve(async (req) => {
         fingerprint: fingerprint ?? authedUser.user_id, ip_hash: ipHash, endpoint: "submit_question",
         question: truncateQuestion(question), outcome: "failed",
       }); } catch { /* swallow */ }
+      await logSearchQuery({ result_type: "failed" });
       sse.close();
     }
   })();
