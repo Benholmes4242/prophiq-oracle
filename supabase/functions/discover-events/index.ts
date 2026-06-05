@@ -14,7 +14,7 @@ import { generateSubQuestions } from "../_shared/subQuestions.ts";
 
 registerAllDomains();
 
-interface DiscoverBody { domains?: string[]; }
+interface DiscoverBody { domains?: string[]; source?: string; manual?: boolean; }
 
 interface PerDomainResult {
   domain: string;
@@ -31,6 +31,9 @@ Deno.serve(async (req) => {
 
   let body: DiscoverBody = {};
   try { body = req.headers.get("content-length") === "0" ? {} : (await req.json() as DiscoverBody); } catch { body = {}; }
+
+  const isCronRun = body.source === "cron";
+  const startedAt = Date.now();
 
   const requested = Array.isArray(body.domains) && body.domains.length > 0
     ? body.domains
@@ -116,5 +119,30 @@ Deno.serve(async (req) => {
     total_updated: results.reduce((s, r) => s + r.updated, 0),
     total_errors: results.reduce((s, r) => s + r.errors.length, 0),
   };
+
+  // Best-effort cron self-report. Never blocks the response.
+  if (isCronRun) {
+    try {
+      await supabase.rpc("log_cron_run", {
+        p_job_name: "prophiq_discover_events",
+        p_status: summary.total_errors > 0 ? "partial" : "succeeded",
+        p_duration_ms: Date.now() - startedAt,
+        p_items_processed: summary.total_inserted + summary.total_updated,
+        p_detail: {
+          inserted: summary.total_inserted,
+          updated: summary.total_updated,
+          errors: summary.total_errors,
+          domains: summary.domains.map((d) => ({
+            domain: d.domain, inserted: d.inserted, updated: d.updated, errors: d.errors.length,
+          })),
+          manual: !!body.manual,
+        },
+        p_error_message: null,
+      });
+    } catch (e) {
+      console.warn(`[discover-events] log_cron_run failed: ${(e as Error).message}`);
+    }
+  }
+
   return jsonResponse(summary);
 });

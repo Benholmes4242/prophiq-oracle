@@ -79,7 +79,30 @@ Deno.serve(async (req: Request) => {
   const preflight = handleCorsPreflight(req);
   if (preflight) return preflight;
 
+  let body: { source?: string; manual?: boolean } = {};
+  if (req.method === "POST") {
+    try { body = await req.json(); } catch { body = {}; }
+  }
+  const isCronRun = body.source === "cron";
+  const startedAt = Date.now();
+
   const sb = getServiceClient();
+
+  const logCron = async (status: string, items: number, detail: Record<string, unknown>, err: string | null) => {
+    if (!isCronRun) return;
+    try {
+      await sb.rpc("log_cron_run", {
+        p_job_name: "prophiq_notification_digest",
+        p_status: status,
+        p_duration_ms: Date.now() - startedAt,
+        p_items_processed: items,
+        p_detail: { ...detail, manual: !!body.manual },
+        p_error_message: err,
+      });
+    } catch (e) {
+      console.warn(`[notification-digest] log_cron_run failed: ${(e as Error).message}`);
+    }
+  };
 
   // Pull unresolved warning/critical that haven't been digested yet.
   const { data: pending, error: pendErr } = await sb
@@ -90,10 +113,14 @@ Deno.serve(async (req: Request) => {
     .is("resolved_at", null)
     .order("created_at", { ascending: false })
     .limit(50);
-  if (pendErr) return jsonResponse({ error: pendErr.message }, { status: 500 });
+  if (pendErr) {
+    await logCron("failed", 0, {}, pendErr.message);
+    return jsonResponse({ error: pendErr.message }, { status: 500 });
+  }
 
   const rows = (pending ?? []) as PendingRow[];
   if (rows.length === 0) {
+    await logCron("succeeded", 0, { reason: "nothing pending" }, null);
     return jsonResponse({ sent: 0, recipients: 0, reason: "nothing pending" });
   }
 
