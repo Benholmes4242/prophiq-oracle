@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabase";
 import { useInvalidateSubscriptionState } from "../../hooks/useActiveSubscription";
+import { createCheckoutSession } from "../../lib/billing";
 import { OTPInput } from "./OTPInput";
 
 interface LoginModalProps {
   open: boolean;
   onClose: () => void;
+  message?: string;
 }
 
 type State =
