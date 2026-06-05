@@ -15,7 +15,7 @@ const ITEMS: NavItem[] = [
   { label: "Revenue", to: "/admin/revenue" },
   { label: "System health", to: "/admin/health" },
   { label: "Jobs", comingSoon: true },
-  { label: "Calibration", comingSoon: true },
+  { label: "Calibration", to: "/admin/calibration" },
   { label: "Events", comingSoon: true },
   { label: "Marquee", to: "/admin/marquee" },
   { label: "Audit", to: "/admin/audit" },

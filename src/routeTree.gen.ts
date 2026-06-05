@@ -35,6 +35,7 @@ import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as AdminRevenueRouteImport } from './routes/admin.revenue'
 import { Route as AdminMarqueeRouteImport } from './routes/admin.marquee'
 import { Route as AdminHealthRouteImport } from './routes/admin.health'
+import { Route as AdminCalibrationRouteImport } from './routes/admin.calibration'
 import { Route as AdminAuditRouteImport } from './routes/admin.audit'
 import { Route as DomainTrackRecordRouteImport } from './routes/$domain.track-record'
 import { Route as AdminUsersIndexRouteImport } from './routes/admin.users.index'
@@ -173,6 +174,11 @@ const AdminHealthRoute = AdminHealthRouteImport.update({
   path: '/health',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminCalibrationRoute = AdminCalibrationRouteImport.update({
+  id: '/calibration',
+  path: '/calibration',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminAuditRoute = AdminAuditRouteImport.update({
   id: '/audit',
   path: '/audit',
@@ -234,6 +240,7 @@ export interface FileRoutesByFullPath {
   '/terms': typeof TermsRoute
   '/$domain/track-record': typeof DomainTrackRecordRoute
   '/admin/audit': typeof AdminAuditRoute
+  '/admin/calibration': typeof AdminCalibrationRoute
   '/admin/health': typeof AdminHealthRoute
   '/admin/marquee': typeof AdminMarqueeRoute
   '/admin/revenue': typeof AdminRevenueRoute
@@ -268,6 +275,7 @@ export interface FileRoutesByTo {
   '/terms': typeof TermsRoute
   '/$domain/track-record': typeof DomainTrackRecordRoute
   '/admin/audit': typeof AdminAuditRoute
+  '/admin/calibration': typeof AdminCalibrationRoute
   '/admin/health': typeof AdminHealthRoute
   '/admin/marquee': typeof AdminMarqueeRoute
   '/admin/revenue': typeof AdminRevenueRoute
@@ -304,6 +312,7 @@ export interface FileRoutesById {
   '/terms': typeof TermsRoute
   '/$domain/track-record': typeof DomainTrackRecordRoute
   '/admin/audit': typeof AdminAuditRoute
+  '/admin/calibration': typeof AdminCalibrationRoute
   '/admin/health': typeof AdminHealthRoute
   '/admin/marquee': typeof AdminMarqueeRoute
   '/admin/revenue': typeof AdminRevenueRoute
@@ -341,6 +350,7 @@ export interface FileRouteTypes {
     | '/terms'
     | '/$domain/track-record'
     | '/admin/audit'
+    | '/admin/calibration'
     | '/admin/health'
     | '/admin/marquee'
     | '/admin/revenue'
@@ -375,6 +385,7 @@ export interface FileRouteTypes {
     | '/terms'
     | '/$domain/track-record'
     | '/admin/audit'
+    | '/admin/calibration'
     | '/admin/health'
     | '/admin/marquee'
     | '/admin/revenue'
@@ -410,6 +421,7 @@ export interface FileRouteTypes {
     | '/terms'
     | '/$domain/track-record'
     | '/admin/audit'
+    | '/admin/calibration'
     | '/admin/health'
     | '/admin/marquee'
     | '/admin/revenue'
@@ -634,6 +646,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminHealthRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/calibration': {
+      id: '/admin/calibration'
+      path: '/calibration'
+      fullPath: '/admin/calibration'
+      preLoaderRoute: typeof AdminCalibrationRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/audit': {
       id: '/admin/audit'
       path: '/audit'
@@ -688,6 +707,7 @@ declare module '@tanstack/react-router' {
 
 interface AdminRouteChildren {
   AdminAuditRoute: typeof AdminAuditRoute
+  AdminCalibrationRoute: typeof AdminCalibrationRoute
   AdminHealthRoute: typeof AdminHealthRoute
   AdminMarqueeRoute: typeof AdminMarqueeRoute
   AdminRevenueRoute: typeof AdminRevenueRoute
@@ -698,6 +718,7 @@ interface AdminRouteChildren {
 
 const AdminRouteChildren: AdminRouteChildren = {
   AdminAuditRoute: AdminAuditRoute,
+  AdminCalibrationRoute: AdminCalibrationRoute,
   AdminHealthRoute: AdminHealthRoute,
   AdminMarqueeRoute: AdminMarqueeRoute,
   AdminRevenueRoute: AdminRevenueRoute,
