@@ -84,6 +84,18 @@ export interface AdminUserDetail {
     created_at: string;
     notes: string | null;
   } | null;
+  suspension?: {
+    suspended_at: string | null;
+    suspended_by: string | null;
+    suspension_reason: string | null;
+  } | null;
+  active_override?: {
+    id: string;
+    granted_tier: string;
+    expires_at: string | null;
+    reason: string;
+    created_at: string;
+  } | null;
   recent_audit_log: {
     action: string;
     admin_email: string;

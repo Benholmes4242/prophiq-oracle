@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { adminGetUserDetail, type AdminUserDetail } from "@/lib/admin/queries";
+import { UserActionsPanel } from "@/components/admin/UserActionsPanel";
 
 export const Route = createFileRoute("/admin/users/$id")({
   component: UserDetailPage,
@@ -77,7 +78,7 @@ function Sparkline({ data }: { data: { date: string; count: number }[] }) {
 
 function UserDetailPage() {
   const { id } = Route.useParams();
-  const { data, isLoading, error } = useQuery({
+  const { data, isLoading, error, refetch } = useQuery({
     queryKey: ["admin-user-detail", id],
     queryFn: () => adminGetUserDetail(id),
   });
@@ -145,21 +146,22 @@ function UserDetailPage() {
         </div>
       </div>
 
+      <div className="mb-4">
+        <UserActionsPanel
+          userId={d.user.id}
+          userEmail={d.user.email ?? ""}
+          role={d.admin_role}
+          suspendedAt={d.suspension?.suspended_at ?? null}
+          activeOverrideId={d.active_override?.id ?? null}
+          activeOverrideTier={d.active_override?.granted_tier ?? null}
+          stripeSubscriptionId={d.subscription?.stripe_subscription_id ?? null}
+          onChanged={() => void refetch()}
+        />
+      </div>
+
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-        <Card
-          title="Subscription"
-          action={
-            <button
-              type="button"
-              disabled
-              title="Coming in Phase II.C"
-              className="font-body rounded px-2 py-0.5 text-[11px] opacity-40"
-              style={{ border: "1px solid var(--border-strong)" }}
-            >
-              Manage
-            </button>
-          }
-        >
+        <Card title="Subscription">
+
           {d.subscription ? (
             <>
               <Row label="Plan" value={`${d.subscription.display_name}`} />
@@ -299,20 +301,28 @@ function UserDetailPage() {
       </div>
 
       <div className="mt-6">
-        <h2
-          className="mb-2 font-mono text-[10px] uppercase tracking-[0.18em]"
-          style={{ color: "var(--ink-faint)", fontWeight: 600 }}
-        >
-          Audit trail
-        </h2>
+        <div className="mb-2 flex items-center justify-between">
+          <h2
+            className="font-mono text-[10px] uppercase tracking-[0.18em]"
+            style={{ color: "var(--ink-faint)", fontWeight: 600 }}
+          >
+            Audit trail
+          </h2>
+          <Link
+            to="/admin/audit"
+            search={{ target_id: d.user.id, target_type: "user" } as never}
+            className="font-mono text-[11px] hover:underline"
+            style={{ color: "var(--ink-soft)" }}
+          >
+            View full audit log →
+          </Link>
+        </div>
         <div
           className="rounded-lg border p-4 font-body text-[13px]"
           style={{ borderColor: "var(--border-soft)", background: "var(--bg-card)", color: "var(--ink-soft)" }}
         >
           {d.recent_audit_log.length === 0 ? (
-            <>
-              No admin actions on this user yet. Full audit log coming in Phase II.C.
-            </>
+            <>No admin actions on this user yet.</>
           ) : (
             <ul className="space-y-1.5">
               {d.recent_audit_log.map((a, i) => (

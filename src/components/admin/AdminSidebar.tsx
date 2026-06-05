@@ -18,7 +18,7 @@ const ITEMS: NavItem[] = [
   { label: "Calibration", comingSoon: true },
   { label: "Events", comingSoon: true },
   { label: "Marquee", to: "/admin/marquee" },
-  { label: "Audit", comingSoon: true },
+  { label: "Audit", to: "/admin/audit" },
   { label: "Admins", comingSoon: true, superAdminOnly: true },
 ];
 
