@@ -373,6 +373,44 @@ Deno.serve(async (req) => {
   if (insErr) return errorResponse(`insert failed: ${insErr.message}`, 500);
 
   // =============================================================
+  // LLM cost logging (best-effort, post-insert, behind a flag).
+  // Never throws. Never blocks. A failure here cannot affect the
+  // prediction the caller already received.
+  // =============================================================
+  const costLoggingEnabled =
+    (Deno.env.get("LLM_COST_LOGGING_ENABLED") ?? "true").toLowerCase() !== "false";
+  if (costLoggingEnabled) {
+    try {
+      const rows = (consensusOut.model_results ?? [])
+        .filter((m) => m && typeof m.model === "string")
+        .map((m) => ({
+          prediction_id: inserted.id,
+          event_id: body.event_id,
+          domain: event.domain,
+          model: m.model,
+          input_tokens: m.usage?.input_tokens ?? null,
+          output_tokens: m.usage?.output_tokens ?? null,
+          latency_ms: typeof m.latency_ms === "number" ? Math.max(0, Math.floor(m.latency_ms)) : null,
+          had_error: !!m.error,
+          error_message: m.error ?? null,
+        }));
+      if (rows.length > 0) {
+        const { error: costErr } = await supabase.from("llm_cost_events").insert(rows);
+        if (costErr) {
+          console.warn(
+            `[generate-prediction] llm_cost_events insert failed for ${inserted.id}: ${costErr.message}`,
+          );
+        }
+      }
+    } catch (e) {
+      console.warn(
+        `[generate-prediction] llm_cost_events logging threw for ${inserted.id}: ${(e as Error).message}`,
+      );
+    }
+  }
+
+
+  // =============================================================
   // prediction_inputs lineage row (best-effort, do not fail forecast)
   // =============================================================
   try {
