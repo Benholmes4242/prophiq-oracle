@@ -1,68 +1,75 @@
-## Audit findings (preflight 1–7)
+# Phase II.C — Admin actions + Audit UI + MFA enforcement
 
-All 7 preflight items confirmed against the codebase:
+## Preflight audit (items 1–7 vs. brief)
 
-1. ✅ `db/migrations/` is source of truth; next slot `20260627000000` is free.
-2. ✅ No `usage_log` table anywhere — events submission counting confirmed in the Phase A migration's own comment.
-3. ✅ `prophiq_call_edge(fn_name, body jsonb)` pattern in `db/migrations/20260601010000_cron.sql`, used by every existing cron.
-4. ✅ `_shared/http.ts` exports `handleCorsPreflight`, `jsonResponse`, `errorResponse`; `_shared/supabaseClient.ts` exports `getServiceClient`; `readEnv` pattern in `_shared/llm.ts`.
-5. ✅ Admin shell exists (`admin.tsx`, `AdminSidebar.tsx`, `AdminHeader.tsx`, `lib/admin/queries.ts`). Bell is a disabled placeholder at `AdminHeader.tsx:41–51`.
-6. ✅ `AdminRole = 'super_admin' | 'admin' | 'support' | 'read_only'` matches.
-7. ✅ All admin lookups already filter `revoked_at IS NULL`.
+All 7 confirmed against current source:
 
-**Deviation from brief:** `src/routes/admin.index.tsx` is not a placeholder render — it's a `beforeLoad` redirect to `/admin/users`. B.5 will replace that file with a real dashboard route; the redirect goes away.
+1. ✅ `db/migrations/` is source of truth; last slot `20260627020000`. Next free: `20260628000000`.
+2. ✅ `profiles` has `id, email, is_anonymous, display_name, metadata, email_upgraded_at, created_at, updated_at`. No suspension columns yet.
+3. ✅ `get_user_quota_today` is `SECURITY INVOKER STABLE`, returns the 7-col TABLE; `FREE_CAP := 3`, `TRIAL_CAP := 100`; paid cap from `prophiq_prices.daily_forecast_cap`. Signature must stay.
+4. ✅ `submit-question` enforces via `get_user_quota_today` at SSE stage `rate_limit`.
+5. ✅ `admin_users` (with `revoked_at`, `mfa_enforced`, `role`), `audit_log` (`target_id uuid` is bare, no FK to `auth.users` — confirmed at line 88), `is_admin()`, `get_admin_role()`, `log_admin_action(...)`. `admin_get_user_detail` limits audit strip to 20 (line 351–361).
+6. ✅ Edge helpers as described: `requireAuthenticatedUser`, `getStripeClient`, `_shared/http.ts`, `--no-verify-jwt`.
+7. ✅ `raise_admin_notification(...)` live from Phase B.
 
-## Execution slices (will ship in this order)
+**No divergences.** Defaults applied for open questions: (1) prediction dispatch on approve → frontend `functions.invoke` (do not rely on GUC in admin RPC); (2) recovery code → hashed in `admin_users.recovery_code_hash`, plaintext returned once; (3) refund → admin selects a specific charge from last 30 days; (4) suspension UX → silent block in `submit-question`, no visible state on user's own page.
 
-### Slice 1 — DB foundation (one migration)
-`db/migrations/20260627000000_brief_ii_phase_b_health_notifications.sql` containing:
-- B.1.1 `admin_notifications` + `admin_notification_reads` (with `digest_sent_at` column folded in per B.1.5)
-- B.1.3 RPCs: `raise_admin_notification`, `resolve_admin_notification_by_dedup`, `admin_list_notifications`, `admin_mark_notifications_read`
-- B.2.1 `health_checks` + `health_check_runs`
-- B.4.1 `admin_health_overview`, `admin_health_failures`
-- B.4.3 `admin_forecast_volume` — JSON path for Perplexity tokens left as `COALESCE(...,0)` with the actual column verified against `prediction_inputs` before writing (open question 3 flagged for Ben if path is ambiguous)
-- B.5.1 `admin_dashboard_summary`
-- All varchar/enum returns cast `::text` to avoid Postgres 42804
-- Grants per `<public-schema-grants>` rule
+## Slices (will ship in this order)
 
-### Slice 2 — Seed + cron migrations
-- `20260627010000_brief_ii_phase_b_seed_health_checks.sql` — 14 services + `api_sports` (15th, `enabled=false`) per B.3 table
-- `20260627020000_brief_ii_phase_b_health_cron.sql` — `cron_health_check()` + `prophiq_health_check` every 5 min; `cron_notification_digest()` + `prophiq_notification_digest` every 30 min
+### Slice 1 — DB foundation
+`20260628000000_brief_ii_phase_c_admin_actions.sql`
+- `subscription_overrides`, `quota_adjustments`, `profiles.suspended_*` columns
+- `admin_config` (single-row key/value) seeded with `mfa_enforcement_start = today + 7d`
+- RLS: admin-read + self-read on overrides & adjustments
+- Extend `get_user_quota_today` keeping signature: greatest of (Stripe, override) cap + today's `quota_adjustments.extra_quota`; if override wins, `subscription_status = 'comp'`
+- All GRANTs per house rule
 
-### Slice 3 — Edge functions
-- `supabase/functions/health-check/index.ts` + `probes/` directory (one module per service). `withTimeout(5000)`, single `health_check_runs` row per probe, dedup'd notification raise/resolve transitions, 14-day GC. Accepts `{keys?: string[]}` for manual retry. `ALLOW_LIVE_PROBES` flag gates paid/rate-limited probes; `alpha_vantage` defaults to `skipped`.
-- `supabase/functions/notification-digest/index.ts` — query unresolved warning/critical where `digest_sent_at IS NULL`, send single Resend email to all active admin emails, stamp `digest_sent_at`. Skip if empty.
+### Slice 2 — Action RPCs
+`20260628010000_brief_ii_phase_c_action_rpcs.sql`
+- `admin_require_role(text[])`
+- 7 RPCs: `admin_grant_pro`, `admin_revoke_pro`, `admin_adjust_quota`, `admin_suspend_user`, `admin_unsuspend_user`, `admin_approve_question`, `admin_reject_question`, `admin_force_delete_user` (snapshot → audit → cascade)
+- `admin_list_audit(...)` + `admin_distinct_audit_actions()` with `::text` casts
+- `admin_approve_question` does NOT dispatch; UI invokes `generate-prediction` after the RPC returns
 
-### Slice 4 — Frontend lib
-- `src/lib/admin/notifications.ts` — typed wrappers for the two notification RPCs
-- `src/lib/admin/health.ts` — typed wrappers for `admin_health_overview`, `admin_health_failures`, `admin_forecast_volume`, plus `triggerHealthRetry(key)` invoking the edge fn
+### Slice 3 — MFA migration + Ben flip (separate file, ship last)
+- `20260628020000_brief_ii_phase_c_mfa.sql`: `admin_users.recovery_code_hash text`
+- `20260628030000_brief_ii_phase_c_user_detail_audit_bump.sql`: raise `admin_get_user_detail` audit limit 20→50
+- `20260628040000_brief_ii_phase_c_ben_mfa_flip.sql`: **separate, do not auto-apply**; flagged in deploy notes
 
-### Slice 5 — Admin shell + bell
-- `AdminHeader.tsx`: replace disabled bell with live one. `useQuery(['admin','notifications'], refetchInterval: 60_000)`. Dropdown panel reusing the existing click-outside `useRef`. Severity dot colors per brief. "Mark all read" button. Opening does not auto-mark; explicit action or row click does.
-- `AdminSidebar.tsx`: bg → `var(--bg)`; remove `comingSoon` from "Dashboard" → `/admin` and "System health" → `/admin/health`; add collapse toggle (component state in `admin.tsx`, default collapsed below `md`); collapsed rail `w-14` with first letter / glyph.
-- `admin.tsx`: holds `collapsed` state, passes to sidebar.
+### Slice 4 — Edge functions
+- `admin-stripe-actions/index.ts`: dual-client pattern (caller JWT for `admin_require_role` check; service role for Stripe + DB writes). Actions: `force_cancel` (delegates state to `stripe-webhook`), `refund` (30-day window enforced server-side). Audits via a small `admin_log_stripe_action` wrapper RPC executed as caller.
+- `admin-auth-actions/index.ts`: `resend_otp` via Supabase Admin API; audited.
+- `admin-mfa-recovery/index.ts`: generate code, store bcrypt-ish hash in `admin_users.recovery_code_hash`, return plaintext once; verify path clears TOTP factor via admin API and forces re-enroll.
 
-### Slice 6 — `/admin/health` (new route)
-`src/routes/admin.health.tsx`: status grid grouped by category (critical first), P50/P95, success-rate, last-checked, retry button gated to `super_admin`/`admin`; forecast-volume bars (last 7d); failures table. `useQuery(['admin','health'], refetchInterval: 30_000)`. Manual retry calls `log_admin_action('health_manual_retry', ...)`.
+### Slice 5 — Suspension enforcement
+- `submit-question/index.ts`: single `profiles.suspended_at` select BEFORE `get_user_quota_today`; emit SSE `suspended` stage with neutral message; bail.
 
-### Slice 7 — `/admin` dashboard
-Replace redirect-only `admin.index.tsx` with: 5 tiles + health strip + red banner (when `unresolved_critical > 0 || health.down > 0`) + recent failures (10). `useQuery(['admin','dashboard'], refetchInterval: 60_000)`. "Est. MRR" tile footnoted as catalog-based estimate.
+### Slice 6 — Frontend libs + Audit UI
+- `src/lib/admin/actions.ts` — typed wrappers for all 8 RPCs + 3 edge invokes
+- `src/lib/admin/audit.ts` — `adminListAudit`, `adminDistinctAuditActions`
+- `src/lib/admin/mfa.ts` — enroll/challenge/verify/AAL/recovery helpers
+- `src/routes/admin.audit.tsx` — URL-driven filters (admin, action multi-select, target_type, date range, search), table, row drawer with pretty JSON, CSV export (cap 5000), pagination
+- `AdminSidebar.tsx`: wire "Audit" → `/admin/audit`, remove `comingSoon`
+
+### Slice 7 — User detail Actions panel + MFA gate/banner
+- `src/components/admin/UserActionsPanel.tsx`: 9 buttons with role-gating + typed confirmation modals; inline "Comp Pro" / "Suspended" badges
+- `admin.users.$id.tsx`: mount panel; "View full audit log for this user" link → `/admin/audit?target_id=…`; remove "coming in Phase II.C" copy
+- `MfaBanner.tsx` + `MfaEnrollModal.tsx`: shown when required-role admin lacks verified factor; enforcement date from `admin_config`
+- `src/routes/admin.tsx` `beforeLoad`: extend to check `mfa.getAuthenticatorAssuranceLevel()`; pre-grace allow + banner, post-grace hard block; if factor exists and AAL≠aal2, redirect to challenge screen; failed challenges call `raise_admin_notification('warning','security',...)` + audit `admin.mfa_challenge_failed`
+- 12h aal2 re-verification tracked in session state
 
 ## Verification per slice
-- Slice 1–2: `bun run build` (migrations are SQL; the build catches TS issues from generated types if regenerated, but the brief explicitly does not regenerate). Quick `psql -f` dry-run not available locally — relying on careful SQL review.
-- Slice 3: build + visual code review (edge fns aren't bundled by Vite).
-- Slices 4–7: `bun run build` after each.
-- Final acceptance criteria (1–9 from brief) cannot all be verified without `supabase db push` + `functions deploy` — those are Ben's deploy steps. I'll flag any acceptance item that requires post-deploy testing.
+- Slices 1–3 (SQL): careful review only (no local psql).
+- Slice 4 (edge fns): code review; not built by Vite.
+- Slices 5–7 (frontend + submit-question changes): `bun run build` after each.
+- Final acceptance items requiring real Stripe / live MFA challenges flagged as Ben's post-deploy verification.
 
-## Out of scope (per brief)
-- `~flock.js` 500 (host-injected, not app code)
-- Full LLM cost attribution (Phase 7.D)
-- True Stripe-sourced MRR (Phase 7.D)
-- `usage_log` reference in architecture doc §13
+## Out of scope (per brief §15)
+Per-admin audit route, prediction auto-resolution, revenue dashboards, events moderation queue page, audit retention GC, WebAuthn/SMS MFA, GDPR export.
 
-## Open questions (will flag inline; not blocking)
-1. `API_SPORTS_KEY` — included as 15th entry, `enabled=false`, per brief.
-2. Digest cadence — 30 min per brief default.
-3. Perplexity token JSON path — will read `prediction_inputs` columns at write time and adjust; if ambiguous, will leave the column returning 0 with a `TODO` comment rather than guess.
+## Risks
+1. `get_user_quota_today` extension is on the hot path — signature preserved, RLS self-read policies added, no submit-question break.
+2. `admin-stripe-actions` dual-client auth-as-caller — the security crux; will follow brief exactly.
+3. Ben MFA flip must NOT auto-apply — shipped as a separate, clearly-marked migration that Ben copies into `supabase/migrations/` only after enrollment.
 
-Ready to ship slice 1 on approval.
+Ready to ship Slice 1 on approval.

@@ -69,6 +69,29 @@ Deno.serve(async (req) => {
     };
 
     try {
+      // ----- 0. SUSPENSION CHECK (Brief II.C C.4) -----
+      // Neutral message; do not leak the reason. Runs ahead of quota so a
+      // suspended user never burns moderation cycles.
+      {
+        const { data: profileRow, error: profileErr } = await supabase
+          .from("profiles")
+          .select("suspended_at")
+          .eq("id", authedUser.user_id)
+          .maybeSingle();
+        if (profileErr) {
+          console.error("[submit-question] suspension check failed:", profileErr.message);
+        } else if (profileRow?.suspended_at) {
+          sse.send({
+            stage: "suspended",
+            status: "error",
+            message: "This account cannot submit questions. Contact support.",
+          });
+          await recordOutcome("failed");
+          sse.close();
+          return;
+        }
+      }
+
       // ----- 1. RATE LIMIT (per user_id, per-tier daily cap via get_user_quota_today) -----
       sse.send({ stage: "rate_limit", status: "start" });
       const { data: quotaData, error: quotaErr } = await supabase
