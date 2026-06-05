@@ -42,12 +42,15 @@ import { Route as AdminAuditRouteImport } from './routes/admin.audit'
 import { Route as DomainTrackRecordRouteImport } from './routes/$domain.track-record'
 import { Route as AdminUsersIndexRouteImport } from './routes/admin.users.index'
 import { Route as AdminEventsIndexRouteImport } from './routes/admin.events.index'
+import { Route as AdminAdminsIndexRouteImport } from './routes/admin.admins.index'
 import { Route as ApiOgHomeRouteImport } from './routes/api/og/home'
 import { Route as AdminUsersIdRouteImport } from './routes/admin.users.$id'
 import { Route as AdminEventsModerationRouteImport } from './routes/admin.events.moderation'
 import { Route as AdminEventsIdRouteImport } from './routes/admin.events.$id'
+import { Route as AdminAnalyticsSearchRouteImport } from './routes/admin.analytics.search'
 import { Route as DomainEventsSlugRouteImport } from './routes/$domain.events.$slug'
 import { Route as ApiOgEventSlugRouteImport } from './routes/api/og/event/$slug'
+import { Route as AdminAdminsIdAuditRouteImport } from './routes/admin.admins.$id.audit'
 
 const TermsRoute = TermsRouteImport.update({
   id: '/terms',
@@ -214,6 +217,11 @@ const AdminEventsIndexRoute = AdminEventsIndexRouteImport.update({
   path: '/events/',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminAdminsIndexRoute = AdminAdminsIndexRouteImport.update({
+  id: '/admins/',
+  path: '/admins/',
+  getParentRoute: () => AdminRoute,
+} as any)
 const ApiOgHomeRoute = ApiOgHomeRouteImport.update({
   id: '/api/og/home',
   path: '/api/og/home',
@@ -234,6 +242,11 @@ const AdminEventsIdRoute = AdminEventsIdRouteImport.update({
   path: '/events/$id',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminAnalyticsSearchRoute = AdminAnalyticsSearchRouteImport.update({
+  id: '/analytics/search',
+  path: '/analytics/search',
+  getParentRoute: () => AdminRoute,
+} as any)
 const DomainEventsSlugRoute = DomainEventsSlugRouteImport.update({
   id: '/$domain/events/$slug',
   path: '/$domain/events/$slug',
@@ -243,6 +256,11 @@ const ApiOgEventSlugRoute = ApiOgEventSlugRouteImport.update({
   id: '/api/og/event/$slug',
   path: '/api/og/event/$slug',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AdminAdminsIdAuditRoute = AdminAdminsIdAuditRouteImport.update({
+  id: '/admins/$id/audit',
+  path: '/admins/$id/audit',
+  getParentRoute: () => AdminRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
@@ -278,12 +296,15 @@ export interface FileRoutesByFullPath {
   '/admin/revenue': typeof AdminRevenueRoute
   '/admin/': typeof AdminIndexRoute
   '/$domain/events/$slug': typeof DomainEventsSlugRoute
+  '/admin/analytics/search': typeof AdminAnalyticsSearchRoute
   '/admin/events/$id': typeof AdminEventsIdRoute
   '/admin/events/moderation': typeof AdminEventsModerationRoute
   '/admin/users/$id': typeof AdminUsersIdRoute
   '/api/og/home': typeof ApiOgHomeRoute
+  '/admin/admins/': typeof AdminAdminsIndexRoute
   '/admin/events/': typeof AdminEventsIndexRoute
   '/admin/users/': typeof AdminUsersIndexRoute
+  '/admin/admins/$id/audit': typeof AdminAdminsIdAuditRoute
   '/api/og/event/$slug': typeof ApiOgEventSlugRoute
 }
 export interface FileRoutesByTo {
@@ -318,12 +339,15 @@ export interface FileRoutesByTo {
   '/admin/revenue': typeof AdminRevenueRoute
   '/admin': typeof AdminIndexRoute
   '/$domain/events/$slug': typeof DomainEventsSlugRoute
+  '/admin/analytics/search': typeof AdminAnalyticsSearchRoute
   '/admin/events/$id': typeof AdminEventsIdRoute
   '/admin/events/moderation': typeof AdminEventsModerationRoute
   '/admin/users/$id': typeof AdminUsersIdRoute
   '/api/og/home': typeof ApiOgHomeRoute
+  '/admin/admins': typeof AdminAdminsIndexRoute
   '/admin/events': typeof AdminEventsIndexRoute
   '/admin/users': typeof AdminUsersIndexRoute
+  '/admin/admins/$id/audit': typeof AdminAdminsIdAuditRoute
   '/api/og/event/$slug': typeof ApiOgEventSlugRoute
 }
 export interface FileRoutesById {
@@ -360,12 +384,15 @@ export interface FileRoutesById {
   '/admin/revenue': typeof AdminRevenueRoute
   '/admin/': typeof AdminIndexRoute
   '/$domain/events/$slug': typeof DomainEventsSlugRoute
+  '/admin/analytics/search': typeof AdminAnalyticsSearchRoute
   '/admin/events/$id': typeof AdminEventsIdRoute
   '/admin/events/moderation': typeof AdminEventsModerationRoute
   '/admin/users/$id': typeof AdminUsersIdRoute
   '/api/og/home': typeof ApiOgHomeRoute
+  '/admin/admins/': typeof AdminAdminsIndexRoute
   '/admin/events/': typeof AdminEventsIndexRoute
   '/admin/users/': typeof AdminUsersIndexRoute
+  '/admin/admins/$id/audit': typeof AdminAdminsIdAuditRoute
   '/api/og/event/$slug': typeof ApiOgEventSlugRoute
 }
 export interface FileRouteTypes {
@@ -403,12 +430,15 @@ export interface FileRouteTypes {
     | '/admin/revenue'
     | '/admin/'
     | '/$domain/events/$slug'
+    | '/admin/analytics/search'
     | '/admin/events/$id'
     | '/admin/events/moderation'
     | '/admin/users/$id'
     | '/api/og/home'
+    | '/admin/admins/'
     | '/admin/events/'
     | '/admin/users/'
+    | '/admin/admins/$id/audit'
     | '/api/og/event/$slug'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -443,12 +473,15 @@ export interface FileRouteTypes {
     | '/admin/revenue'
     | '/admin'
     | '/$domain/events/$slug'
+    | '/admin/analytics/search'
     | '/admin/events/$id'
     | '/admin/events/moderation'
     | '/admin/users/$id'
     | '/api/og/home'
+    | '/admin/admins'
     | '/admin/events'
     | '/admin/users'
+    | '/admin/admins/$id/audit'
     | '/api/og/event/$slug'
   id:
     | '__root__'
@@ -484,12 +517,15 @@ export interface FileRouteTypes {
     | '/admin/revenue'
     | '/admin/'
     | '/$domain/events/$slug'
+    | '/admin/analytics/search'
     | '/admin/events/$id'
     | '/admin/events/moderation'
     | '/admin/users/$id'
     | '/api/og/home'
+    | '/admin/admins/'
     | '/admin/events/'
     | '/admin/users/'
+    | '/admin/admins/$id/audit'
     | '/api/og/event/$slug'
   fileRoutesById: FileRoutesById
 }
@@ -755,6 +791,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminEventsIndexRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/admins/': {
+      id: '/admin/admins/'
+      path: '/admins'
+      fullPath: '/admin/admins/'
+      preLoaderRoute: typeof AdminAdminsIndexRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/api/og/home': {
       id: '/api/og/home'
       path: '/api/og/home'
@@ -783,6 +826,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminEventsIdRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/analytics/search': {
+      id: '/admin/analytics/search'
+      path: '/analytics/search'
+      fullPath: '/admin/analytics/search'
+      preLoaderRoute: typeof AdminAnalyticsSearchRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/$domain/events/$slug': {
       id: '/$domain/events/$slug'
       path: '/$domain/events/$slug'
@@ -797,6 +847,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiOgEventSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/admins/$id/audit': {
+      id: '/admin/admins/$id/audit'
+      path: '/admins/$id/audit'
+      fullPath: '/admin/admins/$id/audit'
+      preLoaderRoute: typeof AdminAdminsIdAuditRouteImport
+      parentRoute: typeof AdminRoute
+    }
   }
 }
 
@@ -809,11 +866,14 @@ interface AdminRouteChildren {
   AdminMarqueeRoute: typeof AdminMarqueeRoute
   AdminRevenueRoute: typeof AdminRevenueRoute
   AdminIndexRoute: typeof AdminIndexRoute
+  AdminAnalyticsSearchRoute: typeof AdminAnalyticsSearchRoute
   AdminEventsIdRoute: typeof AdminEventsIdRoute
   AdminEventsModerationRoute: typeof AdminEventsModerationRoute
   AdminUsersIdRoute: typeof AdminUsersIdRoute
+  AdminAdminsIndexRoute: typeof AdminAdminsIndexRoute
   AdminEventsIndexRoute: typeof AdminEventsIndexRoute
   AdminUsersIndexRoute: typeof AdminUsersIndexRoute
+  AdminAdminsIdAuditRoute: typeof AdminAdminsIdAuditRoute
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
@@ -825,11 +885,14 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminMarqueeRoute: AdminMarqueeRoute,
   AdminRevenueRoute: AdminRevenueRoute,
   AdminIndexRoute: AdminIndexRoute,
+  AdminAnalyticsSearchRoute: AdminAnalyticsSearchRoute,
   AdminEventsIdRoute: AdminEventsIdRoute,
   AdminEventsModerationRoute: AdminEventsModerationRoute,
   AdminUsersIdRoute: AdminUsersIdRoute,
+  AdminAdminsIndexRoute: AdminAdminsIndexRoute,
   AdminEventsIndexRoute: AdminEventsIndexRoute,
   AdminUsersIndexRoute: AdminUsersIndexRoute,
+  AdminAdminsIdAuditRoute: AdminAdminsIdAuditRoute,
 }
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)

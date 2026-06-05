@@ -11,7 +11,7 @@ interface NavItem {
 const ITEMS: NavItem[] = [
   { label: "Dashboard", to: "/admin" },
   { label: "Users", to: "/admin/users" },
-  { label: "Analytics", comingSoon: true },
+  { label: "Analytics", to: "/admin/analytics/search" },
   { label: "Revenue", to: "/admin/revenue" },
   { label: "Costs", to: "/admin/costs" },
   { label: "System health", to: "/admin/health" },
@@ -20,7 +20,7 @@ const ITEMS: NavItem[] = [
   { label: "Events", to: "/admin/events" },
   { label: "Marquee", to: "/admin/marquee" },
   { label: "Audit", to: "/admin/audit" },
-  { label: "Admins", comingSoon: true, superAdminOnly: true },
+  { label: "Admins", to: "/admin/admins", superAdminOnly: true },
 ];
 
 function glyph(label: string): string {
