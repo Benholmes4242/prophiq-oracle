@@ -30,15 +30,16 @@ function glyph(label: string): string {
 interface AdminSidebarProps {
   role: AdminRole | null;
   collapsed: boolean;
+  onNavigate?: () => void;
 }
 
-export function AdminSidebar({ role, collapsed }: AdminSidebarProps) {
+export function AdminSidebar({ role, collapsed, onNavigate }: AdminSidebarProps) {
   const { pathname } = useLocation();
   const items = ITEMS.filter((i) => !i.superAdminOnly || role === "super_admin");
 
   return (
     <nav
-      className={`flex shrink-0 flex-col gap-0.5 border-r py-4 transition-[width] duration-150 ${collapsed ? "w-14 px-1.5" : "w-56 px-3"}`}
+      className={`flex h-full shrink-0 flex-col gap-0.5 overflow-y-auto border-r py-4 transition-[width] duration-150 ${collapsed ? "w-14 px-1.5" : "w-56 px-3"}`}
       style={{ borderColor: "var(--border-soft)", background: "var(--bg)" }}
     >
       {items.map((item) => {
@@ -66,7 +67,7 @@ export function AdminSidebar({ role, collapsed }: AdminSidebarProps) {
             return <div key={item.label} className="flex justify-center">{dot}</div>;
           }
           return (
-            <Link key={item.label} to={item.to} className="flex justify-center">
+            <Link key={item.label} to={item.to} className="flex justify-center" onClick={onNavigate}>
               {dot}
             </Link>
           );
@@ -88,7 +89,8 @@ export function AdminSidebar({ role, collapsed }: AdminSidebarProps) {
           <Link
             key={item.label}
             to={item.to}
-            className="rounded-md px-3 py-1.5 font-body text-[13px] transition-ios-colors hover:bg-[rgba(11,18,32,0.05)]"
+            onClick={onNavigate}
+            className="rounded-md px-3 py-2 font-body text-[13px] min-h-11 flex items-center transition-ios-colors hover:bg-[rgba(11,18,32,0.05)]"
             style={{
               color: active ? "var(--amber-strong)" : "var(--ink)",
               background: active ? "rgba(245, 158, 11, 0.08)" : "transparent",

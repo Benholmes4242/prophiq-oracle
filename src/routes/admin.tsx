@@ -38,10 +38,23 @@ export const Route = createFileRoute("/admin")({
 function AdminLayout() {
   const { adminRole } = Route.useRouteContext();
   const [email, setEmail] = useState<string | null>(null);
-  const [collapsed, setCollapsed] = useState<boolean>(() => {
+  const [isMobile, setIsMobile] = useState<boolean>(() => {
     if (typeof window === "undefined") return false;
     return window.matchMedia("(max-width: 767px)").matches;
   });
+  const [collapsed, setCollapsed] = useState<boolean>(false);
+  const [drawerOpen, setDrawerOpen] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const mq = window.matchMedia("(max-width: 767px)");
+    const onChange = (e: MediaQueryListEvent) => {
+      setIsMobile(e.matches);
+      if (!e.matches) setDrawerOpen(false);
+    };
+    mq.addEventListener("change", onChange);
+    return () => mq.removeEventListener("change", onChange);
+  }, []);
 
   useEffect(() => {
     let mounted = true;
@@ -94,7 +107,13 @@ function AdminLayout() {
 
   return (
     <div className="flex min-h-screen flex-col" style={{ background: "var(--bg)", color: "var(--ink)" }}>
-      <AdminHeader email={email} onToggleSidebar={() => setCollapsed((v) => !v)} />
+      <AdminHeader
+        email={email}
+        onToggleSidebar={() => {
+          if (isMobile) setDrawerOpen((v) => !v);
+          else setCollapsed((v) => !v);
+        }}
+      />
       {needsBanner && (
         <MfaBanner
           enforcementStart={mfa?.enforcementStart ?? null}
@@ -120,9 +139,31 @@ function AdminLayout() {
           onVerified={() => void refetchMfa()}
         />
       ) : (
-        <div className="flex flex-1">
-          <AdminSidebar role={adminRole} collapsed={collapsed} />
-          <main className="min-w-0 flex-1 overflow-x-auto px-6 py-5">
+        <div className="relative flex flex-1">
+          {isMobile ? (
+            <>
+              {drawerOpen && (
+                <div
+                  className="fixed inset-0 z-30"
+                  style={{ background: "rgba(0,0,0,0.45)", top: 48 }}
+                  onClick={() => setDrawerOpen(false)}
+                />
+              )}
+              <div
+                className={`fixed left-0 z-40 transition-transform duration-200 ${drawerOpen ? "translate-x-0" : "-translate-x-full"}`}
+                style={{ top: 48, bottom: 0 }}
+              >
+                <AdminSidebar
+                  role={adminRole}
+                  collapsed={false}
+                  onNavigate={() => setDrawerOpen(false)}
+                />
+              </div>
+            </>
+          ) : (
+            <AdminSidebar role={adminRole} collapsed={collapsed} />
+          )}
+          <main className="min-w-0 flex-1 overflow-x-auto px-4 py-5 sm:px-6">
             <Outlet />
           </main>
         </div>
