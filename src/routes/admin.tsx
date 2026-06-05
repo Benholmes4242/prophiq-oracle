@@ -30,6 +30,12 @@ export const Route = createFileRoute("/admin")({
 function AdminLayout() {
   const { adminRole } = Route.useRouteContext();
   const [email, setEmail] = useState<string | null>(null);
+  // Default collapsed below md (768px). Component state only (not persisted) -
+  // per brief, persistence is intentionally out of scope.
+  const [collapsed, setCollapsed] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    return window.matchMedia("(max-width: 767px)").matches;
+  });
 
   useEffect(() => {
     let mounted = true;
@@ -43,9 +49,9 @@ function AdminLayout() {
 
   return (
     <div className="flex min-h-screen flex-col" style={{ background: "var(--bg)", color: "var(--ink)" }}>
-      <AdminHeader email={email} />
+      <AdminHeader email={email} onToggleSidebar={() => setCollapsed((v) => !v)} />
       <div className="flex flex-1">
-        <AdminSidebar role={adminRole} />
+        <AdminSidebar role={adminRole} collapsed={collapsed} />
         <main className="min-w-0 flex-1 overflow-x-auto px-6 py-5">
           <Outlet />
         </main>
