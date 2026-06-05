@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import {
   useActiveSubscription,
@@ -19,6 +19,7 @@ export const Route = createFileRoute("/account")({
 });
 
 function AccountPage() {
+  const navigate = useNavigate();
   const { data: subscription, isLoading: subLoading } = useActiveSubscription();
   const { usage, isLoading: quotaLoading } = useUsageQuota();
   const invalidate = useInvalidateSubscriptionState();
@@ -53,6 +54,11 @@ function AccountPage() {
       setPortalError((e as Error).message || "Failed to open subscription portal");
       setPortalLoading(false);
     }
+  }
+
+  async function handleSignOut() {
+    await supabase.auth.signOut();
+    navigate({ to: "/" });
   }
 
   const isLoading = subLoading || quotaLoading;
@@ -179,6 +185,27 @@ function AccountPage() {
                 <p className="mt-2 text-xs text-[var(--ink)]/60">Resets at midnight UTC.</p>
               </div>
             )}
+
+            <div
+              className="rounded-2xl border p-6 mt-6"
+              style={{ background: "var(--bg)", borderColor: "var(--line)" }}
+            >
+              <h2 className="text-lg font-semibold mb-2">Session</h2>
+              <p className="text-sm text-[var(--ink)]/70 mb-4">
+                Sign out of your Prophiq account on this device.
+              </p>
+              <button
+                onClick={handleSignOut}
+                className="py-2.5 px-4 rounded-lg font-medium text-sm border"
+                style={{
+                  background: "var(--bg)",
+                  color: "var(--ink)",
+                  borderColor: "var(--line)",
+                }}
+              >
+                Sign out
+              </button>
+            </div>
 
             <div
               className="rounded-2xl border p-6 mt-6"

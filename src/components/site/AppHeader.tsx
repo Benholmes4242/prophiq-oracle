@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { Link, useRouterState } from "@tanstack/react-router";
+import { useEffect, useRef, useState } from "react";
+import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { PhiMark } from "@/components/brand/PhiMark";
 import { TierBadge } from "@/components/site/TierBadge";
 import { LoginModal } from "@/components/auth/LoginModal";
@@ -8,6 +8,78 @@ import { supabase } from "@/lib/supabase";
 
 interface AppHeaderProps {
   onMenuClick: () => void;
+}
+
+function UserMenu() {
+  const [open, setOpen] = useState(false);
+  const navigate = useNavigate();
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function onClick(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    }
+    if (open) document.addEventListener("mousedown", onClick);
+    return () => document.removeEventListener("mousedown", onClick);
+  }, [open]);
+
+  async function handleSignOut() {
+    await supabase.auth.signOut();
+    setOpen(false);
+    navigate({ to: "/" });
+  }
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="focus:outline-none"
+        aria-haspopup="menu"
+        aria-expanded={open}
+      >
+        <TierBadge />
+      </button>
+      {open && (
+        <div
+          className="absolute right-0 top-full mt-2 w-44 rounded-xl border py-1.5 shadow-lg"
+          style={{
+            background: "var(--bg)",
+            borderColor: "var(--line)",
+          }}
+          role="menu"
+        >
+          <Link
+            to="/account"
+            onClick={() => setOpen(false)}
+            className="block px-4 py-2 text-sm transition-ios-colors hover:bg-[rgba(11,18,32,0.05)]"
+            style={{ color: "var(--ink)" }}
+          >
+            Account
+          </Link>
+          <Link
+            to="/pricing"
+            onClick={() => setOpen(false)}
+            className="block px-4 py-2 text-sm transition-ios-colors hover:bg-[rgba(11,18,32,0.05)]"
+            style={{ color: "var(--ink)" }}
+          >
+            Pricing
+          </Link>
+          <button
+            type="button"
+            onClick={handleSignOut}
+            className="block w-full px-4 py-2 text-left text-sm transition-ios-colors hover:bg-[rgba(11,18,32,0.05)]"
+            style={{ color: "var(--ink)" }}
+            role="menuitem"
+          >
+            Sign out
+          </button>
+        </div>
+      )}
+    </div>
+  );
 }
 
 export function AppHeader({ onMenuClick }: AppHeaderProps) {
@@ -99,7 +171,7 @@ export function AppHeader({ onMenuClick }: AppHeaderProps) {
             Log in
           </button>
         )}
-        <TierBadge />
+        <UserMenu />
         <Link
           to="/search"
           aria-label="Search"
@@ -125,3 +197,4 @@ export function AppHeader({ onMenuClick }: AppHeaderProps) {
     </header>
   );
 }
+
