@@ -30,15 +30,16 @@ function glyph(label: string): string {
 interface AdminSidebarProps {
   role: AdminRole | null;
   collapsed: boolean;
+  onNavigate?: () => void;
 }
 
-export function AdminSidebar({ role, collapsed }: AdminSidebarProps) {
+export function AdminSidebar({ role, collapsed, onNavigate }: AdminSidebarProps) {
   const { pathname } = useLocation();
   const items = ITEMS.filter((i) => !i.superAdminOnly || role === "super_admin");
 
   return (
     <nav
-      className={`flex shrink-0 flex-col gap-0.5 border-r py-4 transition-[width] duration-150 ${collapsed ? "w-14 px-1.5" : "w-56 px-3"}`}
+      className={`flex h-full shrink-0 flex-col gap-0.5 overflow-y-auto border-r py-4 transition-[width] duration-150 ${collapsed ? "w-14 px-1.5" : "w-56 px-3"}`}
       style={{ borderColor: "var(--border-soft)", background: "var(--bg)" }}
     >
       {items.map((item) => {
