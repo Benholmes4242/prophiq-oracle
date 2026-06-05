@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
 import { useActiveSubscription } from "../hooks/useActiveSubscription";
 import { TierCard } from "../components/pricing/TierCard";
@@ -35,6 +35,31 @@ function PricingPage() {
   const [cadence, setCadence] = useState<"monthly" | "annual">("monthly");
   const { data: subscription } = useActiveSubscription();
   const currentTier = subscription?.tier ?? "free";
+
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  useEffect(() => {
+    let mounted = true;
+    async function refresh() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!mounted) return;
+      setIsAuthenticated(!!user && !user.is_anonymous);
+    }
+    refresh();
+    const { data: { subscription: sub } } = supabase.auth.onAuthStateChange(() => refresh());
+    return () => {
+      mounted = false;
+      sub.unsubscribe();
+    };
+  }, []);
+
+  function handleTrialCta(priceId: string) {
+    sessionStorage.setItem("pendingCheckoutPriceId", priceId);
+    window.dispatchEvent(
+      new CustomEvent("prophiq:open-login", {
+        detail: { message: "Sign up to start your free 7-day Pro trial." },
+      }),
+    );
+  }
 
   const { data: prices = [] } = useQuery({
     queryKey: ["prophiq-prices"],
@@ -106,6 +131,7 @@ function PricingPage() {
                 ctaDisabled={currentTier === tier}
                 isPopular={tier === "pro"}
                 priceId={row.stripe_price_id}
+                onCta={isAuthenticated ? undefined : () => handleTrialCta(row.stripe_price_id)}
               />
             );
           })}

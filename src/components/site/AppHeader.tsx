@@ -114,6 +114,7 @@ export function AppHeader({ onMenuClick }: AppHeaderProps) {
   const showPricingLink = !usage || usage.tier === "free";
 
   const [loginOpen, setLoginOpen] = useState(false);
+  const [loginMessage, setLoginMessage] = useState<string | undefined>(undefined);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
@@ -142,9 +143,11 @@ export function AppHeader({ onMenuClick }: AppHeaderProps) {
     };
   }, []);
 
-  // Listen for cross-component login-open requests (e.g. from Drawer)
+  // Listen for cross-component login-open requests (e.g. from Drawer or /pricing)
   useEffect(() => {
-    function onOpenLogin() {
+    function onOpenLogin(e: Event) {
+      const detail = (e as CustomEvent<{ message?: string }>).detail;
+      setLoginMessage(detail?.message);
       setLoginOpen(true);
     }
     window.addEventListener("prophiq:open-login", onOpenLogin);
@@ -227,7 +230,7 @@ export function AppHeader({ onMenuClick }: AppHeaderProps) {
         </Link>
       </div>
 
-      <LoginModal open={loginOpen} onClose={() => setLoginOpen(false)} />
+      <LoginModal open={loginOpen} onClose={() => { setLoginOpen(false); setLoginMessage(undefined); }} message={loginMessage} />
     </header>
   );
 }

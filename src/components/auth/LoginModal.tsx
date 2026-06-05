@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabase";
 import { useInvalidateSubscriptionState } from "../../hooks/useActiveSubscription";
+import { createCheckoutSession } from "../../lib/billing";
 import { OTPInput } from "./OTPInput";
 
 interface LoginModalProps {
   open: boolean;
   onClose: () => void;
+  message?: string;
 }
 
 type State =
@@ -14,7 +16,7 @@ type State =
   | { kind: "verifying"; email: string }
   | { kind: "success"; email: string };
 
-export function LoginModal({ open, onClose }: LoginModalProps) {
+export function LoginModal({ open, onClose, message }: LoginModalProps) {
   const [state, setState] = useState<State>({ kind: "enter-email" });
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
@@ -29,6 +31,21 @@ export function LoginModal({ open, onClose }: LoginModalProps) {
       async (event, session) => {
         if (event === "SIGNED_IN" && session?.user && !session.user.is_anonymous) {
           await invalidate();
+          // Continue a pending checkout if the user came from /pricing while signed out.
+          const pendingPriceId =
+            typeof window !== "undefined"
+              ? sessionStorage.getItem("pendingCheckoutPriceId")
+              : null;
+          if (pendingPriceId) {
+            sessionStorage.removeItem("pendingCheckoutPriceId");
+            try {
+              const url = await createCheckoutSession(pendingPriceId);
+              window.location.assign(url);
+              return;
+            } catch {
+              // fall through to close
+            }
+          }
           onClose();
         }
       },
@@ -206,10 +223,10 @@ export function LoginModal({ open, onClose }: LoginModalProps) {
         {state.kind === "enter-email" && (
           <>
             <h2 className="text-xl font-bold mb-2" style={{ color: "var(--ink)" }}>
-              Log in
+              {message ? "Sign in to continue" : "Log in"}
             </h2>
             <p className="text-sm text-[var(--ink)]/70 mb-6">
-              Enter the email you used to sign up. We'll send you a 6-digit code.
+              {message ?? "Enter the email you used to sign up. We'll send you a 6-digit code."}
             </p>
             <form onSubmit={handleEmailSubmit}>
               <input
