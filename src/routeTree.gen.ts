@@ -35,7 +35,6 @@ import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as AdminRevenueRouteImport } from './routes/admin.revenue'
 import { Route as AdminMarqueeRouteImport } from './routes/admin.marquee'
 import { Route as AdminHealthRouteImport } from './routes/admin.health'
-import { Route as AdminRevenueRouteImport } from './routes/admin.revenue'
 import { Route as AdminAuditRouteImport } from './routes/admin.audit'
 import { Route as DomainTrackRecordRouteImport } from './routes/$domain.track-record'
 import { Route as AdminUsersIndexRouteImport } from './routes/admin.users.index'
@@ -174,11 +173,6 @@ const AdminHealthRoute = AdminHealthRouteImport.update({
   path: '/health',
   getParentRoute: () => AdminRoute,
 } as any)
-const AdminRevenueRoute = AdminRevenueRouteImport.update({
-  id: '/revenue',
-  path: '/revenue',
-  getParentRoute: () => AdminRoute,
-} as any)
 const AdminAuditRoute = AdminAuditRouteImport.update({
   id: '/audit',
   path: '/audit',
@@ -241,7 +235,6 @@ export interface FileRoutesByFullPath {
   '/$domain/track-record': typeof DomainTrackRecordRoute
   '/admin/audit': typeof AdminAuditRoute
   '/admin/health': typeof AdminHealthRoute
-  '/admin/revenue': typeof AdminRevenueRoute
   '/admin/marquee': typeof AdminMarqueeRoute
   '/admin/revenue': typeof AdminRevenueRoute
   '/admin/': typeof AdminIndexRoute
@@ -276,7 +269,6 @@ export interface FileRoutesByTo {
   '/$domain/track-record': typeof DomainTrackRecordRoute
   '/admin/audit': typeof AdminAuditRoute
   '/admin/health': typeof AdminHealthRoute
-  '/admin/revenue': typeof AdminRevenueRoute
   '/admin/marquee': typeof AdminMarqueeRoute
   '/admin/revenue': typeof AdminRevenueRoute
   '/admin': typeof AdminIndexRoute
@@ -313,7 +305,6 @@ export interface FileRoutesById {
   '/$domain/track-record': typeof DomainTrackRecordRoute
   '/admin/audit': typeof AdminAuditRoute
   '/admin/health': typeof AdminHealthRoute
-  '/admin/revenue': typeof AdminRevenueRoute
   '/admin/marquee': typeof AdminMarqueeRoute
   '/admin/revenue': typeof AdminRevenueRoute
   '/admin/': typeof AdminIndexRoute
@@ -351,7 +342,6 @@ export interface FileRouteTypes {
     | '/$domain/track-record'
     | '/admin/audit'
     | '/admin/health'
-    | '/admin/revenue'
     | '/admin/marquee'
     | '/admin/revenue'
     | '/admin/'
@@ -386,7 +376,6 @@ export interface FileRouteTypes {
     | '/$domain/track-record'
     | '/admin/audit'
     | '/admin/health'
-    | '/admin/revenue'
     | '/admin/marquee'
     | '/admin/revenue'
     | '/admin'
@@ -422,7 +411,6 @@ export interface FileRouteTypes {
     | '/$domain/track-record'
     | '/admin/audit'
     | '/admin/health'
-    | '/admin/revenue'
     | '/admin/marquee'
     | '/admin/revenue'
     | '/admin/'
@@ -644,13 +632,6 @@ declare module '@tanstack/react-router' {
       path: '/health'
       fullPath: '/admin/health'
       preLoaderRoute: typeof AdminHealthRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/revenue': {
-      id: '/admin/revenue'
-      path: '/revenue'
-      fullPath: '/admin/revenue'
-      preLoaderRoute: typeof AdminRevenueRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/audit': {
