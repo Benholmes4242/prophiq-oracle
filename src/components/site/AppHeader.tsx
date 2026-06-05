@@ -230,7 +230,7 @@ export function AppHeader({ onMenuClick }: AppHeaderProps) {
         </Link>
       </div>
 
-      <LoginModal open={loginOpen} onClose={() => setLoginOpen(false)} />
+      <LoginModal open={loginOpen} onClose={() => { setLoginOpen(false); setLoginMessage(undefined); }} message={loginMessage} />
     </header>
   );
 }
