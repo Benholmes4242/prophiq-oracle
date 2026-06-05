@@ -3,6 +3,7 @@ import { Link, useLocation } from "@tanstack/react-router";
 import { PhiMark } from "@/components/brand/PhiMark";
 import { Wordmark } from "@/components/brand/Wordmark";
 import { OddsFormatPicker } from "@/components/site/OddsFormatPicker";
+import { supabase } from "@/lib/supabase";
 
 interface DrawerProps {
   open: boolean;
@@ -64,6 +65,11 @@ export function Drawer({ open, onClose }: DrawerProps) {
       document.body.style.overflow = prev;
     };
   }, [open]);
+
+  async function handleSignOut() {
+    await supabase.auth.signOut();
+    onClose();
+  }
 
   return (
     <>
@@ -146,6 +152,48 @@ export function Drawer({ open, onClose }: DrawerProps) {
             className="mb-1.5 px-5 font-mono text-[10px] font-semibold uppercase"
             style={{ letterSpacing: "0.22em", color: "var(--ink-faint)" }}
           >
+            ACCOUNT
+          </div>
+          <Link
+            to="/account"
+            onClick={onClose}
+            className="block px-5 py-2.5 font-body text-[15px] transition-ios-colors hover:bg-[rgba(11,18,32,0.05)]"
+            style={{
+              color: isActive(pathname, "/account") ? "var(--amber-strong)" : "var(--ink)",
+              fontWeight: isActive(pathname, "/account") ? 600 : 500,
+            }}
+          >
+            Account
+          </Link>
+          <Link
+            to="/pricing"
+            onClick={onClose}
+            className="block px-5 py-2.5 font-body text-[15px] transition-ios-colors hover:bg-[rgba(11,18,32,0.05)]"
+            style={{
+              color: isActive(pathname, "/pricing") ? "var(--amber-strong)" : "var(--ink)",
+              fontWeight: isActive(pathname, "/pricing") ? 600 : 500,
+            }}
+          >
+            Pricing
+          </Link>
+          <button
+            type="button"
+            onClick={handleSignOut}
+            className="block w-full px-5 py-2.5 text-left font-body text-[15px] transition-ios-colors hover:bg-[rgba(11,18,32,0.05)]"
+            style={{ color: "var(--ink)", fontWeight: 500 }}
+          >
+            Sign out
+          </button>
+        </div>
+
+        <div
+          className="border-t py-3.5"
+          style={{ borderColor: "var(--border-soft)" }}
+        >
+          <div
+            className="mb-1.5 px-5 font-mono text-[10px] font-semibold uppercase"
+            style={{ letterSpacing: "0.22em", color: "var(--ink-faint)" }}
+          >
             SETTINGS
           </div>
           <OddsFormatPicker />
@@ -155,7 +203,7 @@ export function Drawer({ open, onClose }: DrawerProps) {
           className="mt-auto border-t px-5 pb-6 pt-4 font-body text-[11.5px] leading-[1.4]"
           style={{ borderColor: "var(--border-soft)", color: "var(--ink-faint)" }}
         >
-          © {new Date().getFullYear()} prophiq. Calibrated forecasts for every
+          &copy; {new Date().getFullYear()} prophiq. Calibrated forecasts for every
           upcoming event.
         </div>
       </aside>
