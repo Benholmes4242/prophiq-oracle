@@ -74,7 +74,7 @@ function UsersListPage() {
     const t = setTimeout(() => {
       if ((searchInput || "") !== (search.search || "")) {
         navigate({
-          search: (prev) => ({ ...prev, search: searchInput || undefined, page: 1 }),
+          search: (prev: SearchParams) => ({ ...prev, search: searchInput || undefined, page: 1 }),
         });
       }
     }, 300);
@@ -95,7 +95,7 @@ function UsersListPage() {
         limit: PAGE_SIZE,
         offset,
       }),
-    placeholderData: (prev) => prev,
+    placeholderData: (prev: SearchParams) => prev,
   });
 
   const rows: AdminUserRow[] = data?.rows ?? [];
@@ -148,7 +148,7 @@ function UsersListPage() {
           value={search.plan ?? ""}
           onChange={(e) =>
             navigate({
-              search: (prev) => ({ ...prev, plan: e.target.value || undefined, page: 1 }),
+              search: (prev: SearchParams) => ({ ...prev, plan: e.target.value || undefined, page: 1 }),
             })
           }
           className="font-body rounded-md px-2 py-1.5 text-[13px]"
@@ -164,7 +164,7 @@ function UsersListPage() {
           value={search.status ?? ""}
           onChange={(e) =>
             navigate({
-              search: (prev) => ({ ...prev, status: e.target.value || undefined, page: 1 }),
+              search: (prev: SearchParams) => ({ ...prev, status: e.target.value || undefined, page: 1 }),
             })
           }
           className="font-body rounded-md px-2 py-1.5 text-[13px]"
@@ -274,7 +274,7 @@ function UsersListPage() {
           <button
             type="button"
             disabled={page <= 1}
-            onClick={() => navigate({ search: (p) => ({ ...p, page: page - 1 }) })}
+            onClick={() => navigate({ search: (p: SearchParams) => ({ ...p, page: page - 1 }) })}
             className="rounded-md border px-3 py-1 disabled:opacity-30"
             style={{ borderColor: "var(--border-strong)" }}
           >
@@ -286,7 +286,7 @@ function UsersListPage() {
           <button
             type="button"
             disabled={page >= totalPages}
-            onClick={() => navigate({ search: (p) => ({ ...p, page: page + 1 }) })}
+            onClick={() => navigate({ search: (p: SearchParams) => ({ ...p, page: page + 1 }) })}
             className="rounded-md border px-3 py-1 disabled:opacity-30"
             style={{ borderColor: "var(--border-strong)" }}
           >
