@@ -208,6 +208,7 @@ export function UserActionsPanel(props: UserActionsPanelProps) {
           ? <Btn label="Unsuspend" action="unsuspend" />
           : <Btn label="Suspend" action="suspend" danger />}
         <Btn label="Force cancel sub" action="force_cancel" danger />
+        <Btn label="Refund charge" action="refund" danger />
         <Btn label="Force delete" action="force_delete" danger />
       </div>
 
@@ -261,6 +262,22 @@ export function UserActionsPanel(props: UserActionsPanelProps) {
                     className="mt-1 w-full rounded-md px-2 py-1.5 text-[13px]"
                     style={{ background: "var(--bg)", border: "1px solid var(--border-strong)" }}
                   />
+                </label>
+              )}
+              {modal.fields.includes("charge") && (
+                <label className="block font-body text-[12px]">
+                  Stripe charge ID
+                  <input
+                    type="text"
+                    value={chargeId}
+                    onChange={(e) => setChargeId(e.target.value)}
+                    placeholder="ch_..."
+                    className="mt-1 w-full rounded-md px-2 py-1.5 font-mono text-[12px]"
+                    style={{ background: "var(--bg)", border: "1px solid var(--border-strong)" }}
+                  />
+                  <span className="mt-1 block font-body text-[11px]" style={{ color: "var(--ink-soft)" }}>
+                    Paste the Stripe charge ID (ch_...). Refunds are only permitted within 30 days; the server enforces this.
+                  </span>
                 </label>
               )}
               {modal.fields.includes("reason") && (
