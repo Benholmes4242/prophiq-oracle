@@ -95,7 +95,7 @@ function UsersListPage() {
         limit: PAGE_SIZE,
         offset,
       }),
-    placeholderData: (prev: SearchParams) => prev,
+    placeholderData: (prev) => prev,
   });
 
   const rows: AdminUserRow[] = data?.rows ?? [];
