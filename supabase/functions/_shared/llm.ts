@@ -6,7 +6,29 @@
 //   OPENAI_API_KEY     -> GPT
 //   GOOGLE_API_KEY     -> Gemini
 
-import type { ModelPickDetail, ModelRanking } from "./consensusEngine.ts";
+import type { ModelPickDetail, ModelRanking, ModelUsage } from "./consensusEngine.ts";
+
+/**
+ * Best-effort usage extractor. NEVER throws — any failure returns undefined
+ * and the ranking is returned without usage info. Cost-logging is opportunistic
+ * and must never break or block prediction generation.
+ */
+function safeExtractUsage(extract: () => ModelUsage | undefined): ModelUsage | undefined {
+  try {
+    const u = extract();
+    if (!u) return undefined;
+    const out: ModelUsage = {};
+    if (typeof u.input_tokens === "number" && Number.isFinite(u.input_tokens)) {
+      out.input_tokens = Math.max(0, Math.floor(u.input_tokens));
+    }
+    if (typeof u.output_tokens === "number" && Number.isFinite(u.output_tokens)) {
+      out.output_tokens = Math.max(0, Math.floor(u.output_tokens));
+    }
+    return Object.keys(out).length > 0 ? out : undefined;
+  } catch {
+    return undefined;
+  }
+}
 
 export interface LlmInvokeInput {
   prompt: string;
