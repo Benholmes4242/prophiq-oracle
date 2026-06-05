@@ -15,11 +15,11 @@ async function logFailure() {
     await Promise.all([
       supabase.rpc("raise_admin_notification", {
         p_severity: "warning",
-        p_kind: "security",
+        p_category: "security",
         p_title: "Admin MFA challenge failed",
-        p_detail: "An admin failed a TOTP verification challenge.",
+        p_body: "An admin failed a TOTP verification challenge.",
         p_source: "auth",
-        p_link: "/admin/audit",
+        p_target_url: "/admin/audit",
         p_dedup_key: `security:mfa_fail:${uid}`,
         p_metadata: {},
       }),
