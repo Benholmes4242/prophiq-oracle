@@ -38,10 +38,23 @@ export const Route = createFileRoute("/admin")({
 function AdminLayout() {
   const { adminRole } = Route.useRouteContext();
   const [email, setEmail] = useState<string | null>(null);
-  const [collapsed, setCollapsed] = useState<boolean>(() => {
+  const [isMobile, setIsMobile] = useState<boolean>(() => {
     if (typeof window === "undefined") return false;
     return window.matchMedia("(max-width: 767px)").matches;
   });
+  const [collapsed, setCollapsed] = useState<boolean>(false);
+  const [drawerOpen, setDrawerOpen] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const mq = window.matchMedia("(max-width: 767px)");
+    const onChange = (e: MediaQueryListEvent) => {
+      setIsMobile(e.matches);
+      if (!e.matches) setDrawerOpen(false);
+    };
+    mq.addEventListener("change", onChange);
+    return () => mq.removeEventListener("change", onChange);
+  }, []);
 
   useEffect(() => {
     let mounted = true;
