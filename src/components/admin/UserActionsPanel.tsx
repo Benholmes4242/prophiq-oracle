@@ -9,6 +9,7 @@ import {
   adminForceDeleteUser,
   adminResendOtp,
   adminStripeForceCancel,
+  adminStripeRefund,
 } from "@/lib/admin/actions";
 import type { AdminRole } from "@/lib/admin/queries";
 
@@ -19,6 +20,7 @@ type ActionKey =
   | "suspend"
   | "unsuspend"
   | "force_cancel"
+  | "refund"
   | "resend_otp"
   | "force_delete";
 
@@ -29,6 +31,7 @@ const ROLE_REQUIREMENTS: Record<ActionKey, AdminRole[]> = {
   suspend: ["super_admin", "admin"],
   unsuspend: ["super_admin", "admin"],
   force_cancel: ["super_admin", "admin"],
+  refund: ["super_admin", "admin"],
   resend_otp: ["super_admin", "admin", "support"],
   force_delete: ["super_admin"],
 };
