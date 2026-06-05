@@ -200,6 +200,7 @@ export const callClaude: LlmCaller = async ({ prompt, outcomes, temperature }) =
 export const callGPT: LlmCaller = async ({ prompt, outcomes, temperature }) => {
   const key = readEnv("OPENAI_API_KEY");
   if (!key) return { model: "gpt", ranked_outcome_ids: [], error: "OPENAI_API_KEY missing" };
+  const t0 = Date.now();
   try {
     const res = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
@@ -216,13 +217,30 @@ export const callGPT: LlmCaller = async ({ prompt, outcomes, temperature }) => {
     });
     if (!res.ok) {
       const text = await res.text();
-      return { model: "gpt", ranked_outcome_ids: [], error: `HTTP ${res.status}: ${text.slice(0, 200)}` };
+      return {
+        model: "gpt", ranked_outcome_ids: [],
+        error: `HTTP ${res.status}: ${text.slice(0, 200)}`,
+        latency_ms: Date.now() - t0,
+      };
     }
-    const json = await res.json() as { choices?: Array<{ message?: { content?: string } }> };
+    const json = await res.json() as {
+      choices?: Array<{ message?: { content?: string } }>;
+      usage?: { prompt_tokens?: number; completion_tokens?: number };
+    };
     const text = json.choices?.[0]?.message?.content ?? "";
-    return parseLlmResponse("gpt", text, outcomes.map((o) => o.id));
+    const ranking = parseLlmResponse("gpt", text, outcomes.map((o) => o.id));
+    ranking.latency_ms = Date.now() - t0;
+    ranking.usage = safeExtractUsage(() => ({
+      input_tokens: json.usage?.prompt_tokens,
+      output_tokens: json.usage?.completion_tokens,
+    }));
+    return ranking;
   } catch (err) {
-    return { model: "gpt", ranked_outcome_ids: [], error: (err as Error).message };
+    return {
+      model: "gpt", ranked_outcome_ids: [],
+      error: (err as Error).message,
+      latency_ms: Date.now() - t0,
+    };
   }
 };
 
