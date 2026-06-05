@@ -27,10 +27,10 @@ import { Route as EntertainmentRouteImport } from './routes/entertainment'
 import { Route as ContactRouteImport } from './routes/contact'
 import { Route as AskedRouteImport } from './routes/asked'
 import { Route as AskRouteImport } from './routes/ask'
-import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AccountRouteImport } from './routes/account'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AdminMarqueeRouteImport } from './routes/admin.marquee'
 import { Route as DomainTrackRecordRouteImport } from './routes/$domain.track-record'
 import { Route as ApiOgHomeRouteImport } from './routes/api/og/home'
 import { Route as DomainEventsSlugRouteImport } from './routes/$domain.events.$slug'
@@ -126,11 +126,6 @@ const AskRoute = AskRouteImport.update({
   path: '/ask',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AdminRoute = AdminRouteImport.update({
-  id: '/admin',
-  path: '/admin',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const AccountRoute = AccountRouteImport.update({
   id: '/account',
   path: '/account',
@@ -144,6 +139,11 @@ const AboutRoute = AboutRouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminMarqueeRoute = AdminMarqueeRouteImport.update({
+  id: '/admin/marquee',
+  path: '/admin/marquee',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DomainTrackRecordRoute = DomainTrackRecordRouteImport.update({
@@ -171,7 +171,6 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/account': typeof AccountRoute
-  '/admin': typeof AdminRoute
   '/ask': typeof AskRoute
   '/asked': typeof AskedRoute
   '/contact': typeof ContactRoute
@@ -191,6 +190,7 @@ export interface FileRoutesByFullPath {
   '/sport': typeof SportRoute
   '/terms': typeof TermsRoute
   '/$domain/track-record': typeof DomainTrackRecordRoute
+  '/admin/marquee': typeof AdminMarqueeRoute
   '/$domain/events/$slug': typeof DomainEventsSlugRoute
   '/api/og/home': typeof ApiOgHomeRoute
   '/api/og/event/$slug': typeof ApiOgEventSlugRoute
@@ -199,7 +199,6 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/account': typeof AccountRoute
-  '/admin': typeof AdminRoute
   '/ask': typeof AskRoute
   '/asked': typeof AskedRoute
   '/contact': typeof ContactRoute
@@ -219,6 +218,7 @@ export interface FileRoutesByTo {
   '/sport': typeof SportRoute
   '/terms': typeof TermsRoute
   '/$domain/track-record': typeof DomainTrackRecordRoute
+  '/admin/marquee': typeof AdminMarqueeRoute
   '/$domain/events/$slug': typeof DomainEventsSlugRoute
   '/api/og/home': typeof ApiOgHomeRoute
   '/api/og/event/$slug': typeof ApiOgEventSlugRoute
@@ -228,7 +228,6 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/account': typeof AccountRoute
-  '/admin': typeof AdminRoute
   '/ask': typeof AskRoute
   '/asked': typeof AskedRoute
   '/contact': typeof ContactRoute
@@ -248,6 +247,7 @@ export interface FileRoutesById {
   '/sport': typeof SportRoute
   '/terms': typeof TermsRoute
   '/$domain/track-record': typeof DomainTrackRecordRoute
+  '/admin/marquee': typeof AdminMarqueeRoute
   '/$domain/events/$slug': typeof DomainEventsSlugRoute
   '/api/og/home': typeof ApiOgHomeRoute
   '/api/og/event/$slug': typeof ApiOgEventSlugRoute
@@ -258,7 +258,6 @@ export interface FileRouteTypes {
     | '/'
     | '/about'
     | '/account'
-    | '/admin'
     | '/ask'
     | '/asked'
     | '/contact'
@@ -278,6 +277,7 @@ export interface FileRouteTypes {
     | '/sport'
     | '/terms'
     | '/$domain/track-record'
+    | '/admin/marquee'
     | '/$domain/events/$slug'
     | '/api/og/home'
     | '/api/og/event/$slug'
@@ -286,7 +286,6 @@ export interface FileRouteTypes {
     | '/'
     | '/about'
     | '/account'
-    | '/admin'
     | '/ask'
     | '/asked'
     | '/contact'
@@ -306,6 +305,7 @@ export interface FileRouteTypes {
     | '/sport'
     | '/terms'
     | '/$domain/track-record'
+    | '/admin/marquee'
     | '/$domain/events/$slug'
     | '/api/og/home'
     | '/api/og/event/$slug'
@@ -314,7 +314,6 @@ export interface FileRouteTypes {
     | '/'
     | '/about'
     | '/account'
-    | '/admin'
     | '/ask'
     | '/asked'
     | '/contact'
@@ -334,6 +333,7 @@ export interface FileRouteTypes {
     | '/sport'
     | '/terms'
     | '/$domain/track-record'
+    | '/admin/marquee'
     | '/$domain/events/$slug'
     | '/api/og/home'
     | '/api/og/event/$slug'
@@ -343,7 +343,6 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AboutRoute: typeof AboutRoute
   AccountRoute: typeof AccountRoute
-  AdminRoute: typeof AdminRoute
   AskRoute: typeof AskRoute
   AskedRoute: typeof AskedRoute
   ContactRoute: typeof ContactRoute
@@ -363,6 +362,7 @@ export interface RootRouteChildren {
   SportRoute: typeof SportRoute
   TermsRoute: typeof TermsRoute
   DomainTrackRecordRoute: typeof DomainTrackRecordRoute
+  AdminMarqueeRoute: typeof AdminMarqueeRoute
   DomainEventsSlugRoute: typeof DomainEventsSlugRoute
   ApiOgHomeRoute: typeof ApiOgHomeRoute
   ApiOgEventSlugRoute: typeof ApiOgEventSlugRoute
@@ -496,13 +496,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AskRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/admin': {
-      id: '/admin'
-      path: '/admin'
-      fullPath: '/admin'
-      preLoaderRoute: typeof AdminRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/account': {
       id: '/account'
       path: '/account'
@@ -522,6 +515,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/marquee': {
+      id: '/admin/marquee'
+      path: '/admin/marquee'
+      fullPath: '/admin/marquee'
+      preLoaderRoute: typeof AdminMarqueeRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/$domain/track-record': {
@@ -559,7 +559,6 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AboutRoute: AboutRoute,
   AccountRoute: AccountRoute,
-  AdminRoute: AdminRoute,
   AskRoute: AskRoute,
   AskedRoute: AskedRoute,
   ContactRoute: ContactRoute,
@@ -579,6 +578,7 @@ const rootRouteChildren: RootRouteChildren = {
   SportRoute: SportRoute,
   TermsRoute: TermsRoute,
   DomainTrackRecordRoute: DomainTrackRecordRoute,
+  AdminMarqueeRoute: AdminMarqueeRoute,
   DomainEventsSlugRoute: DomainEventsSlugRoute,
   ApiOgHomeRoute: ApiOgHomeRoute,
   ApiOgEventSlugRoute: ApiOgEventSlugRoute,
@@ -586,3 +586,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
