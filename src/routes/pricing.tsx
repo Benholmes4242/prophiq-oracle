@@ -131,6 +131,7 @@ function PricingPage() {
                 ctaDisabled={currentTier === tier}
                 isPopular={tier === "pro"}
                 priceId={row.stripe_price_id}
+                onCta={isAuthenticated ? undefined : () => handleTrialCta(row.stripe_price_id)}
               />
             );
           })}
