@@ -67,7 +67,7 @@ export function AdminSidebar({ role, collapsed, onNavigate }: AdminSidebarProps)
             return <div key={item.label} className="flex justify-center">{dot}</div>;
           }
           return (
-            <Link key={item.label} to={item.to} className="flex justify-center">
+            <Link key={item.label} to={item.to} className="flex justify-center" onClick={onNavigate}>
               {dot}
             </Link>
           );
