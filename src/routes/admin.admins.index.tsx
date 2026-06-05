@@ -29,10 +29,8 @@ function fmt(d: string | null) {
 }
 
 function AdminsPage() {
-  const { adminRole } = (Route as unknown as { useRouteContext: () => { adminRole: AdminRole | null } })
-    .useRouteContext?.() ?? { adminRole: null };
-  // Layout route already provides context; fall back gracefully if shape differs.
-  const isSuper = adminRole === "super_admin";
+  const ctx = Route.useRouteContext() as { adminRole?: AdminRole | null };
+  const isSuper = ctx.adminRole === "super_admin";
 
   if (!isSuper) {
     return (
