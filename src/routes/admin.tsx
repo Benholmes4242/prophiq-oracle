@@ -5,8 +5,11 @@ import { supabase } from "@/lib/supabase";
 import { AdminSidebar } from "@/components/admin/AdminSidebar";
 import { AdminHeader } from "@/components/admin/AdminHeader";
 import { MfaBanner } from "@/components/admin/MfaBanner";
-import { getMfaEnforcementStart, listFactors } from "@/lib/admin/mfa";
+import { MfaChallengeScreen } from "@/components/admin/MfaChallengeScreen";
+import { getMfaEnforcementStart, listFactors, getCurrentAal, getMfaVerifiedAt } from "@/lib/admin/mfa";
 import type { AdminRole } from "@/lib/admin/queries";
+
+const TWELVE_HOURS_MS = 12 * 60 * 60 * 1000;
 
 const MFA_REQUIRED_ROLES: AdminRole[] = ["super_admin", "admin"];
 
@@ -50,14 +53,22 @@ function AdminLayout() {
 
   const mfaRequired = !!adminRole && MFA_REQUIRED_ROLES.includes(adminRole);
 
-  const { data: mfa, refetch: refetchMfa } = useQuery({
+  const { data: mfa, refetch: refetchMfa, isError: mfaError } = useQuery({
     queryKey: ["admin", "mfa-state"],
     queryFn: async () => {
-      const [start, factors] = await Promise.all([
+      const [start, factors, aal, verifiedAt] = await Promise.all([
         getMfaEnforcementStart(),
         listFactors(),
+        getCurrentAal(),
+        getMfaVerifiedAt(),
       ]);
-      return { enforcementStart: start, hasFactor: factors.totpVerified };
+      return {
+        enforcementStart: start,
+        hasFactor: factors.totpVerified,
+        factorId: factors.factorId,
+        aalCurrent: aal.current,
+        lastVerifiedAt: verifiedAt,
+      };
     },
     enabled: mfaRequired,
   });
@@ -67,6 +78,19 @@ function AdminLayout() {
     : false;
   const needsBanner = mfaRequired && mfa && !mfa.hasFactor;
   const hardBlock = needsBanner && past;
+
+  // Fail-closed: if the mfa-state query errored while mfaRequired, treat as
+  // needs-challenge (admin can always recover via the recovery code path).
+  const staleVerify = mfa?.lastVerifiedAt
+    ? Date.now() - new Date(mfa.lastVerifiedAt).getTime() > TWELVE_HOURS_MS
+    : true;
+  const needsChallenge =
+    mfaRequired &&
+    !hardBlock &&
+    (
+      (mfa && mfa.hasFactor && (mfa.aalCurrent !== "aal2" || staleVerify)) ||
+      (mfaError && !mfa)
+    );
 
   return (
     <div className="flex min-h-screen flex-col" style={{ background: "var(--bg)", color: "var(--ink)" }}>
@@ -90,6 +114,11 @@ function AdminLayout() {
             </p>
           </div>
         </main>
+      ) : needsChallenge ? (
+        <MfaChallengeScreen
+          factorId={mfa?.factorId ?? null}
+          onVerified={() => void refetchMfa()}
+        />
       ) : (
         <div className="flex flex-1">
           <AdminSidebar role={adminRole} collapsed={collapsed} />
