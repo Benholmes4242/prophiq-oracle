@@ -149,6 +149,7 @@ function normaliseFitScore(x: number): number {
 export const callClaude: LlmCaller = async ({ prompt, outcomes, temperature }) => {
   const key = readEnv("ANTHROPIC_API_KEY");
   if (!key) return { model: "claude", ranked_outcome_ids: [], error: "ANTHROPIC_API_KEY missing" };
+  const t0 = Date.now();
   try {
     const res = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
@@ -166,13 +167,30 @@ export const callClaude: LlmCaller = async ({ prompt, outcomes, temperature }) =
     });
     if (!res.ok) {
       const text = await res.text();
-      return { model: "claude", ranked_outcome_ids: [], error: `HTTP ${res.status}: ${text.slice(0, 200)}` };
+      return {
+        model: "claude", ranked_outcome_ids: [],
+        error: `HTTP ${res.status}: ${text.slice(0, 200)}`,
+        latency_ms: Date.now() - t0,
+      };
     }
-    const json = await res.json() as { content?: Array<{ text?: string }> };
+    const json = await res.json() as {
+      content?: Array<{ text?: string }>;
+      usage?: { input_tokens?: number; output_tokens?: number };
+    };
     const text = json.content?.map((c) => c.text ?? "").join("") ?? "";
-    return parseLlmResponse("claude", text, outcomes.map((o) => o.id));
+    const ranking = parseLlmResponse("claude", text, outcomes.map((o) => o.id));
+    ranking.latency_ms = Date.now() - t0;
+    ranking.usage = safeExtractUsage(() => ({
+      input_tokens: json.usage?.input_tokens,
+      output_tokens: json.usage?.output_tokens,
+    }));
+    return ranking;
   } catch (err) {
-    return { model: "claude", ranked_outcome_ids: [], error: (err as Error).message };
+    return {
+      model: "claude", ranked_outcome_ids: [],
+      error: (err as Error).message,
+      latency_ms: Date.now() - t0,
+    };
   }
 };
 
