@@ -32,8 +32,10 @@ import { Route as AccountRouteImport } from './routes/account'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
+import { Route as AdminRevenueRouteImport } from './routes/admin.revenue'
 import { Route as AdminMarqueeRouteImport } from './routes/admin.marquee'
 import { Route as AdminHealthRouteImport } from './routes/admin.health'
+import { Route as AdminRevenueRouteImport } from './routes/admin.revenue'
 import { Route as AdminAuditRouteImport } from './routes/admin.audit'
 import { Route as DomainTrackRecordRouteImport } from './routes/$domain.track-record'
 import { Route as AdminUsersIndexRouteImport } from './routes/admin.users.index'
@@ -157,6 +159,11 @@ const AdminIndexRoute = AdminIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminRevenueRoute = AdminRevenueRouteImport.update({
+  id: '/revenue',
+  path: '/revenue',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminMarqueeRoute = AdminMarqueeRouteImport.update({
   id: '/marquee',
   path: '/marquee',
@@ -165,6 +172,11 @@ const AdminMarqueeRoute = AdminMarqueeRouteImport.update({
 const AdminHealthRoute = AdminHealthRouteImport.update({
   id: '/health',
   path: '/health',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminRevenueRoute = AdminRevenueRouteImport.update({
+  id: '/revenue',
+  path: '/revenue',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminAuditRoute = AdminAuditRouteImport.update({
@@ -229,7 +241,9 @@ export interface FileRoutesByFullPath {
   '/$domain/track-record': typeof DomainTrackRecordRoute
   '/admin/audit': typeof AdminAuditRoute
   '/admin/health': typeof AdminHealthRoute
+  '/admin/revenue': typeof AdminRevenueRoute
   '/admin/marquee': typeof AdminMarqueeRoute
+  '/admin/revenue': typeof AdminRevenueRoute
   '/admin/': typeof AdminIndexRoute
   '/$domain/events/$slug': typeof DomainEventsSlugRoute
   '/admin/users/$id': typeof AdminUsersIdRoute
@@ -262,7 +276,9 @@ export interface FileRoutesByTo {
   '/$domain/track-record': typeof DomainTrackRecordRoute
   '/admin/audit': typeof AdminAuditRoute
   '/admin/health': typeof AdminHealthRoute
+  '/admin/revenue': typeof AdminRevenueRoute
   '/admin/marquee': typeof AdminMarqueeRoute
+  '/admin/revenue': typeof AdminRevenueRoute
   '/admin': typeof AdminIndexRoute
   '/$domain/events/$slug': typeof DomainEventsSlugRoute
   '/admin/users/$id': typeof AdminUsersIdRoute
@@ -297,7 +313,9 @@ export interface FileRoutesById {
   '/$domain/track-record': typeof DomainTrackRecordRoute
   '/admin/audit': typeof AdminAuditRoute
   '/admin/health': typeof AdminHealthRoute
+  '/admin/revenue': typeof AdminRevenueRoute
   '/admin/marquee': typeof AdminMarqueeRoute
+  '/admin/revenue': typeof AdminRevenueRoute
   '/admin/': typeof AdminIndexRoute
   '/$domain/events/$slug': typeof DomainEventsSlugRoute
   '/admin/users/$id': typeof AdminUsersIdRoute
@@ -333,7 +351,9 @@ export interface FileRouteTypes {
     | '/$domain/track-record'
     | '/admin/audit'
     | '/admin/health'
+    | '/admin/revenue'
     | '/admin/marquee'
+    | '/admin/revenue'
     | '/admin/'
     | '/$domain/events/$slug'
     | '/admin/users/$id'
@@ -366,7 +386,9 @@ export interface FileRouteTypes {
     | '/$domain/track-record'
     | '/admin/audit'
     | '/admin/health'
+    | '/admin/revenue'
     | '/admin/marquee'
+    | '/admin/revenue'
     | '/admin'
     | '/$domain/events/$slug'
     | '/admin/users/$id'
@@ -400,7 +422,9 @@ export interface FileRouteTypes {
     | '/$domain/track-record'
     | '/admin/audit'
     | '/admin/health'
+    | '/admin/revenue'
     | '/admin/marquee'
+    | '/admin/revenue'
     | '/admin/'
     | '/$domain/events/$slug'
     | '/admin/users/$id'
@@ -601,6 +625,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminIndexRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/revenue': {
+      id: '/admin/revenue'
+      path: '/revenue'
+      fullPath: '/admin/revenue'
+      preLoaderRoute: typeof AdminRevenueRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/marquee': {
       id: '/admin/marquee'
       path: '/marquee'
@@ -613,6 +644,13 @@ declare module '@tanstack/react-router' {
       path: '/health'
       fullPath: '/admin/health'
       preLoaderRoute: typeof AdminHealthRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/revenue': {
+      id: '/admin/revenue'
+      path: '/revenue'
+      fullPath: '/admin/revenue'
+      preLoaderRoute: typeof AdminRevenueRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/audit': {
@@ -671,6 +709,7 @@ interface AdminRouteChildren {
   AdminAuditRoute: typeof AdminAuditRoute
   AdminHealthRoute: typeof AdminHealthRoute
   AdminMarqueeRoute: typeof AdminMarqueeRoute
+  AdminRevenueRoute: typeof AdminRevenueRoute
   AdminIndexRoute: typeof AdminIndexRoute
   AdminUsersIdRoute: typeof AdminUsersIdRoute
   AdminUsersIndexRoute: typeof AdminUsersIndexRoute
@@ -680,6 +719,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminAuditRoute: AdminAuditRoute,
   AdminHealthRoute: AdminHealthRoute,
   AdminMarqueeRoute: AdminMarqueeRoute,
+  AdminRevenueRoute: AdminRevenueRoute,
   AdminIndexRoute: AdminIndexRoute,
   AdminUsersIdRoute: AdminUsersIdRoute,
   AdminUsersIndexRoute: AdminUsersIndexRoute,
@@ -718,13 +758,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
