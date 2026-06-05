@@ -132,6 +132,7 @@ Deno.serve(async (req: Request) => {
   if (aErr) return jsonResponse({ error: aErr.message }, { status: 500 });
   const adminIds = (admins ?? []).map((a: { user_id: string }) => a.user_id);
   if (adminIds.length === 0) {
+    await logCron("succeeded", 0, { reason: "no active admins" }, null);
     return jsonResponse({ sent: 0, recipients: 0, reason: "no active admins" });
   }
 
