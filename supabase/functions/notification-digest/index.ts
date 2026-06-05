@@ -144,6 +144,7 @@ Deno.serve(async (req: Request) => {
     if (email) recipients.push(email);
   }
   if (recipients.length === 0) {
+    await logCron("succeeded", 0, { reason: "no admin emails resolved" }, null);
     return jsonResponse({ sent: 0, recipients: 0, reason: "no admin emails resolved" });
   }
 
