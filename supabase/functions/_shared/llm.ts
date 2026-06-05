@@ -250,6 +250,7 @@ export const callGPT: LlmCaller = async ({ prompt, outcomes, temperature }) => {
 export const callGemini: LlmCaller = async ({ prompt, outcomes, temperature }) => {
   const key = readEnv("GOOGLE_API_KEY");
   if (!key) return { model: "gemini", ranked_outcome_ids: [], error: "GOOGLE_API_KEY missing" };
+  const t0 = Date.now();
   try {
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_IDS.gemini}:generateContent?key=${key}`;
     const res = await fetch(url, {
@@ -265,13 +266,30 @@ export const callGemini: LlmCaller = async ({ prompt, outcomes, temperature }) =
     });
     if (!res.ok) {
       const text = await res.text();
-      return { model: "gemini", ranked_outcome_ids: [], error: `HTTP ${res.status}: ${text.slice(0, 200)}` };
+      return {
+        model: "gemini", ranked_outcome_ids: [],
+        error: `HTTP ${res.status}: ${text.slice(0, 200)}`,
+        latency_ms: Date.now() - t0,
+      };
     }
-    const json = await res.json() as { candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }> };
+    const json = await res.json() as {
+      candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
+      usageMetadata?: { promptTokenCount?: number; candidatesTokenCount?: number };
+    };
     const text = json.candidates?.[0]?.content?.parts?.map((p) => p.text ?? "").join("") ?? "";
-    return parseLlmResponse("gemini", text, outcomes.map((o) => o.id));
+    const ranking = parseLlmResponse("gemini", text, outcomes.map((o) => o.id));
+    ranking.latency_ms = Date.now() - t0;
+    ranking.usage = safeExtractUsage(() => ({
+      input_tokens: json.usageMetadata?.promptTokenCount,
+      output_tokens: json.usageMetadata?.candidatesTokenCount,
+    }));
+    return ranking;
   } catch (err) {
-    return { model: "gemini", ranked_outcome_ids: [], error: (err as Error).message };
+    return {
+      model: "gemini", ranked_outcome_ids: [],
+      error: (err as Error).message,
+      latency_ms: Date.now() - t0,
+    };
   }
 };
 
