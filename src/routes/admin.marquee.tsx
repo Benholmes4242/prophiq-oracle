@@ -5,7 +5,7 @@ import { supabase } from "@/lib/supabase";
 import { Header } from "@/components/site/Header";
 import { Footer } from "@/components/site/Footer";
 
-export const Route = createFileRoute("/admin")({
+export const Route = createFileRoute("/admin/marquee")({
   head: () => ({
     meta: [
       { title: "Admin — Prophiq" },
