@@ -54,7 +54,7 @@ export interface UserActionsPanelProps {
 interface ModalState {
   action: ActionKey;
   title: string;
-  fields: ("reason" | "tier" | "expires" | "extra" | "confirm")[];
+  fields: ("reason" | "tier" | "expires" | "extra" | "confirm" | "charge")[];
 }
 
 export function UserActionsPanel(props: UserActionsPanelProps) {
@@ -68,9 +68,10 @@ export function UserActionsPanel(props: UserActionsPanelProps) {
   const [expires, setExpires] = useState<string>("");
   const [extra, setExtra] = useState<number>(5);
   const [confirmText, setConfirmText] = useState("");
+  const [chargeId, setChargeId] = useState("");
 
   function openModal(m: ModalState) {
-    setReason(""); setExpires(""); setExtra(5); setConfirmText(""); setTier("pro");
+    setReason(""); setExpires(""); setExtra(5); setConfirmText(""); setTier("pro"); setChargeId("");
     setErr(null); setModal(m);
   }
 
@@ -105,6 +106,15 @@ export function UserActionsPanel(props: UserActionsPanelProps) {
             reason,
           });
           break;
+        case "refund":
+          if (!chargeId.trim()) throw new Error("Charge ID required");
+          if (confirmText !== props.userEmail) throw new Error("Email confirmation does not match");
+          await adminStripeRefund({
+            userId: props.userId,
+            chargeId: chargeId.trim(),
+            reason,
+          });
+          break;
         case "resend_otp":
           await adminResendOtp(props.userId);
           break;
@@ -135,13 +145,15 @@ export function UserActionsPanel(props: UserActionsPanelProps) {
           title: label,
           fields: action === "force_delete"
             ? ["reason", "confirm"]
-            : action === "unsuspend" || action === "resend_otp"
-              ? []
-              : action === "grant_pro"
-                ? ["tier", "expires", "reason"]
-                : action === "adjust_quota"
-                  ? ["extra", "reason"]
-                  : ["reason"],
+            : action === "refund"
+              ? ["charge", "reason", "confirm"]
+              : action === "unsuspend" || action === "resend_otp"
+                ? []
+                : action === "grant_pro"
+                  ? ["tier", "expires", "reason"]
+                  : action === "adjust_quota"
+                    ? ["extra", "reason"]
+                    : ["reason"],
         })}
         className="rounded-md px-3 py-1.5 font-body text-[12px] transition-ios-colors"
         style={{
