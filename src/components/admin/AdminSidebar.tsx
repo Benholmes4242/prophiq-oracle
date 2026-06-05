@@ -13,6 +13,7 @@ const ITEMS: NavItem[] = [
   { label: "Users", to: "/admin/users" },
   { label: "Analytics", comingSoon: true },
   { label: "Revenue", to: "/admin/revenue" },
+  { label: "Costs", to: "/admin/costs" },
   { label: "System health", to: "/admin/health" },
   { label: "Jobs", comingSoon: true },
   { label: "Calibration", to: "/admin/calibration" },

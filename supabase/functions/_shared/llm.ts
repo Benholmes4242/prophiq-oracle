@@ -6,7 +6,29 @@
 //   OPENAI_API_KEY     -> GPT
 //   GOOGLE_API_KEY     -> Gemini
 
-import type { ModelPickDetail, ModelRanking } from "./consensusEngine.ts";
+import type { ModelPickDetail, ModelRanking, ModelUsage } from "./consensusEngine.ts";
+
+/**
+ * Best-effort usage extractor. NEVER throws — any failure returns undefined
+ * and the ranking is returned without usage info. Cost-logging is opportunistic
+ * and must never break or block prediction generation.
+ */
+function safeExtractUsage(extract: () => ModelUsage | undefined): ModelUsage | undefined {
+  try {
+    const u = extract();
+    if (!u) return undefined;
+    const out: ModelUsage = {};
+    if (typeof u.input_tokens === "number" && Number.isFinite(u.input_tokens)) {
+      out.input_tokens = Math.max(0, Math.floor(u.input_tokens));
+    }
+    if (typeof u.output_tokens === "number" && Number.isFinite(u.output_tokens)) {
+      out.output_tokens = Math.max(0, Math.floor(u.output_tokens));
+    }
+    return Object.keys(out).length > 0 ? out : undefined;
+  } catch {
+    return undefined;
+  }
+}
 
 export interface LlmInvokeInput {
   prompt: string;
@@ -127,6 +149,7 @@ function normaliseFitScore(x: number): number {
 export const callClaude: LlmCaller = async ({ prompt, outcomes, temperature }) => {
   const key = readEnv("ANTHROPIC_API_KEY");
   if (!key) return { model: "claude", ranked_outcome_ids: [], error: "ANTHROPIC_API_KEY missing" };
+  const t0 = Date.now();
   try {
     const res = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
@@ -144,13 +167,30 @@ export const callClaude: LlmCaller = async ({ prompt, outcomes, temperature }) =
     });
     if (!res.ok) {
       const text = await res.text();
-      return { model: "claude", ranked_outcome_ids: [], error: `HTTP ${res.status}: ${text.slice(0, 200)}` };
+      return {
+        model: "claude", ranked_outcome_ids: [],
+        error: `HTTP ${res.status}: ${text.slice(0, 200)}`,
+        latency_ms: Date.now() - t0,
+      };
     }
-    const json = await res.json() as { content?: Array<{ text?: string }> };
+    const json = await res.json() as {
+      content?: Array<{ text?: string }>;
+      usage?: { input_tokens?: number; output_tokens?: number };
+    };
     const text = json.content?.map((c) => c.text ?? "").join("") ?? "";
-    return parseLlmResponse("claude", text, outcomes.map((o) => o.id));
+    const ranking = parseLlmResponse("claude", text, outcomes.map((o) => o.id));
+    ranking.latency_ms = Date.now() - t0;
+    ranking.usage = safeExtractUsage(() => ({
+      input_tokens: json.usage?.input_tokens,
+      output_tokens: json.usage?.output_tokens,
+    }));
+    return ranking;
   } catch (err) {
-    return { model: "claude", ranked_outcome_ids: [], error: (err as Error).message };
+    return {
+      model: "claude", ranked_outcome_ids: [],
+      error: (err as Error).message,
+      latency_ms: Date.now() - t0,
+    };
   }
 };
 
@@ -160,6 +200,7 @@ export const callClaude: LlmCaller = async ({ prompt, outcomes, temperature }) =
 export const callGPT: LlmCaller = async ({ prompt, outcomes, temperature }) => {
   const key = readEnv("OPENAI_API_KEY");
   if (!key) return { model: "gpt", ranked_outcome_ids: [], error: "OPENAI_API_KEY missing" };
+  const t0 = Date.now();
   try {
     const res = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
@@ -176,13 +217,30 @@ export const callGPT: LlmCaller = async ({ prompt, outcomes, temperature }) => {
     });
     if (!res.ok) {
       const text = await res.text();
-      return { model: "gpt", ranked_outcome_ids: [], error: `HTTP ${res.status}: ${text.slice(0, 200)}` };
+      return {
+        model: "gpt", ranked_outcome_ids: [],
+        error: `HTTP ${res.status}: ${text.slice(0, 200)}`,
+        latency_ms: Date.now() - t0,
+      };
     }
-    const json = await res.json() as { choices?: Array<{ message?: { content?: string } }> };
+    const json = await res.json() as {
+      choices?: Array<{ message?: { content?: string } }>;
+      usage?: { prompt_tokens?: number; completion_tokens?: number };
+    };
     const text = json.choices?.[0]?.message?.content ?? "";
-    return parseLlmResponse("gpt", text, outcomes.map((o) => o.id));
+    const ranking = parseLlmResponse("gpt", text, outcomes.map((o) => o.id));
+    ranking.latency_ms = Date.now() - t0;
+    ranking.usage = safeExtractUsage(() => ({
+      input_tokens: json.usage?.prompt_tokens,
+      output_tokens: json.usage?.completion_tokens,
+    }));
+    return ranking;
   } catch (err) {
-    return { model: "gpt", ranked_outcome_ids: [], error: (err as Error).message };
+    return {
+      model: "gpt", ranked_outcome_ids: [],
+      error: (err as Error).message,
+      latency_ms: Date.now() - t0,
+    };
   }
 };
 
@@ -192,6 +250,7 @@ export const callGPT: LlmCaller = async ({ prompt, outcomes, temperature }) => {
 export const callGemini: LlmCaller = async ({ prompt, outcomes, temperature }) => {
   const key = readEnv("GOOGLE_API_KEY");
   if (!key) return { model: "gemini", ranked_outcome_ids: [], error: "GOOGLE_API_KEY missing" };
+  const t0 = Date.now();
   try {
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_IDS.gemini}:generateContent?key=${key}`;
     const res = await fetch(url, {
@@ -207,13 +266,30 @@ export const callGemini: LlmCaller = async ({ prompt, outcomes, temperature }) =
     });
     if (!res.ok) {
       const text = await res.text();
-      return { model: "gemini", ranked_outcome_ids: [], error: `HTTP ${res.status}: ${text.slice(0, 200)}` };
+      return {
+        model: "gemini", ranked_outcome_ids: [],
+        error: `HTTP ${res.status}: ${text.slice(0, 200)}`,
+        latency_ms: Date.now() - t0,
+      };
     }
-    const json = await res.json() as { candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }> };
+    const json = await res.json() as {
+      candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
+      usageMetadata?: { promptTokenCount?: number; candidatesTokenCount?: number };
+    };
     const text = json.candidates?.[0]?.content?.parts?.map((p) => p.text ?? "").join("") ?? "";
-    return parseLlmResponse("gemini", text, outcomes.map((o) => o.id));
+    const ranking = parseLlmResponse("gemini", text, outcomes.map((o) => o.id));
+    ranking.latency_ms = Date.now() - t0;
+    ranking.usage = safeExtractUsage(() => ({
+      input_tokens: json.usageMetadata?.promptTokenCount,
+      output_tokens: json.usageMetadata?.candidatesTokenCount,
+    }));
+    return ranking;
   } catch (err) {
-    return { model: "gemini", ranked_outcome_ids: [], error: (err as Error).message };
+    return {
+      model: "gemini", ranked_outcome_ids: [],
+      error: (err as Error).message,
+      latency_ms: Date.now() - t0,
+    };
   }
 };
 
