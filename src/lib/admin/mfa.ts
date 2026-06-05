@@ -68,3 +68,16 @@ export async function generateRecoveryCode(): Promise<string> {
   if (error) throw new Error(error.message);
   return (data as { recovery_code: string }).recovery_code;
 }
+
+export async function stampMfaVerified(): Promise<string | null> {
+  const { data, error } = await supabase.rpc("admin_stamp_mfa_verified");
+  if (error) return null;
+  return (data as string | null) ?? null;
+}
+
+export async function getMfaVerifiedAt(): Promise<string | null> {
+  const { data, error } = await supabase.rpc("admin_get_mfa_verified");
+  if (error) return null;
+  return (data as string | null) ?? null;
+}
+

@@ -9,6 +9,7 @@ import {
   adminForceDeleteUser,
   adminResendOtp,
   adminStripeForceCancel,
+  adminStripeRefund,
 } from "@/lib/admin/actions";
 import type { AdminRole } from "@/lib/admin/queries";
 
@@ -19,6 +20,7 @@ type ActionKey =
   | "suspend"
   | "unsuspend"
   | "force_cancel"
+  | "refund"
   | "resend_otp"
   | "force_delete";
 
@@ -29,6 +31,7 @@ const ROLE_REQUIREMENTS: Record<ActionKey, AdminRole[]> = {
   suspend: ["super_admin", "admin"],
   unsuspend: ["super_admin", "admin"],
   force_cancel: ["super_admin", "admin"],
+  refund: ["super_admin", "admin"],
   resend_otp: ["super_admin", "admin", "support"],
   force_delete: ["super_admin"],
 };
@@ -51,7 +54,7 @@ export interface UserActionsPanelProps {
 interface ModalState {
   action: ActionKey;
   title: string;
-  fields: ("reason" | "tier" | "expires" | "extra" | "confirm")[];
+  fields: ("reason" | "tier" | "expires" | "extra" | "confirm" | "charge")[];
 }
 
 export function UserActionsPanel(props: UserActionsPanelProps) {
@@ -65,9 +68,10 @@ export function UserActionsPanel(props: UserActionsPanelProps) {
   const [expires, setExpires] = useState<string>("");
   const [extra, setExtra] = useState<number>(5);
   const [confirmText, setConfirmText] = useState("");
+  const [chargeId, setChargeId] = useState("");
 
   function openModal(m: ModalState) {
-    setReason(""); setExpires(""); setExtra(5); setConfirmText(""); setTier("pro");
+    setReason(""); setExpires(""); setExtra(5); setConfirmText(""); setTier("pro"); setChargeId("");
     setErr(null); setModal(m);
   }
 
@@ -102,6 +106,15 @@ export function UserActionsPanel(props: UserActionsPanelProps) {
             reason,
           });
           break;
+        case "refund":
+          if (!chargeId.trim()) throw new Error("Charge ID required");
+          if (confirmText !== props.userEmail) throw new Error("Email confirmation does not match");
+          await adminStripeRefund({
+            userId: props.userId,
+            chargeId: chargeId.trim(),
+            reason,
+          });
+          break;
         case "resend_otp":
           await adminResendOtp(props.userId);
           break;
@@ -132,13 +145,15 @@ export function UserActionsPanel(props: UserActionsPanelProps) {
           title: label,
           fields: action === "force_delete"
             ? ["reason", "confirm"]
-            : action === "unsuspend" || action === "resend_otp"
-              ? []
-              : action === "grant_pro"
-                ? ["tier", "expires", "reason"]
-                : action === "adjust_quota"
-                  ? ["extra", "reason"]
-                  : ["reason"],
+            : action === "refund"
+              ? ["charge", "reason", "confirm"]
+              : action === "unsuspend" || action === "resend_otp"
+                ? []
+                : action === "grant_pro"
+                  ? ["tier", "expires", "reason"]
+                  : action === "adjust_quota"
+                    ? ["extra", "reason"]
+                    : ["reason"],
         })}
         className="rounded-md px-3 py-1.5 font-body text-[12px] transition-ios-colors"
         style={{
@@ -193,6 +208,7 @@ export function UserActionsPanel(props: UserActionsPanelProps) {
           ? <Btn label="Unsuspend" action="unsuspend" />
           : <Btn label="Suspend" action="suspend" danger />}
         <Btn label="Force cancel sub" action="force_cancel" danger />
+        <Btn label="Refund charge" action="refund" danger />
         <Btn label="Force delete" action="force_delete" danger />
       </div>
 
@@ -246,6 +262,22 @@ export function UserActionsPanel(props: UserActionsPanelProps) {
                     className="mt-1 w-full rounded-md px-2 py-1.5 text-[13px]"
                     style={{ background: "var(--bg)", border: "1px solid var(--border-strong)" }}
                   />
+                </label>
+              )}
+              {modal.fields.includes("charge") && (
+                <label className="block font-body text-[12px]">
+                  Stripe charge ID
+                  <input
+                    type="text"
+                    value={chargeId}
+                    onChange={(e) => setChargeId(e.target.value)}
+                    placeholder="ch_..."
+                    className="mt-1 w-full rounded-md px-2 py-1.5 font-mono text-[12px]"
+                    style={{ background: "var(--bg)", border: "1px solid var(--border-strong)" }}
+                  />
+                  <span className="mt-1 block font-body text-[11px]" style={{ color: "var(--ink-soft)" }}>
+                    Paste the Stripe charge ID (ch_...). Refunds are only permitted within 30 days; the server enforces this.
+                  </span>
                 </label>
               )}
               {modal.fields.includes("reason") && (
