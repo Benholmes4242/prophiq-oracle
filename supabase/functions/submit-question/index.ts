@@ -68,6 +68,34 @@ Deno.serve(async (req) => {
       } catch { /* audit failure should not break the user flow */ }
     };
 
+    // Best-effort search analytics. Never throws. Writes one row per submission
+    // exit path. result_type:
+    //   matched   - upsert hit an existing event
+    //   generated - upsert created a new event
+    //   rejected  - moderation rejected (pre-filter, off-topic, uncategorisable)
+    //   failed    - processing error
+    const normalizeForSearch = (q: string): string =>
+      q.toLowerCase().trim().replace(/[^a-z0-9 ]/g, "").replace(/\s+/g, " ");
+    const logSearchQuery = async (params: {
+      result_type: "matched" | "generated" | "rejected" | "failed";
+      domain?: string | null;
+      matched_event_id?: string | null;
+    }) => {
+      try {
+        await supabase.from("search_queries").insert({
+          user_id: authedUser.user_id,
+          fingerprint: fingerprint ?? null,
+          question,
+          question_normalized: normalizeForSearch(question),
+          domain: params.domain ?? null,
+          result_type: params.result_type,
+          matched_event_id: params.matched_event_id ?? null,
+        });
+      } catch (e) {
+        console.warn("[submit-question] logSearchQuery failed:", (e as Error).message);
+      }
+    };
+
     try {
       // ----- 0. SUSPENSION CHECK (Brief II.C C.4) -----
       // Neutral message; do not leak the reason. Runs ahead of quota so a
