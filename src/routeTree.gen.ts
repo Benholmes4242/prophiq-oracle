@@ -27,12 +27,16 @@ import { Route as EntertainmentRouteImport } from './routes/entertainment'
 import { Route as ContactRouteImport } from './routes/contact'
 import { Route as AskedRouteImport } from './routes/asked'
 import { Route as AskRouteImport } from './routes/ask'
+import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AccountRouteImport } from './routes/account'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as AdminMarqueeRouteImport } from './routes/admin.marquee'
 import { Route as DomainTrackRecordRouteImport } from './routes/$domain.track-record'
+import { Route as AdminUsersIndexRouteImport } from './routes/admin.users.index'
 import { Route as ApiOgHomeRouteImport } from './routes/api/og/home'
+import { Route as AdminUsersIdRouteImport } from './routes/admin.users.$id'
 import { Route as DomainEventsSlugRouteImport } from './routes/$domain.events.$slug'
 import { Route as ApiOgEventSlugRouteImport } from './routes/api/og/event/$slug'
 
@@ -126,6 +130,11 @@ const AskRoute = AskRouteImport.update({
   path: '/ask',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminRoute = AdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AccountRoute = AccountRouteImport.update({
   id: '/account',
   path: '/account',
@@ -141,20 +150,35 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminIndexRoute = AdminIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminMarqueeRoute = AdminMarqueeRouteImport.update({
-  id: '/admin/marquee',
-  path: '/admin/marquee',
-  getParentRoute: () => rootRouteImport,
+  id: '/marquee',
+  path: '/marquee',
+  getParentRoute: () => AdminRoute,
 } as any)
 const DomainTrackRecordRoute = DomainTrackRecordRouteImport.update({
   id: '/$domain/track-record',
   path: '/$domain/track-record',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminUsersIndexRoute = AdminUsersIndexRouteImport.update({
+  id: '/users/',
+  path: '/users/',
+  getParentRoute: () => AdminRoute,
+} as any)
 const ApiOgHomeRoute = ApiOgHomeRouteImport.update({
   id: '/api/og/home',
   path: '/api/og/home',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AdminUsersIdRoute = AdminUsersIdRouteImport.update({
+  id: '/users/$id',
+  path: '/users/$id',
+  getParentRoute: () => AdminRoute,
 } as any)
 const DomainEventsSlugRoute = DomainEventsSlugRouteImport.update({
   id: '/$domain/events/$slug',
@@ -171,6 +195,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/account': typeof AccountRoute
+  '/admin': typeof AdminRouteWithChildren
   '/ask': typeof AskRoute
   '/asked': typeof AskedRoute
   '/contact': typeof ContactRoute
@@ -191,8 +216,11 @@ export interface FileRoutesByFullPath {
   '/terms': typeof TermsRoute
   '/$domain/track-record': typeof DomainTrackRecordRoute
   '/admin/marquee': typeof AdminMarqueeRoute
+  '/admin/': typeof AdminIndexRoute
   '/$domain/events/$slug': typeof DomainEventsSlugRoute
+  '/admin/users/$id': typeof AdminUsersIdRoute
   '/api/og/home': typeof ApiOgHomeRoute
+  '/admin/users/': typeof AdminUsersIndexRoute
   '/api/og/event/$slug': typeof ApiOgEventSlugRoute
 }
 export interface FileRoutesByTo {
@@ -219,8 +247,11 @@ export interface FileRoutesByTo {
   '/terms': typeof TermsRoute
   '/$domain/track-record': typeof DomainTrackRecordRoute
   '/admin/marquee': typeof AdminMarqueeRoute
+  '/admin': typeof AdminIndexRoute
   '/$domain/events/$slug': typeof DomainEventsSlugRoute
+  '/admin/users/$id': typeof AdminUsersIdRoute
   '/api/og/home': typeof ApiOgHomeRoute
+  '/admin/users': typeof AdminUsersIndexRoute
   '/api/og/event/$slug': typeof ApiOgEventSlugRoute
 }
 export interface FileRoutesById {
@@ -228,6 +259,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/account': typeof AccountRoute
+  '/admin': typeof AdminRouteWithChildren
   '/ask': typeof AskRoute
   '/asked': typeof AskedRoute
   '/contact': typeof ContactRoute
@@ -248,8 +280,11 @@ export interface FileRoutesById {
   '/terms': typeof TermsRoute
   '/$domain/track-record': typeof DomainTrackRecordRoute
   '/admin/marquee': typeof AdminMarqueeRoute
+  '/admin/': typeof AdminIndexRoute
   '/$domain/events/$slug': typeof DomainEventsSlugRoute
+  '/admin/users/$id': typeof AdminUsersIdRoute
   '/api/og/home': typeof ApiOgHomeRoute
+  '/admin/users/': typeof AdminUsersIndexRoute
   '/api/og/event/$slug': typeof ApiOgEventSlugRoute
 }
 export interface FileRouteTypes {
@@ -258,6 +293,7 @@ export interface FileRouteTypes {
     | '/'
     | '/about'
     | '/account'
+    | '/admin'
     | '/ask'
     | '/asked'
     | '/contact'
@@ -278,8 +314,11 @@ export interface FileRouteTypes {
     | '/terms'
     | '/$domain/track-record'
     | '/admin/marquee'
+    | '/admin/'
     | '/$domain/events/$slug'
+    | '/admin/users/$id'
     | '/api/og/home'
+    | '/admin/users/'
     | '/api/og/event/$slug'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -306,14 +345,18 @@ export interface FileRouteTypes {
     | '/terms'
     | '/$domain/track-record'
     | '/admin/marquee'
+    | '/admin'
     | '/$domain/events/$slug'
+    | '/admin/users/$id'
     | '/api/og/home'
+    | '/admin/users'
     | '/api/og/event/$slug'
   id:
     | '__root__'
     | '/'
     | '/about'
     | '/account'
+    | '/admin'
     | '/ask'
     | '/asked'
     | '/contact'
@@ -334,8 +377,11 @@ export interface FileRouteTypes {
     | '/terms'
     | '/$domain/track-record'
     | '/admin/marquee'
+    | '/admin/'
     | '/$domain/events/$slug'
+    | '/admin/users/$id'
     | '/api/og/home'
+    | '/admin/users/'
     | '/api/og/event/$slug'
   fileRoutesById: FileRoutesById
 }
@@ -343,6 +389,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AboutRoute: typeof AboutRoute
   AccountRoute: typeof AccountRoute
+  AdminRoute: typeof AdminRouteWithChildren
   AskRoute: typeof AskRoute
   AskedRoute: typeof AskedRoute
   ContactRoute: typeof ContactRoute
@@ -362,7 +409,6 @@ export interface RootRouteChildren {
   SportRoute: typeof SportRoute
   TermsRoute: typeof TermsRoute
   DomainTrackRecordRoute: typeof DomainTrackRecordRoute
-  AdminMarqueeRoute: typeof AdminMarqueeRoute
   DomainEventsSlugRoute: typeof DomainEventsSlugRoute
   ApiOgHomeRoute: typeof ApiOgHomeRoute
   ApiOgEventSlugRoute: typeof ApiOgEventSlugRoute
@@ -496,6 +542,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AskRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin': {
+      id: '/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/account': {
       id: '/account'
       path: '/account'
@@ -517,12 +570,19 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/': {
+      id: '/admin/'
+      path: '/'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AdminIndexRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/marquee': {
       id: '/admin/marquee'
-      path: '/admin/marquee'
+      path: '/marquee'
       fullPath: '/admin/marquee'
       preLoaderRoute: typeof AdminMarqueeRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof AdminRoute
     }
     '/$domain/track-record': {
       id: '/$domain/track-record'
@@ -531,12 +591,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DomainTrackRecordRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/users/': {
+      id: '/admin/users/'
+      path: '/users'
+      fullPath: '/admin/users/'
+      preLoaderRoute: typeof AdminUsersIndexRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/api/og/home': {
       id: '/api/og/home'
       path: '/api/og/home'
       fullPath: '/api/og/home'
       preLoaderRoute: typeof ApiOgHomeRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/admin/users/$id': {
+      id: '/admin/users/$id'
+      path: '/users/$id'
+      fullPath: '/admin/users/$id'
+      preLoaderRoute: typeof AdminUsersIdRouteImport
+      parentRoute: typeof AdminRoute
     }
     '/$domain/events/$slug': {
       id: '/$domain/events/$slug'
@@ -555,10 +629,27 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface AdminRouteChildren {
+  AdminMarqueeRoute: typeof AdminMarqueeRoute
+  AdminIndexRoute: typeof AdminIndexRoute
+  AdminUsersIdRoute: typeof AdminUsersIdRoute
+  AdminUsersIndexRoute: typeof AdminUsersIndexRoute
+}
+
+const AdminRouteChildren: AdminRouteChildren = {
+  AdminMarqueeRoute: AdminMarqueeRoute,
+  AdminIndexRoute: AdminIndexRoute,
+  AdminUsersIdRoute: AdminUsersIdRoute,
+  AdminUsersIndexRoute: AdminUsersIndexRoute,
+}
+
+const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AboutRoute: AboutRoute,
   AccountRoute: AccountRoute,
+  AdminRoute: AdminRouteWithChildren,
   AskRoute: AskRoute,
   AskedRoute: AskedRoute,
   ContactRoute: ContactRoute,
@@ -578,7 +669,6 @@ const rootRouteChildren: RootRouteChildren = {
   SportRoute: SportRoute,
   TermsRoute: TermsRoute,
   DomainTrackRecordRoute: DomainTrackRecordRoute,
-  AdminMarqueeRoute: AdminMarqueeRoute,
   DomainEventsSlugRoute: DomainEventsSlugRoute,
   ApiOgHomeRoute: ApiOgHomeRoute,
   ApiOgEventSlugRoute: ApiOgEventSlugRoute,
