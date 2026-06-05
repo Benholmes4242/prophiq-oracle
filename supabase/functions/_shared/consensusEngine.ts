@@ -39,6 +39,11 @@ export interface ModelPickDetail {
   reasons?: string[];
 }
 
+export interface ModelUsage {
+  input_tokens?: number;
+  output_tokens?: number;
+}
+
 export interface ModelRanking {
   model: string;
   /** Ordered outcome ids, best first. */
@@ -51,6 +56,10 @@ export interface ModelRanking {
   rationale?: string;
   /** Error string if this model failed. Excluded from consensus. */
   error?: string;
+  /** Optional token usage, captured best-effort. Never required. */
+  usage?: ModelUsage;
+  /** Optional wall-clock latency in ms, captured best-effort. */
+  latency_ms?: number;
 }
 
 export interface ConsensusOutcome {
