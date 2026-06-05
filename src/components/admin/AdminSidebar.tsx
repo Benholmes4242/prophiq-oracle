@@ -89,7 +89,8 @@ export function AdminSidebar({ role, collapsed, onNavigate }: AdminSidebarProps)
           <Link
             key={item.label}
             to={item.to}
-            className="rounded-md px-3 py-1.5 font-body text-[13px] transition-ios-colors hover:bg-[rgba(11,18,32,0.05)]"
+            onClick={onNavigate}
+            className="rounded-md px-3 py-2 font-body text-[13px] min-h-11 flex items-center transition-ios-colors hover:bg-[rgba(11,18,32,0.05)]"
             style={{
               color: active ? "var(--amber-strong)" : "var(--ink)",
               background: active ? "rgba(245, 158, 11, 0.08)" : "transparent",
