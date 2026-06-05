@@ -12,7 +12,6 @@ import { useEffect, useState, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
-import { ensureAnonymousSession } from "../lib/auth";
 import { reclaimLegacyAskedHistory } from "../lib/migrateLocalStorageHistory";
 import { Toaster } from "@/components/ui/sonner";
 import { AppHeader } from "@/components/site/AppHeader";
@@ -85,11 +84,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   beforeLoad: async () => {
     if (typeof window === "undefined") return;
     try {
-      await ensureAnonymousSession();
       // fire-and-forget; never block route load on history reclaim
       reclaimLegacyAskedHistory().catch(() => {});
     } catch (err) {
-      console.error("[root] auth bootstrap failed:", err);
+      console.error("[root] bootstrap failed:", err);
     }
   },
   head: () => ({
@@ -164,16 +162,6 @@ function RootComponent() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const hideChrome = pathname.startsWith("/admin");
 
-  // Fallback anonymous sign-in trigger. The primary trigger is in beforeLoad
-  // above, but observation shows beforeLoad doesn't always fire reliably on
-  // the deployed bundle. This useEffect catches the gap - if a session already
-  // exists (from beforeLoad), ensureAnonymousSession short-circuits as a no-op.
-  useEffect(() => {
-    console.log("[root] mount fallback: ensuring anonymous session");
-    ensureAnonymousSession().catch((err) => {
-      console.error("[root] mount fallback anonymous sign-in failed:", err);
-    });
-  }, []);
 
 
   return (
