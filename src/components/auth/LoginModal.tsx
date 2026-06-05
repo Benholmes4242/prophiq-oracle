@@ -16,7 +16,7 @@ type State =
   | { kind: "verifying"; email: string }
   | { kind: "success"; email: string };
 
-export function LoginModal({ open, onClose }: LoginModalProps) {
+export function LoginModal({ open, onClose, message }: LoginModalProps) {
   const [state, setState] = useState<State>({ kind: "enter-email" });
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
@@ -31,6 +31,21 @@ export function LoginModal({ open, onClose }: LoginModalProps) {
       async (event, session) => {
         if (event === "SIGNED_IN" && session?.user && !session.user.is_anonymous) {
           await invalidate();
+          // Continue a pending checkout if the user came from /pricing while signed out.
+          const pendingPriceId =
+            typeof window !== "undefined"
+              ? sessionStorage.getItem("pendingCheckoutPriceId")
+              : null;
+          if (pendingPriceId) {
+            sessionStorage.removeItem("pendingCheckoutPriceId");
+            try {
+              const url = await createCheckoutSession(pendingPriceId);
+              window.location.assign(url);
+              return;
+            } catch {
+              // fall through to close
+            }
+          }
           onClose();
         }
       },
