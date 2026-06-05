@@ -223,10 +223,13 @@ Deno.serve(async (req: Request) => {
   const preflight = handleCorsPreflight(req);
   if (preflight) return preflight;
 
-  let body: { keys?: string[] } = {};
+  let body: { keys?: string[]; source?: string; manual?: boolean } = {};
   if (req.method === "POST") {
     try { body = await req.json(); } catch { body = {}; }
   }
+
+  const isCronRun = body.source === "cron";
+  const startedAt = Date.now();
 
   const sb = getServiceClient();
 
@@ -321,5 +324,22 @@ Deno.serve(async (req: Request) => {
     skipped:  outcomes.filter((o) => o.status === "skipped").length,
     results:  outcomes,
   };
+
+  if (isCronRun) {
+    try {
+      const status = summary.down > 0 ? "partial" : "succeeded";
+      await sb.rpc("log_cron_run", {
+        p_job_name: "prophiq_health_check",
+        p_status: status,
+        p_duration_ms: Date.now() - startedAt,
+        p_items_processed: summary.checked,
+        p_detail: { ok: summary.ok, degraded: summary.degraded, down: summary.down, skipped: summary.skipped, manual: !!body.manual },
+        p_error_message: null,
+      });
+    } catch (e) {
+      console.warn(`[health-check] log_cron_run failed: ${(e as Error).message}`);
+    }
+  }
+
   return jsonResponse(summary);
 });

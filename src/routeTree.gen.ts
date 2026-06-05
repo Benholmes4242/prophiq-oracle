@@ -34,14 +34,18 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as AdminRevenueRouteImport } from './routes/admin.revenue'
 import { Route as AdminMarqueeRouteImport } from './routes/admin.marquee'
+import { Route as AdminJobsRouteImport } from './routes/admin.jobs'
 import { Route as AdminHealthRouteImport } from './routes/admin.health'
 import { Route as AdminCostsRouteImport } from './routes/admin.costs'
 import { Route as AdminCalibrationRouteImport } from './routes/admin.calibration'
 import { Route as AdminAuditRouteImport } from './routes/admin.audit'
 import { Route as DomainTrackRecordRouteImport } from './routes/$domain.track-record'
 import { Route as AdminUsersIndexRouteImport } from './routes/admin.users.index'
+import { Route as AdminEventsIndexRouteImport } from './routes/admin.events.index'
 import { Route as ApiOgHomeRouteImport } from './routes/api/og/home'
 import { Route as AdminUsersIdRouteImport } from './routes/admin.users.$id'
+import { Route as AdminEventsModerationRouteImport } from './routes/admin.events.moderation'
+import { Route as AdminEventsIdRouteImport } from './routes/admin.events.$id'
 import { Route as DomainEventsSlugRouteImport } from './routes/$domain.events.$slug'
 import { Route as ApiOgEventSlugRouteImport } from './routes/api/og/event/$slug'
 
@@ -170,6 +174,11 @@ const AdminMarqueeRoute = AdminMarqueeRouteImport.update({
   path: '/marquee',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminJobsRoute = AdminJobsRouteImport.update({
+  id: '/jobs',
+  path: '/jobs',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminHealthRoute = AdminHealthRouteImport.update({
   id: '/health',
   path: '/health',
@@ -200,6 +209,11 @@ const AdminUsersIndexRoute = AdminUsersIndexRouteImport.update({
   path: '/users/',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminEventsIndexRoute = AdminEventsIndexRouteImport.update({
+  id: '/events/',
+  path: '/events/',
+  getParentRoute: () => AdminRoute,
+} as any)
 const ApiOgHomeRoute = ApiOgHomeRouteImport.update({
   id: '/api/og/home',
   path: '/api/og/home',
@@ -208,6 +222,16 @@ const ApiOgHomeRoute = ApiOgHomeRouteImport.update({
 const AdminUsersIdRoute = AdminUsersIdRouteImport.update({
   id: '/users/$id',
   path: '/users/$id',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminEventsModerationRoute = AdminEventsModerationRouteImport.update({
+  id: '/events/moderation',
+  path: '/events/moderation',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminEventsIdRoute = AdminEventsIdRouteImport.update({
+  id: '/events/$id',
+  path: '/events/$id',
   getParentRoute: () => AdminRoute,
 } as any)
 const DomainEventsSlugRoute = DomainEventsSlugRouteImport.update({
@@ -249,12 +273,16 @@ export interface FileRoutesByFullPath {
   '/admin/calibration': typeof AdminCalibrationRoute
   '/admin/costs': typeof AdminCostsRoute
   '/admin/health': typeof AdminHealthRoute
+  '/admin/jobs': typeof AdminJobsRoute
   '/admin/marquee': typeof AdminMarqueeRoute
   '/admin/revenue': typeof AdminRevenueRoute
   '/admin/': typeof AdminIndexRoute
   '/$domain/events/$slug': typeof DomainEventsSlugRoute
+  '/admin/events/$id': typeof AdminEventsIdRoute
+  '/admin/events/moderation': typeof AdminEventsModerationRoute
   '/admin/users/$id': typeof AdminUsersIdRoute
   '/api/og/home': typeof ApiOgHomeRoute
+  '/admin/events/': typeof AdminEventsIndexRoute
   '/admin/users/': typeof AdminUsersIndexRoute
   '/api/og/event/$slug': typeof ApiOgEventSlugRoute
 }
@@ -285,12 +313,16 @@ export interface FileRoutesByTo {
   '/admin/calibration': typeof AdminCalibrationRoute
   '/admin/costs': typeof AdminCostsRoute
   '/admin/health': typeof AdminHealthRoute
+  '/admin/jobs': typeof AdminJobsRoute
   '/admin/marquee': typeof AdminMarqueeRoute
   '/admin/revenue': typeof AdminRevenueRoute
   '/admin': typeof AdminIndexRoute
   '/$domain/events/$slug': typeof DomainEventsSlugRoute
+  '/admin/events/$id': typeof AdminEventsIdRoute
+  '/admin/events/moderation': typeof AdminEventsModerationRoute
   '/admin/users/$id': typeof AdminUsersIdRoute
   '/api/og/home': typeof ApiOgHomeRoute
+  '/admin/events': typeof AdminEventsIndexRoute
   '/admin/users': typeof AdminUsersIndexRoute
   '/api/og/event/$slug': typeof ApiOgEventSlugRoute
 }
@@ -323,12 +355,16 @@ export interface FileRoutesById {
   '/admin/calibration': typeof AdminCalibrationRoute
   '/admin/costs': typeof AdminCostsRoute
   '/admin/health': typeof AdminHealthRoute
+  '/admin/jobs': typeof AdminJobsRoute
   '/admin/marquee': typeof AdminMarqueeRoute
   '/admin/revenue': typeof AdminRevenueRoute
   '/admin/': typeof AdminIndexRoute
   '/$domain/events/$slug': typeof DomainEventsSlugRoute
+  '/admin/events/$id': typeof AdminEventsIdRoute
+  '/admin/events/moderation': typeof AdminEventsModerationRoute
   '/admin/users/$id': typeof AdminUsersIdRoute
   '/api/og/home': typeof ApiOgHomeRoute
+  '/admin/events/': typeof AdminEventsIndexRoute
   '/admin/users/': typeof AdminUsersIndexRoute
   '/api/og/event/$slug': typeof ApiOgEventSlugRoute
 }
@@ -362,12 +398,16 @@ export interface FileRouteTypes {
     | '/admin/calibration'
     | '/admin/costs'
     | '/admin/health'
+    | '/admin/jobs'
     | '/admin/marquee'
     | '/admin/revenue'
     | '/admin/'
     | '/$domain/events/$slug'
+    | '/admin/events/$id'
+    | '/admin/events/moderation'
     | '/admin/users/$id'
     | '/api/og/home'
+    | '/admin/events/'
     | '/admin/users/'
     | '/api/og/event/$slug'
   fileRoutesByTo: FileRoutesByTo
@@ -398,12 +438,16 @@ export interface FileRouteTypes {
     | '/admin/calibration'
     | '/admin/costs'
     | '/admin/health'
+    | '/admin/jobs'
     | '/admin/marquee'
     | '/admin/revenue'
     | '/admin'
     | '/$domain/events/$slug'
+    | '/admin/events/$id'
+    | '/admin/events/moderation'
     | '/admin/users/$id'
     | '/api/og/home'
+    | '/admin/events'
     | '/admin/users'
     | '/api/og/event/$slug'
   id:
@@ -435,12 +479,16 @@ export interface FileRouteTypes {
     | '/admin/calibration'
     | '/admin/costs'
     | '/admin/health'
+    | '/admin/jobs'
     | '/admin/marquee'
     | '/admin/revenue'
     | '/admin/'
     | '/$domain/events/$slug'
+    | '/admin/events/$id'
+    | '/admin/events/moderation'
     | '/admin/users/$id'
     | '/api/og/home'
+    | '/admin/events/'
     | '/admin/users/'
     | '/api/og/event/$slug'
   fileRoutesById: FileRoutesById
@@ -651,6 +699,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminMarqueeRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/jobs': {
+      id: '/admin/jobs'
+      path: '/jobs'
+      fullPath: '/admin/jobs'
+      preLoaderRoute: typeof AdminJobsRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/health': {
       id: '/admin/health'
       path: '/health'
@@ -693,6 +748,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminUsersIndexRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/events/': {
+      id: '/admin/events/'
+      path: '/events'
+      fullPath: '/admin/events/'
+      preLoaderRoute: typeof AdminEventsIndexRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/api/og/home': {
       id: '/api/og/home'
       path: '/api/og/home'
@@ -705,6 +767,20 @@ declare module '@tanstack/react-router' {
       path: '/users/$id'
       fullPath: '/admin/users/$id'
       preLoaderRoute: typeof AdminUsersIdRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/events/moderation': {
+      id: '/admin/events/moderation'
+      path: '/events/moderation'
+      fullPath: '/admin/events/moderation'
+      preLoaderRoute: typeof AdminEventsModerationRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/events/$id': {
+      id: '/admin/events/$id'
+      path: '/events/$id'
+      fullPath: '/admin/events/$id'
+      preLoaderRoute: typeof AdminEventsIdRouteImport
       parentRoute: typeof AdminRoute
     }
     '/$domain/events/$slug': {
@@ -729,10 +805,14 @@ interface AdminRouteChildren {
   AdminCalibrationRoute: typeof AdminCalibrationRoute
   AdminCostsRoute: typeof AdminCostsRoute
   AdminHealthRoute: typeof AdminHealthRoute
+  AdminJobsRoute: typeof AdminJobsRoute
   AdminMarqueeRoute: typeof AdminMarqueeRoute
   AdminRevenueRoute: typeof AdminRevenueRoute
   AdminIndexRoute: typeof AdminIndexRoute
+  AdminEventsIdRoute: typeof AdminEventsIdRoute
+  AdminEventsModerationRoute: typeof AdminEventsModerationRoute
   AdminUsersIdRoute: typeof AdminUsersIdRoute
+  AdminEventsIndexRoute: typeof AdminEventsIndexRoute
   AdminUsersIndexRoute: typeof AdminUsersIndexRoute
 }
 
@@ -741,10 +821,14 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminCalibrationRoute: AdminCalibrationRoute,
   AdminCostsRoute: AdminCostsRoute,
   AdminHealthRoute: AdminHealthRoute,
+  AdminJobsRoute: AdminJobsRoute,
   AdminMarqueeRoute: AdminMarqueeRoute,
   AdminRevenueRoute: AdminRevenueRoute,
   AdminIndexRoute: AdminIndexRoute,
+  AdminEventsIdRoute: AdminEventsIdRoute,
+  AdminEventsModerationRoute: AdminEventsModerationRoute,
   AdminUsersIdRoute: AdminUsersIdRoute,
+  AdminEventsIndexRoute: AdminEventsIndexRoute,
   AdminUsersIndexRoute: AdminUsersIndexRoute,
 }
 
