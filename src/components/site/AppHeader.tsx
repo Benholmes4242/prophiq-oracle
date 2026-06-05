@@ -4,6 +4,7 @@ import { PhiMark } from "@/components/brand/PhiMark";
 import { TierBadge } from "@/components/site/TierBadge";
 import { LoginModal } from "@/components/auth/LoginModal";
 import { useUsageQuota } from "@/hooks/useUsageQuota";
+import { useIsAdmin } from "@/lib/admin/useIsAdmin";
 import { supabase } from "@/lib/supabase";
 
 interface AppHeaderProps {
@@ -14,6 +15,7 @@ function UserMenu() {
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
   const ref = useRef<HTMLDivElement>(null);
+  const isAdmin = useIsAdmin();
 
   useEffect(() => {
     function onClick(e: MouseEvent) {
@@ -51,6 +53,28 @@ function UserMenu() {
           }}
           role="menu"
         >
+          {isAdmin && (
+            <Link
+              to="/admin/users"
+              onClick={() => setOpen(false)}
+              className="flex items-center gap-2 px-4 py-2 text-sm transition-ios-colors hover:bg-[rgba(11,18,32,0.05)]"
+              style={{ color: "var(--ink)" }}
+            >
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+              </svg>
+              Admin
+            </Link>
+          )}
           <Link
             to="/account"
             onClick={() => setOpen(false)}
