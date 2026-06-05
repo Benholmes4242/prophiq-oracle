@@ -3,6 +3,7 @@ import { Link, useLocation } from "@tanstack/react-router";
 import { PhiMark } from "@/components/brand/PhiMark";
 import { Wordmark } from "@/components/brand/Wordmark";
 import { OddsFormatPicker } from "@/components/site/OddsFormatPicker";
+import { useIsAdmin } from "@/lib/admin/useIsAdmin";
 import { supabase } from "@/lib/supabase";
 
 interface DrawerProps {
@@ -48,6 +49,7 @@ function isActive(pathname: string, to: string): boolean {
 
 export function Drawer({ open, onClose }: DrawerProps) {
   const { pathname } = useLocation();
+  const isAdmin = useIsAdmin();
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -154,6 +156,31 @@ export function Drawer({ open, onClose }: DrawerProps) {
           >
             ACCOUNT
           </div>
+          {isAdmin && (
+            <Link
+              to="/admin/users"
+              onClick={onClose}
+              className="flex items-center gap-2 px-5 py-2.5 font-body text-[15px] transition-ios-colors hover:bg-[rgba(11,18,32,0.05)]"
+              style={{
+                color: isActive(pathname, "/admin/users") ? "var(--amber-strong)" : "var(--ink)",
+                fontWeight: isActive(pathname, "/admin/users") ? 600 : 500,
+              }}
+            >
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+              </svg>
+              Admin
+            </Link>
+          )}
           <Link
             to="/account"
             onClick={onClose}
