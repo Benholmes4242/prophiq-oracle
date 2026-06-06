@@ -35,6 +35,7 @@ import {
 } from "../dataSources/apiSports.ts";
 import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.45.4";
 import { coerceDiscoveredEvent, logSkip, safeExtractJsonArray } from "./_util.ts";
+import { forecastDisciplineBlock } from "../forecastDiscipline.ts";
 
 const RESEARCH_PROMPT_VERSION = "sport.research.v1";
 
