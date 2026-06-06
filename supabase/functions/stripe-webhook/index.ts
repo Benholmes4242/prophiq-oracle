@@ -243,13 +243,14 @@ async function upsertSubscription(
 
   const { data: priceRow } = await supabase
     .from("prophiq_prices")
-    .select("stripe_price_id")
+    .select("stripe_price_id, tier, cadence")
     .eq("stripe_price_id", priceId)
     .maybeSingle();
   if (!priceRow) {
     console.error(`[upsertSubscription] unknown price_id ${priceId} for subscription ${sub.id}`);
     return;
   }
+  const priceMeta = priceRow as { stripe_price_id: string; tier: string; cadence: string };
 
   const { current_period_start, current_period_end } = extractSubscriptionPeriod(sub);
 
@@ -263,6 +264,9 @@ async function upsertSubscription(
     stripe_subscription_id: sub.id,
     stripe_customer_id: stripeCustomerId,
     stripe_price_id: priceId,
+    tier: priceMeta.tier,
+    cadence: priceMeta.cadence,
+    billing_platform: "stripe",
     status: mapStripeStatus(sub.status),
     current_period_start: stripeTimestampToIso(current_period_start)!,
     current_period_end: stripeTimestampToIso(current_period_end)!,
