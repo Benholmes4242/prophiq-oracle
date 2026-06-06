@@ -66,25 +66,32 @@ export async function loadCalibrationCurve(
 }
 
 /**
- * Apply the calibration curve to a single 0..1 probability via linear
- * interpolation between bracketing breakpoints. Returns input unchanged
- * if the curve is null/empty.
+ * Apply the calibration curve to a single probability via linear
+ * interpolation between bracketing breakpoints.
+ *
+ * Scale: the entire consensus pipeline (LLM normaliseProbability, consensus
+ * engine, predictions table, Brier scoring, and UI) uses 0–100 percent for
+ * probabilities. This function takes and returns the same 0–100 scale.
+ * Curve breakpoints are also stored in percent (raw_prob_pct,
+ * calibrated_prob_pct), so no scale conversion is needed.
+ *
+ * Returns the input unchanged if the curve is null/empty.
  */
 export function applyCalibration(
   curve: CalibrationCurve | null,
-  rawProb: number,
+  rawProbPct: number,
 ): number {
-  if (!curve || curve.breakpoints.length < 2) return rawProb;
-  if (!Number.isFinite(rawProb)) return rawProb;
+  if (!curve || curve.breakpoints.length < 2) return rawProbPct;
+  if (!Number.isFinite(rawProbPct)) return rawProbPct;
 
-  const rawPct = Math.max(0, Math.min(100, rawProb * 100));
+  const clamped = Math.max(0, Math.min(100, rawProbPct));
 
   let lo = curve.breakpoints[0];
   let hi = curve.breakpoints[curve.breakpoints.length - 1];
   for (let i = 0; i < curve.breakpoints.length - 1; i++) {
     if (
-      curve.breakpoints[i].raw_prob_pct <= rawPct &&
-      curve.breakpoints[i + 1].raw_prob_pct >= rawPct
+      curve.breakpoints[i].raw_prob_pct <= clamped &&
+      curve.breakpoints[i + 1].raw_prob_pct >= clamped
     ) {
       lo = curve.breakpoints[i];
       hi = curve.breakpoints[i + 1];
@@ -93,19 +100,25 @@ export function applyCalibration(
   }
 
   const span = hi.raw_prob_pct - lo.raw_prob_pct;
-  if (span <= 0) return lo.calibrated_prob_pct / 100;
+  if (span <= 0) return lo.calibrated_prob_pct;
 
-  const t = (rawPct - lo.raw_prob_pct) / span;
+  const t = (clamped - lo.raw_prob_pct) / span;
   const calibratedPct = lo.calibrated_prob_pct
     + t * (hi.calibrated_prob_pct - lo.calibrated_prob_pct);
 
-  return Math.max(0, Math.min(1, calibratedPct / 100));
+  return Math.max(0, Math.min(100, calibratedPct));
 }
 
 /**
- * Apply calibration to all named outcomes in a ranked list, then renormalise
- * so the named outcomes sum to (1 - field_share). Preserves implicit field
- * mass left unallocated by the consensus engine. Returns a new array.
+ * Apply calibration to all named outcomes in a ranked list and renormalise so
+ * the named outcomes sum to (100 − field_share). Preserves the implicit
+ * field mass left unallocated by the consensus engine. Operates on the 0–100
+ * scale end to end.
+ *
+ * Defensive: if raw named probabilities exceed 100 (a pre-normalisation bug
+ * the consensus engine now prevents, but old callers may still trip), the
+ * raw sum is clamped to 100 before computing field share so calibration
+ * never produces a negative target.
  */
 export function calibrateRankedOutcomes(
   curve: CalibrationCurve | null,
@@ -114,8 +127,9 @@ export function calibrateRankedOutcomes(
   if (!curve || outcomes.length === 0) return outcomes;
 
   const rawSum = outcomes.reduce((s, o) => s + (o.probability ?? 0), 0);
-  const fieldShare = Math.max(0, 1 - rawSum);
-  const targetNamedSum = 1 - fieldShare;
+  const clampedSum = Math.min(100, rawSum);
+  const fieldShare = Math.max(0, 100 - clampedSum);
+  const targetNamedSum = 100 - fieldShare;
 
   const calibratedRaw = outcomes.map((o) => applyCalibration(curve, o.probability ?? 0));
   const calibratedSum = calibratedRaw.reduce((s, p) => s + p, 0);
