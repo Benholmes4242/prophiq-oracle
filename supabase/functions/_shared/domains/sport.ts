@@ -192,6 +192,13 @@ export const sportAdapter: DomainAdapter = {
           logSkip(DOMAIN_ID, "invalid shape", item);
           continue;
         }
+        // Fix 2 (feed-gate): refuse to persist sports we have no real feed
+        // for. Horse racing in particular is pure LLM recall today and
+        // accounts for most fabricated events / placeholder outcomes.
+        if (isFeedlessSportTitle({ title: ev.title, metadata: ev.metadata })) {
+          logSkip(DOMAIN_ID, "feed-less sub-category (no wired data source)", item);
+          continue;
+        }
         out.push(ev);
       } catch (err) {
         logSkip(DOMAIN_ID, `coerce error: ${(err as Error).message}`, item);
