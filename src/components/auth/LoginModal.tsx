@@ -8,6 +8,7 @@ interface LoginModalProps {
   open: boolean;
   onClose: () => void;
   message?: string;
+  mode?: "signin" | "signup";
 }
 
 type State =
