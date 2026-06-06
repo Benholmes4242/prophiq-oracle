@@ -115,6 +115,7 @@ export function AppHeader({ onMenuClick }: AppHeaderProps) {
 
   const [loginOpen, setLoginOpen] = useState(false);
   const [loginMessage, setLoginMessage] = useState<string | undefined>(undefined);
+  const [loginMode, setLoginMode] = useState<"signin" | "signup">("signin");
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
