@@ -44,7 +44,7 @@ export function WordmarkTagline({
           letterSpacing: "-0.005em",
         }}
       >
-        Prophecy \u00d7 IQ. The intelligent way to forecast what's next.
+        Prophecy × IQ. The intelligent way to forecast what&apos;s next.
       </p>
     </div>
   );
