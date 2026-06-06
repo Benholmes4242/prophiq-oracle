@@ -51,8 +51,8 @@ export interface AdminUserDetail {
   subscription: {
     id: string;
     status: string;
-    stripe_subscription_id: string;
-    stripe_customer_id: string;
+    stripe_subscription_id: string | null;
+    stripe_customer_id: string | null;
     current_period_start: string;
     current_period_end: string;
     cancel_at_period_end: boolean;
@@ -63,6 +63,10 @@ export interface AdminUserDetail {
     currency: string;
     daily_forecast_cap: number;
     display_name: string;
+    // Added by 6b-backend L.7 (admin_get_user_detail rewrite). Until Ben
+    // runs that SQL, these are absent and the UI falls back to "stripe".
+    billing_platform?: "stripe" | "apple" | "google" | null;
+    apple_original_transaction_id_masked?: string | null;
   } | null;
   usage_today: number;
   usage_this_month: number;
