@@ -113,6 +113,8 @@ export async function fetchRecentPicks(limit = 6): Promise<EventWithPrediction[]
     .from("v_predictions_public")
     .select(`*, event:events!inner(${EVENT_COLS})`)
     .eq("is_current", true)
+    // Fix 3: hide sub-question predictions from the recent-picks rail.
+    .is("event.parent_event_id", null)
     .order("generated_at", { ascending: false })
     .limit(limit);
   if (error) throw error;
