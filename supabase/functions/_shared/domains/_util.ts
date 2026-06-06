@@ -10,34 +10,130 @@ import { hasPlaceholderOutcomes } from "../outcomeQuality.ts";
 const STALE_EVENT_GRACE_MS = 60 * 60 * 1000;
 
 /**
- * Deterministic event ID derived from a normalised title + ISO start date.
- * Rules:
- *  - lowercase
- *  - strip "vs"/"v"/"versus" tokens
- *  - collapse punctuation and whitespace
- *  - SHA-256 of `${normTitle}|${yyyy-mm-dd}`
+ * Deterministic event ID derived from a CANONICALISED title + ISO start date.
  *
- * Same Premier League fixture rediscovered with slightly different wording
- * tomorrow MUST hash to the same id.
+ * The previous implementation hashed a lightly-normalised title, which left
+ * the dedup key at the mercy of LLM phrasing variance: "Belmont Stakes",
+ * "Belmont Stakes 2026" and "2026 Belmont Stakes - Triple Crown Race" all
+ * produced different ids and three separate event rows. The canonical form
+ * aggressively strips year prefixes, qualifier suffixes, filler words and
+ * known synonyms so semantically-equal titles collapse to the same token
+ * set on the same day.
+ *
+ * Same fixture rediscovered with slightly different wording MUST hash to
+ * the same id.
  */
 export async function stableEventId(title: string, startsAt: string | Date): Promise<string> {
-  const norm = normaliseTitle(title);
+  const canon = canonicaliseTitle(title);
   const day = toDayKey(startsAt);
-  const payload = `${norm}|${day}`;
+  const payload = `${canon}|${day}`;
   return await sha256Hex(payload);
 }
 
+/**
+ * Backwards-compatible shallow normaliser. Retained for display-safe
+ * lowercasing in legacy callers. Dedup MUST use {@link canonicaliseTitle}.
+ */
 export function normaliseTitle(title: string): string {
   return title
     .toLowerCase()
     .replace(/[\u2018\u2019\u201C\u201D]/g, "'")
-    // Strip vs/v/versus as standalone tokens
     .replace(/\b(versus|vs|v)\b/g, " ")
-    // Strip punctuation
     .replace(/[^\p{L}\p{N}\s]/gu, " ")
-    // Collapse whitespace
     .replace(/\s+/g, " ")
     .trim();
+}
+
+const TITLE_SYNONYMS: Array<[RegExp, string]> = [
+  [/\bu\.?s\.?a?\.?\b/g, " us "],
+  [/\bunited states\b/g, " us "],
+  [/\buk\b/g, " uk "],
+  [/\bunited kingdom\b/g, " uk "],
+  [/\bconsumer price index\b/g, " cpi "],
+  [/\bproducer price index\b/g, " ppi "],
+  [/\bnon-?farm payrolls?\b/g, " nfp "],
+  [/\bnonfarm payrolls?\b/g, " nfp "],
+  [/\bfederal reserve\b/g, " fed "],
+  [/\bfomc\b/g, " fed "],
+  [/\bgrand prix\b/g, " gp "],
+  [/\bformula\s*1\b/g, " f1 "],
+  [/\bformula one\b/g, " f1 "],
+];
+
+// Generic event qualifiers and filler words that carry no identity. Stripping
+// these is what makes "2026 Belmont Stakes - Triple Crown Race" and "Belmont
+// Stakes" both reduce to { belmont, stakes }.
+const QUALIFIER_WORDS = new Set([
+  "race", "match", "game", "fixture", "event", "edition",
+  "final", "finals", "semi", "semifinal", "semifinals",
+  "quarterfinal", "quarterfinals", "round", "playoff", "playoffs",
+  "stage", "tournament", "championship", "championships",
+  "league", "cup", "season",
+  "the", "a", "an", "of", "for",
+  "triple", "crown", "thoroughbred", "horse", "racing",
+  "fc", "club",
+]);
+
+/**
+ * Canonical token set used by {@link stableEventId} and the discover-events
+ * near-duplicate guard. Returns a sorted, space-joined token set (so order
+ * of teams or list position does not affect the key).
+ */
+export function canonicaliseTitle(title: string): string {
+  let t = ` ${title.toLowerCase()} `
+    .replace(/[\u2018\u2019\u201C\u201D]/g, "'")
+    .replace(/&/g, " and ");
+  // Strip 4-digit years ("2026 Belmont Stakes" -> "Belmont Stakes")
+  t = t.replace(/\b(19|20)\d{2}\b/g, " ");
+  // Strip ordinal suffixes attached to digits ("1st" -> "1")
+  t = t.replace(/\b(\d+)(st|nd|rd|th)\b/g, "$1");
+  // Normalise vs/v/versus
+  t = t.replace(/\b(versus|vs|v)\b/g, " vs ");
+  // Apply multi-word synonyms BEFORE punctuation strip
+  for (const [re, rep] of TITLE_SYNONYMS) t = t.replace(re, rep);
+  // Strip punctuation, collapse whitespace
+  t = t.replace(/[^\p{L}\p{N}\s]/gu, " ").replace(/\s+/g, " ").trim();
+  // Tokenise: drop qualifier/filler words and 1-char tokens, dedupe, sort.
+  const seen = new Set<string>();
+  for (const tok of t.split(/\s+/)) {
+    if (!tok || tok.length < 2) continue;
+    if (QUALIFIER_WORDS.has(tok)) continue;
+    seen.add(tok);
+  }
+  return Array.from(seen).sort().join(" ");
+}
+
+/**
+ * Sport sub-categories with no wired structured-data feed. Discovery in
+ * these categories is pure LLM recall — meaning fabricated events and
+ * placeholder outcomes. Until a real feed is wired we refuse to persist
+ * them. Horse racing is the proven offender (Belmont x9, Preakness, etc.).
+ *
+ * This is a stopgap. The real fix is feed-driven discovery.
+ */
+const FEEDLESS_SPORT_KEYWORDS = [
+  "horse_racing", "horse racing", "thoroughbred",
+  "belmont stakes", "preakness", "kentucky derby", "epsom derby",
+  "royal ascot", "the oaks", "guineas", "breeders cup", "breeders' cup",
+  "melbourne cup", "grand national", "cheltenham festival",
+  "greyhound", "harness racing",
+];
+
+export function isFeedlessSportTitle(opts: {
+  title: string;
+  metadata?: Record<string, unknown> | null;
+}): boolean {
+  const md = opts.metadata ?? {};
+  const hay = [
+    opts.title,
+    String((md as Record<string, unknown>).sub_category ?? ""),
+    String((md as Record<string, unknown>).league ?? ""),
+    String((md as Record<string, unknown>).sport ?? ""),
+  ].join(" ").toLowerCase();
+  for (const kw of FEEDLESS_SPORT_KEYWORDS) {
+    if (hay.includes(kw)) return true;
+  }
+  return false;
 }
 
 function toDayKey(startsAt: string | Date): string {

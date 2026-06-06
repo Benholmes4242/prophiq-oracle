@@ -19,7 +19,9 @@ export function DomainBrowseGrid() {
         .from("events")
         .select("domain")
         .eq("status", "scheduled")
-        .eq("moderation_status", "approved");
+        .eq("moderation_status", "approved")
+        // Fix 3: never count sub-question child events in the domain tiles.
+        .is("parent_event_id", null);
       if (error) throw error;
       const result: Record<string, number> = {};
       (data ?? []).forEach((r: { domain: string }) => {

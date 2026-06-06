@@ -34,7 +34,7 @@ import {
   type ApiSportsFixture,
 } from "../dataSources/apiSports.ts";
 import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.45.4";
-import { coerceDiscoveredEvent, logSkip, safeExtractJsonArray } from "./_util.ts";
+import { coerceDiscoveredEvent, isFeedlessSportTitle, logSkip, safeExtractJsonArray } from "./_util.ts";
 import { forecastDisciplineBlock } from "../forecastDiscipline.ts";
 
 const RESEARCH_PROMPT_VERSION = "sport.research.v1";
@@ -190,6 +190,13 @@ export const sportAdapter: DomainAdapter = {
         });
         if (!ev) {
           logSkip(DOMAIN_ID, "invalid shape", item);
+          continue;
+        }
+        // Fix 2 (feed-gate): refuse to persist sports we have no real feed
+        // for. Horse racing in particular is pure LLM recall today and
+        // accounts for most fabricated events / placeholder outcomes.
+        if (isFeedlessSportTitle({ title: ev.title, metadata: ev.metadata })) {
+          logSkip(DOMAIN_ID, "feed-less sub-category (no wired data source)", item);
           continue;
         }
         out.push(ev);
