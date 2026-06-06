@@ -71,11 +71,18 @@ function AccountPage() {
       <div className="mx-auto max-w-2xl">
         <Wordmark className="mx-auto mb-8 h-9" />
         <h1
-          className="text-3xl font-bold mb-8"
+          className="text-3xl font-bold mb-2"
           style={{ fontFamily: "Geist, sans-serif", letterSpacing: "-0.02em" }}
         >
           Your account
         </h1>
+        {userEmail && (
+          <p className="text-sm text-[var(--ink)]/60 mb-8">
+            Signed in as <span className="font-medium text-[var(--ink)]">{userEmail}</span>
+          </p>
+        )}
+        {!userEmail && <div className="mb-8" />}
+
 
         {isLoading ? (
           <div className="text-center text-sm text-[var(--ink)]/60">Loading...</div>
