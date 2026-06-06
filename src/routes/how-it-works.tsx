@@ -1,15 +1,24 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import type { ReactNode } from "react";
-import { useCalibrationHeadline } from "@/hooks/useCalibrationHeadline";
+import { WordmarkTagline } from "@/components/brand/WordmarkTagline";
 
 export const Route = createFileRoute("/how-it-works")({
   head: () => ({
     meta: [
-      { title: "How it works - prophiq." },
+      { title: "How Prophiq forecasts the future" },
       {
         name: "description",
         content:
-          "How Prophiq's reasoning pipeline works. A multi-stage analytical engine, calibrated probabilities, and an accumulating calibration record.",
+          "Multi-model AI consensus, grounded in live data, calibrated against reality. Three frontier models, eight structured data sources, four domains.",
+      },
+      {
+        property: "og:title",
+        content: "How Prophiq forecasts the future",
+      },
+      {
+        property: "og:description",
+        content:
+          "Multi-model AI consensus, grounded in live data, calibrated against reality.",
       },
     ],
   }),
@@ -17,107 +26,123 @@ export const Route = createFileRoute("/how-it-works")({
 });
 
 // ============================================================
-// CONTENT - all hardcoded for v1, will be wired to real data later
+// Content
 // ============================================================
 
-const ENGINE_STATS = {
-  dataPointsPerCall: "Over 2,000+",
-  avgResolutionTime: "< 8s",
-};
-
-
-type FeaturedCall = {
-  id: string;
-  domain: string;
-  outcome: "landed" | "miss";
-  question: string;
-  prophiqCallPct: number;
-  outcomeLabel: string;
-  takeaway: string;
-};
-
-const FEATURED_CALLS: FeaturedCall[] = [
+const DOMAINS = [
   {
-    id: "monaco-gp",
-    domain: "F1 · Monaco GP",
-    outcome: "landed",
-    question: "Will Max Verstappen win the Monaco Grand Prix?",
-    prophiqCallPct: 62,
-    outcomeLabel: "Verstappen",
-    takeaway:
-      "A clean signal: Red Bull's chassis advantage on tight street circuits has been steady all season. **Confidence matched outcome.**",
+    id: "sport",
+    title: "Sport",
+    icon: "trophy",
+    examples:
+      "Match outcomes, championship winners, player milestones, tournament progression.",
+    sources:
+      "football-data.org (top European football leagues), TheSportsDB (multi-sport coverage including F1, NBA, NHL, cricket, MMA).",
   },
   {
-    id: "uk-byelection",
-    domain: "Politics · UK by-election",
-    outcome: "landed",
-    question: "Will Labour hold the seat?",
-    prophiqCallPct: 54,
-    outcomeLabel: "Labour, by 800",
-    takeaway:
-      "Polling markets had this at 85%. Prophiq saw a narrower contest. **The margin proved us closer than the consensus.**",
+    id: "politics",
+    title: "Politics",
+    icon: "ballot",
+    examples:
+      "Elections, leadership changes, policy outcomes, geopolitical events.",
+    sources:
+      "Polymarket and Kalshi prediction market prices, providing real-time crowd consensus alongside our AI analysis.",
   },
   {
-    id: "fed-june",
-    domain: "Markets · Fed decision",
-    outcome: "miss",
-    question: "Will the Fed hold rates at its June meeting?",
-    prophiqCallPct: 58,
-    outcomeLabel: "25bps cut",
-    takeaway:
-      "A 58% call should miss about 42% of the time. **This was one of those.** Reading a 58% forecast as a guarantee misses the point.",
+    id: "markets",
+    title: "Markets",
+    icon: "chart",
+    examples:
+      "Economic indicators, earnings, central bank decisions, macroeconomic releases.",
+    sources:
+      "FRED for macro series (LEI, CPI, NFP, Unemployment Rate, Fed Funds Rate, GDP), Alpha Vantage for ticker-level data.",
   },
   {
-    id: "oscars-best-picture",
-    domain: "Entertainment · Oscars",
-    outcome: "landed",
-    question: "Who wins Best Picture?",
-    prophiqCallPct: 71,
-    outcomeLabel: "Anora",
-    takeaway:
-      "Late guild momentum was the tell. **Higher confidence, landed at the higher rate.**",
+    id: "entertainment",
+    title: "Entertainment",
+    icon: "star",
+    examples:
+      "Award winners, release performance, cultural milestones.",
+    sources:
+      "TMDb for film and TV data, Spotify for music industry signals.",
   },
-];
+] as const;
 
-const PIPELINE = [
+const STEPS = [
   {
     n: "01",
-    label: "Research",
-    desc: "Real-time data pulled from across the globe - historical patterns, market signals, expert commentary, breaking news.",
+    title: "Question or event",
+    body: "A user submits a question, or Prophiq's discovery system surfaces an upcoming event automatically. The event gets classified into one of the four domains before any analysis begins.",
   },
   {
     n: "02",
-    label: "Reasoning",
-    desc: "An ensemble of frontier reasoning systems evaluates each question independently, ranking possible outcomes with calibrated probabilities.",
+    title: "Live research and structured data",
+    body: "Perplexity researches the latest context in real time, pulling in news and analysis from the moment your forecast is requested. In parallel, the relevant domain-specific data sources are queried, so a forecast about a Fed rate decision sees the actual current Fed Funds Rate from FRED, and a forecast about a Premier League match sees the latest standings from football-data.org. All evidence is assembled before reasoning begins.",
   },
   {
     n: "03",
-    label: "Consensus",
-    desc: "Prophiq's engine merges the independent rankings using a weighted Borda count, producing a single calibrated answer with reasoning.",
+    title: "Multi-model consensus",
+    body: "Three frontier AI models analyze the evidence independently: Claude (Anthropic), GPT (OpenAI), and Gemini (Google). Each produces its own probability estimate. When models disagree, that disagreement itself is signal worth examining.",
+  },
+  {
+    n: "04",
+    title: "Calibrated consensus",
+    body: "A Borda count consensus algorithm combines the three models' outputs into a single forecast. Confidence labels reflect how strongly the models agree with each other: high confidence means all three converged on similar probabilities, lower confidence means the models split.",
   },
 ];
 
-const PROB_KEY = [
-  { range: "50-59%", meaning: "A lean, but the outcome is close to a coin flip." },
-  { range: "60-74%", meaning: "Likely. We have meaningful conviction." },
-  { range: "75-89%", meaning: "Strong call. The signal is clear." },
-  { range: "90%+", meaning: "High confidence. We'd be surprised if this didn't happen." },
+const WHY = [
+  {
+    title: "Live data, not just training data",
+    body: "Foundation models know what they learned during training, which can be months or years stale. Prophiq queries live data sources at forecast time: Polymarket prices from minutes ago, the most recent CPI print, current sports standings. Your forecast reflects the world as it is now, not as it was when the model was trained.",
+  },
+  {
+    title: "Three models check each other",
+    body: "Single-LLM forecasts are confidently wrong too often. By running the same question through Claude, GPT, and Gemini independently, then combining their answers via a consensus algorithm, we surface real signal and dampen individual model quirks. When all three agree, that's meaningful. When they disagree, that disagreement is itself information.",
+  },
+  {
+    title: "Track record, not vibes",
+    body: "Every forecast is logged. Every resolution is recorded. We compute Brier scores and reliability curves so the accuracy of Prophiq's forecasts is measurable, not just claimed. Forecasting tools that don't publish their calibration shouldn't be trusted.",
+  },
+];
+
+const NOT_DOING = [
+  {
+    head: "We don't predict markets in seconds.",
+    body: "This isn't day trading or high-frequency. Our forecasts are for events that resolve over hours, days, or months.",
+  },
+  {
+    head: "We don't claim certainty.",
+    body: "Every forecast has a confidence range. A 70% forecast means we expect that outcome 70% of the time, not 100%.",
+  },
+  {
+    head: "We don't cover every event.",
+    body: "We focus on the four domains where structured data exists and where forecasts have meaning. We won't forecast lottery numbers, the weather in five days, or your love life.",
+  },
+  {
+    head: "We're not a betting service.",
+    body: "We provide calibrated forecasts. What you do with them is your decision.",
+  },
 ];
 
 // ============================================================
-// PAGE
+// Page
 // ============================================================
 
 function HowItWorksPage() {
   return (
     <main className="mx-auto max-w-2xl px-6 pb-16 pt-8">
       <Hero />
+      <Divider />
+      <DomainsSection />
+      <Divider />
       <EngineSection />
-      <DataMoatSection />
-      <PrincipleSection />
-      <ProbabilityKeySection />
-      <RecentCallsSection />
-      <AggregateSection />
+      <Divider />
+      <WhySection />
+      <Divider />
+      <DailyLockSection />
+      <Divider />
+      <NotDoingSection />
       <Closing />
     </main>
   );
@@ -125,34 +150,50 @@ function HowItWorksPage() {
 
 function Hero() {
   return (
-    <header style={{ marginBottom: 44 }}>
+    <header style={{ marginBottom: 36 }}>
+      <WordmarkTagline wordmarkSize={32} className="mb-7" />
       <h1
         style={{
           fontFamily: "var(--font-sans)",
           fontWeight: 700,
-          fontSize: 40,
-          letterSpacing: "-0.04em",
-          lineHeight: 1,
+          fontSize: 38,
+          letterSpacing: "-0.035em",
+          lineHeight: 1.02,
           color: "var(--ink)",
-          marginBottom: 12,
+          marginBottom: 14,
         }}
       >
-        How it works<span style={{ color: "var(--amber)" }}>.</span>
+        How Prophiq forecasts the
+        <span style={{ color: "var(--amber)" }}> future.</span>
       </h1>
       <p
         style={{
           fontFamily: "var(--font-sans)",
-          fontSize: 15,
+          fontSize: 16,
           lineHeight: 1.5,
           color: "var(--ink-soft)",
-          maxWidth: "34ch",
           letterSpacing: "-0.005em",
+          maxWidth: "42ch",
         }}
       >
-        A multi-stage reasoning pipeline. {ENGINE_STATS.dataPointsPerCall} data
-        points per call. Resolved in seconds.
+        Multi-model AI consensus, grounded in live data, calibrated against
+        reality.
       </p>
     </header>
+  );
+}
+
+function Divider() {
+  return (
+    <hr
+      style={{
+        border: "none",
+        height: 1,
+        background: "var(--amber)",
+        opacity: 0.6,
+        margin: "32px 0",
+      }}
+    />
   );
 }
 
@@ -174,13 +215,7 @@ function SectionEyebrow({ children }: { children: string }) {
   );
 }
 
-function SectionHeading({
-  children,
-  accent,
-}: {
-  children: ReactNode;
-  accent?: string;
-}) {
+function SectionHeading({ children }: { children: ReactNode }) {
   return (
     <h2
       style={{
@@ -190,11 +225,10 @@ function SectionHeading({
         letterSpacing: "-0.03em",
         lineHeight: 1.15,
         color: "var(--ink)",
-        marginBottom: 16,
+        marginBottom: 14,
       }}
     >
       {children}
-      {accent && <span style={{ color: "var(--amber)" }}>{accent}</span>}
     </h2>
   );
 }
@@ -208,7 +242,7 @@ function EditorialP({ children }: { children: ReactNode }) {
         lineHeight: 1.55,
         color: "var(--ink-soft)",
         letterSpacing: "-0.005em",
-        marginBottom: 16,
+        marginBottom: 14,
       }}
     >
       {children}
@@ -216,146 +250,81 @@ function EditorialP({ children }: { children: ReactNode }) {
   );
 }
 
-function Em({ children }: { children: ReactNode }) {
+// --- Section: domains ---
+
+function DomainsSection() {
   return (
-    <span style={{ color: "var(--ink)", fontWeight: 500 }}>{children}</span>
-  );
-}
-
-function EngineSection() {
-  return (
-    <section style={{ marginBottom: 48 }}>
-      <SectionEyebrow>The engine</SectionEyebrow>
-      <SectionHeading accent=".">
-        A purpose-built reasoning pipeline
-      </SectionHeading>
-
-      <p
-        style={{
-          fontFamily: "var(--font-sans)",
-          fontSize: 17,
-          lineHeight: 1.5,
-          color: "var(--ink)",
-          letterSpacing: "-0.01em",
-          marginBottom: 20,
-          fontWeight: 500,
-        }}
-      >
-        <strong style={{ fontWeight: 700 }}>
-          Built for one job: calibrated probabilistic forecasting.
-        </strong>{" "}
-        Where generalist AI gives you a paragraph of hedged language, Prophiq
-        gives you a ranked, calibrated answer - backed by an ensemble of
-        reasoning systems and a consensus engine purpose-built for the task.
-      </p>
-
+    <section>
+      <SectionEyebrow>The four domains</SectionEyebrow>
+      <SectionHeading>What Prophiq covers.</SectionHeading>
       <EditorialP>
-        Every Prophiq call runs through a multi-stage analytical pipeline.
-        Real-time research is pulled from across the globe, then evaluated
-        independently by an ensemble of frontier reasoning systems.{" "}
-        <Em>Prophiq's consensus engine</Em> merges their answers using a
-        calibrated weighted Borda count - the same scoring method used in
-        academic forecasting research.
+        Prophiq covers four domains. Each gets data sources specifically
+        relevant to that field, so the underlying evidence is always
+        domain-appropriate rather than generic.
       </EditorialP>
-
-      <div style={{ marginTop: 20, marginBottom: 24 }}>
-        {PIPELINE.map((step, i) => (
-          <div
-            key={step.n}
-            style={{
-              display: "flex",
-              gap: 16,
-              padding: "16px 0",
-              borderTop: "1px solid var(--line)",
-              borderBottom:
-                i === PIPELINE.length - 1 ? "1px solid var(--line)" : undefined,
-            }}
-          >
-            <div
-              style={{
-                fontFamily: "var(--font-mono)",
-                fontSize: 11,
-                fontWeight: 600,
-                color: "var(--amber-2)",
-                letterSpacing: "0.06em",
-                minWidth: 28,
-                paddingTop: 2,
-              }}
-            >
-              {step.n}
-            </div>
-            <div style={{ flex: 1 }}>
-              <div
-                style={{
-                  fontFamily: "var(--font-sans)",
-                  fontWeight: 600,
-                  fontSize: 15,
-                  color: "var(--ink)",
-                  letterSpacing: "-0.015em",
-                  marginBottom: 4,
-                }}
-              >
-                {step.label}
-              </div>
-              <div
-                style={{
-                  fontFamily: "var(--font-sans)",
-                  fontSize: 13.5,
-                  lineHeight: 1.5,
-                  color: "var(--ink-soft)",
-                  letterSpacing: "-0.005em",
-                }}
-              >
-                {step.desc}
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "1fr 1fr",
-          gap: 10,
+          gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
+          gap: 12,
+          marginTop: 18,
         }}
       >
-        <StatCard
-          value={ENGINE_STATS.dataPointsPerCall}
-          label="Data points per call"
-        />
-        <StatCard
-          value={ENGINE_STATS.avgResolutionTime}
-          label="Avg. resolution time"
-        />
+        {DOMAINS.map((d) => (
+          <DomainCard key={d.id} d={d} />
+        ))}
       </div>
     </section>
   );
 }
 
-function StatCard({ value, label }: { value: string; label: string }) {
+function DomainCard({
+  d,
+}: {
+  d: (typeof DOMAINS)[number];
+}) {
   return (
     <div
       style={{
         background: "var(--bg-card)",
         border: "1px solid var(--line)",
         borderRadius: 14,
-        padding: 16,
+        padding: 18,
       }}
     >
       <div
         style={{
-          fontFamily: "var(--font-sans)",
-          fontWeight: 700,
-          fontSize: 28,
-          letterSpacing: "-0.04em",
-          lineHeight: 1,
-          color: "var(--ink)",
-          marginBottom: 6,
+          display: "flex",
+          alignItems: "center",
+          gap: 10,
+          marginBottom: 10,
         }}
       >
-        {value}
+        <DomainIcon name={d.icon} />
+        <div
+          style={{
+            fontFamily: "var(--font-sans)",
+            fontWeight: 700,
+            fontSize: 17,
+            letterSpacing: "-0.02em",
+            color: "var(--ink)",
+          }}
+        >
+          {d.title}
+        </div>
       </div>
+      <p
+        style={{
+          fontFamily: "var(--font-sans)",
+          fontSize: 13.5,
+          lineHeight: 1.5,
+          color: "var(--ink)",
+          letterSpacing: "-0.005em",
+          marginBottom: 10,
+        }}
+      >
+        {d.examples}
+      </p>
       <div
         style={{
           fontFamily: "var(--font-mono)",
@@ -363,143 +332,138 @@ function StatCard({ value, label }: { value: string; label: string }) {
           fontWeight: 600,
           letterSpacing: "0.18em",
           textTransform: "uppercase",
-          color: "var(--ink-faint)",
+          color: "var(--amber-2)",
+          marginBottom: 6,
         }}
       >
-        {label}
+        Data sources
       </div>
+      <p
+        style={{
+          fontFamily: "var(--font-sans)",
+          fontSize: 12.5,
+          lineHeight: 1.5,
+          color: "var(--ink-soft)",
+          letterSpacing: "-0.005em",
+          margin: 0,
+        }}
+      >
+        {d.sources}
+      </p>
     </div>
   );
 }
 
-function DataMoatSection() {
-  return (
-    <section style={{ marginBottom: 48 }}>
-      <SectionEyebrow>The data</SectionEyebrow>
-      <SectionHeading accent=".">
-        Two layers of intelligence, one calibrated answer
-      </SectionHeading>
-      <EditorialP>
-        <Em>Prophiq runs on two layers of intelligence in parallel.</Em>{" "}
-        Real-time research pulled from across the globe - market signals,
-        historical patterns, expert commentary, breaking news. And{" "}
-        <Em>our own calibration record</Em> - a proprietary dataset of every
-        call Prophiq has made and every outcome that resolved it, across all
-        four domains.
-      </EditorialP>
-      <EditorialP>
-        Both feed every forecast. Each resolved event becomes signal in the
-        next call, sharpening calibration across the system.
-      </EditorialP>
-      <div
-        style={{
-          background: "var(--bg-card)",
-          border: "1px solid var(--line)",
-          borderRadius: 16,
-          padding: 20,
-          marginTop: 16,
-        }}
-      >
-        <p
-          style={{
-            fontFamily: "var(--font-sans)",
-            fontSize: 14,
-            lineHeight: 1.55,
-            color: "var(--ink-soft)",
-            letterSpacing: "-0.005em",
-          }}
-        >
-          Every forecast Prophiq makes is structured, scored, and folded back
-          into the system.{" "}
-          <strong style={{ color: "var(--ink)", fontWeight: 600 }}>
-            That feedback loop runs on every call - the layer no generalist AI
-            carries.
-          </strong>{" "}
-          It's what makes Prophiq the right tool for decisions where calibration
-          matters.
-        </p>
-      </div>
-    </section>
-  );
+function DomainIcon({ name }: { name: string }) {
+  const common = {
+    width: 22,
+    height: 22,
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: "var(--amber)",
+    strokeWidth: 1.8,
+    strokeLinecap: "round" as const,
+    strokeLinejoin: "round" as const,
+  };
+  switch (name) {
+    case "trophy":
+      return (
+        <svg {...common}>
+          <path d="M8 21h8M12 17v4M7 4h10v4a5 5 0 0 1-10 0V4z" />
+          <path d="M17 4h3v2a3 3 0 0 1-3 3M7 4H4v2a3 3 0 0 0 3 3" />
+        </svg>
+      );
+    case "ballot":
+      return (
+        <svg {...common}>
+          <rect x="4" y="5" width="16" height="15" rx="2" />
+          <path d="M8 10h8M8 14h5" />
+        </svg>
+      );
+    case "chart":
+      return (
+        <svg {...common}>
+          <path d="M3 20h18" />
+          <path d="M5 16l4-5 4 3 6-8" />
+        </svg>
+      );
+    case "star":
+      return (
+        <svg {...common}>
+          <path d="M12 3l2.6 5.6 6 .7-4.4 4.2 1.2 6L12 16.8 6.6 19.5l1.2-6L3.4 9.3l6-.7L12 3z" />
+        </svg>
+      );
+    default:
+      return null;
+  }
 }
 
-function PrincipleSection() {
-  return (
-    <section style={{ marginBottom: 48 }}>
-      <SectionEyebrow>The principle</SectionEyebrow>
-      <SectionHeading>
-        We give you probabilities
-        <span style={{ color: "var(--amber)" }}>,</span> not predictions.
-      </SectionHeading>
-      <EditorialP>
-        When Prophiq says "60% Verstappen wins Monaco," it is not predicting
-        that Verstappen wins. It is saying:{" "}
-        <Em>more likely than not, but far from certain.</Em> The right way to
-        read a probability isn't "will this happen?" - it's "how confident
-        should I be?"
-      </EditorialP>
-      <EditorialP>
-        This makes <Em>calibration</Em> matter more than hit rate. A perfectly
-        calibrated forecaster who says 60% should be right 60% of the time -
-        and wrong 40% of the time, by design. Those misses aren't failures.
-        They're the math working as intended.
-      </EditorialP>
-    </section>
-  );
-}
+// --- Section: engine ---
 
-function ProbabilityKeySection() {
+function EngineSection() {
   return (
-    <section style={{ marginBottom: 48 }}>
-      <SectionEyebrow>Reading the percentage</SectionEyebrow>
-      <SectionHeading>What the numbers mean.</SectionHeading>
+    <section>
+      <SectionEyebrow>The forecasting engine</SectionEyebrow>
+      <SectionHeading>A four-step pipeline.</SectionHeading>
       <EditorialP>
-        A probability is a measurement of confidence, not a prediction of
-        outcome. Here's how to read them:
+        Each forecast goes through a four-step process. We don&apos;t just ask
+        one AI model and hope for the best.
       </EditorialP>
-      <div
-        style={{
-          background: "var(--bg-card)",
-          border: "1px solid var(--line)",
-          borderRadius: 16,
-          padding: 20,
-          marginTop: 20,
-        }}
-      >
-        {PROB_KEY.map((row, i) => (
+      <div style={{ marginTop: 20 }}>
+        {STEPS.map((s, i) => (
           <div
-            key={row.range}
+            key={s.n}
             style={{
               display: "flex",
-              alignItems: "center",
-              gap: 14,
-              padding: "10px 0",
+              gap: 16,
+              padding: "18px 0",
+              borderTop: "1px solid var(--line)",
               borderBottom:
-                i < PROB_KEY.length - 1 ? "1px solid var(--line)" : undefined,
+                i === STEPS.length - 1 ? "1px solid var(--line)" : undefined,
             }}
           >
             <div
               style={{
+                flexShrink: 0,
+                width: 32,
+                height: 32,
+                borderRadius: "50%",
+                background: "var(--amber)",
+                color: "white",
                 fontFamily: "var(--font-mono)",
-                fontSize: 11,
-                fontWeight: 600,
-                color: "var(--amber-2)",
+                fontSize: 12,
+                fontWeight: 700,
+                display: "grid",
+                placeItems: "center",
                 letterSpacing: "0.04em",
-                minWidth: 56,
               }}
             >
-              {row.range}
+              {s.n}
             </div>
-            <div
-              style={{
-                fontFamily: "var(--font-sans)",
-                fontSize: 13.5,
-                lineHeight: 1.4,
-                color: "var(--ink-soft)",
-                letterSpacing: "-0.005em",
-              }}
-            >
-              {row.meaning}
+            <div style={{ flex: 1 }}>
+              <div
+                style={{
+                  fontFamily: "var(--font-sans)",
+                  fontWeight: 600,
+                  fontSize: 16,
+                  color: "var(--ink)",
+                  letterSpacing: "-0.02em",
+                  marginBottom: 6,
+                }}
+              >
+                {s.title}
+              </div>
+              <div
+                style={{
+                  fontFamily: "var(--font-sans)",
+                  fontSize: 14,
+                  lineHeight: 1.55,
+                  color: "var(--ink-soft)",
+                  letterSpacing: "-0.005em",
+                }}
+              >
+                {s.body}
+              </div>
             </div>
           </div>
         ))}
@@ -508,253 +472,178 @@ function ProbabilityKeySection() {
   );
 }
 
-function RecentCallsSection() {
+// --- Section: why ---
+
+function WhySection() {
   return (
-    <section style={{ marginBottom: 48 }}>
-      <SectionEyebrow>Recent calls</SectionEyebrow>
-      <SectionHeading>How it's played out.</SectionHeading>
-      <EditorialP>Recent forecasts and how they resolved.</EditorialP>
-      <div style={{ marginTop: 20 }}>
-        {FEATURED_CALLS.map((call) => (
-          <FeaturedCallCard key={call.id} call={call} />
+    <section>
+      <SectionEyebrow>Why this matters</SectionEyebrow>
+      <SectionHeading>What makes Prophiq different.</SectionHeading>
+      <EditorialP>
+        Three reasons Prophiq forecasts differently from asking ChatGPT
+        &quot;what&apos;s the probability of X?&quot;
+      </EditorialP>
+      <div style={{ marginTop: 18, display: "flex", flexDirection: "column", gap: 12 }}>
+        {WHY.map((w, i) => (
+          <div
+            key={w.title}
+            style={{
+              background: "var(--bg-card)",
+              border: "1px solid var(--line)",
+              borderRadius: 14,
+              padding: 18,
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                alignItems: "baseline",
+                gap: 10,
+                marginBottom: 8,
+              }}
+            >
+              <span
+                style={{
+                  fontFamily: "var(--font-mono)",
+                  fontSize: 11,
+                  fontWeight: 700,
+                  color: "var(--amber-2)",
+                  letterSpacing: "0.06em",
+                }}
+              >
+                {String(i + 1).padStart(2, "0")}
+              </span>
+              <span
+                style={{
+                  fontFamily: "var(--font-sans)",
+                  fontWeight: 600,
+                  fontSize: 16,
+                  color: "var(--ink)",
+                  letterSpacing: "-0.02em",
+                }}
+              >
+                {w.title}
+              </span>
+            </div>
+            <p
+              style={{
+                fontFamily: "var(--font-sans)",
+                fontSize: 14,
+                lineHeight: 1.55,
+                color: "var(--ink-soft)",
+                letterSpacing: "-0.005em",
+                margin: 0,
+              }}
+            >
+              {w.body}
+            </p>
+          </div>
         ))}
       </div>
     </section>
   );
 }
 
-function FeaturedCallCard({ call }: { call: FeaturedCall }) {
-  const renderTakeaway = (text: string) => {
-    const parts = text.split(/(\*\*[^*]+\*\*)/g);
-    return parts.map((part, i) => {
-      if (part.startsWith("**") && part.endsWith("**")) {
-        return (
-          <strong key={i} style={{ color: "var(--ink)", fontWeight: 600 }}>
-            {part.slice(2, -2)}
-          </strong>
-        );
-      }
-      return <span key={i}>{part}</span>;
-    });
-  };
+// --- Section: daily lock ---
 
+function DailyLockSection() {
   return (
-    <div
-      style={{
-        background: "var(--bg-card)",
-        border: "1px solid var(--line)",
-        borderRadius: 16,
-        padding: 20,
-        marginBottom: 12,
-      }}
-    >
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 8,
-          fontFamily: "var(--font-mono)",
-          fontSize: 10,
-          fontWeight: 600,
-          letterSpacing: "0.18em",
-          textTransform: "uppercase",
-          color: "var(--ink-faint)",
-          marginBottom: 10,
-        }}
-      >
-        <span>{call.domain}</span>
-        <span
-          style={{
-            width: 3,
-            height: 3,
-            background: "var(--ink-faint)",
-            borderRadius: "50%",
-            opacity: 0.6,
-          }}
-        />
-        <span
-          style={{
-            color:
-              call.outcome === "landed" ? "var(--green)" : "var(--ink-soft)",
-            fontWeight: 700,
-          }}
-        >
-          {call.outcome === "landed" ? "Landed" : "Did not land"}
-        </span>
-      </div>
-
-      <div
-        style={{
-          fontFamily: "var(--font-sans)",
-          fontWeight: 600,
-          fontSize: 16,
-          lineHeight: 1.3,
-          color: "var(--ink)",
-          letterSpacing: "-0.02em",
-          marginBottom: 14,
-        }}
-      >
-        {call.question}
-      </div>
-
-      <div
-        style={{
-          display: "flex",
-          alignItems: "baseline",
-          gap: 16,
-          marginBottom: 14,
-        }}
-      >
-        <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-          <span
-            style={{
-              fontFamily: "var(--font-mono)",
-              fontSize: 9.5,
-              fontWeight: 600,
-              letterSpacing: "0.18em",
-              textTransform: "uppercase",
-              color: "var(--ink-faint)",
-            }}
-          >
-            Our call
-          </span>
-          <span
-            style={{
-              fontFamily: "var(--font-sans)",
-              fontWeight: 700,
-              fontSize: 20,
-              color: "var(--amber)",
-              letterSpacing: "-0.03em",
-              lineHeight: 1,
-            }}
-          >
-            {call.prophiqCallPct}%
-          </span>
-        </div>
-        <span
-          style={{
-            color: "var(--ink-faint)",
-            fontSize: 14,
-            alignSelf: "center",
-          }}
-        >
-          →
-        </span>
-        <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-          <span
-            style={{
-              fontFamily: "var(--font-mono)",
-              fontSize: 9.5,
-              fontWeight: 600,
-              letterSpacing: "0.18em",
-              textTransform: "uppercase",
-              color: "var(--ink-faint)",
-            }}
-          >
-            Outcome
-          </span>
-          <span
-            style={{
-              fontFamily: "var(--font-sans)",
-              fontWeight: 700,
-              fontSize: 20,
-              color:
-                call.outcome === "landed" ? "var(--ink)" : "var(--ink-faint)",
-              letterSpacing: "-0.03em",
-              lineHeight: 1,
-            }}
-          >
-            {call.outcomeLabel}
-          </span>
-        </div>
-      </div>
-
-      <p
-        style={{
-          fontFamily: "var(--font-sans)",
-          fontSize: 13,
-          lineHeight: 1.5,
-          color: "var(--ink-soft)",
-          letterSpacing: "-0.005em",
-          paddingTop: 14,
-          borderTop: "1px solid var(--line)",
-        }}
-      >
-        {renderTakeaway(call.takeaway)}
-      </p>
-    </div>
-  );
-}
-
-function AggregateSection() {
-  const { data: calibration } = useCalibrationHeadline();
-  if (!calibration) return null;
-  return (
-    <section style={{ marginBottom: 48 }}>
-      <SectionEyebrow>The big picture</SectionEyebrow>
-      <SectionHeading>
-        How calibrated are we
-        <span style={{ color: "var(--amber)" }}>?</span>
-      </SectionHeading>
+    <section>
+      <SectionEyebrow>The daily lock</SectionEyebrow>
+      <SectionHeading>Editorial curation, every morning.</SectionHeading>
       <EditorialP>
-        Across our resolved forecasts:
+        Every day at 06:00 UTC, Prophiq selects the six most consequential
+        forecasts across all domains, one per slot. These are the day&apos;s
+        headline forecasts, surfaced to all users. Below the headlines, each
+        domain gets a &quot;lead forecast&quot; highlighted on its dedicated
+        page.
       </EditorialP>
       <div
         style={{
           background: "var(--bg-tint)",
           border: "1px solid rgba(244, 115, 26, 0.2)",
-          borderRadius: 16,
-          padding: "24px 20px",
-          marginTop: 20,
+          borderRadius: 14,
+          padding: 18,
+          marginTop: 12,
         }}
       >
-        <div
-          style={{
-            fontFamily: "var(--font-sans)",
-            fontWeight: 700,
-            fontSize: 32,
-            letterSpacing: "-0.03em",
-            color: "var(--ink)",
-            lineHeight: 1,
-            marginBottom: 8,
-          }}
-        >
-          {calibration.n_resolved}{" "}
-          <span style={{ color: "var(--amber)" }}>resolved</span>
-        </div>
         <p
           style={{
             fontFamily: "var(--font-sans)",
-            fontSize: 13.5,
-            lineHeight: 1.5,
-            color: "var(--ink-soft)",
+            fontSize: 14,
+            lineHeight: 1.55,
+            color: "var(--ink)",
             letterSpacing: "-0.005em",
+            margin: 0,
           }}
         >
-          When Prophiq said something had a given probability, on average it
-          landed within{" "}
-          <strong style={{ color: "var(--ink)", fontWeight: 600 }}>
-            {calibration.avg_calibration_error_pp !== null
-              ? calibration.avg_calibration_error_pp.toFixed(1)
-              : "-"}{" "}
-            percentage points
-          </strong>{" "}
-          of that - across all four domains. Updated every six hours.
+          Users want curation, not 400 events to sift through. The daily lock
+          is our editorial signal: of everything happening today, here&apos;s
+          what&apos;s most worth your attention.
         </p>
       </div>
     </section>
   );
 }
 
+// --- Section: not doing ---
+
+function NotDoingSection() {
+  return (
+    <section>
+      <SectionEyebrow>What we don&apos;t do</SectionEyebrow>
+      <SectionHeading>Honest expectations.</SectionHeading>
+      <EditorialP>
+        Honest expectations matter for a forecasting tool. Here&apos;s what
+        Prophiq is not.
+      </EditorialP>
+      <ul style={{ listStyle: "none", padding: 0, margin: "16px 0 0" }}>
+        {NOT_DOING.map((n) => (
+          <li
+            key={n.head}
+            style={{
+              padding: "14px 0",
+              borderTop: "1px solid var(--line)",
+            }}
+          >
+            <div
+              style={{
+                fontFamily: "var(--font-sans)",
+                fontWeight: 600,
+                fontSize: 15,
+                color: "var(--ink)",
+                letterSpacing: "-0.015em",
+                marginBottom: 4,
+              }}
+            >
+              {n.head}
+            </div>
+            <div
+              style={{
+                fontFamily: "var(--font-sans)",
+                fontSize: 14,
+                lineHeight: 1.5,
+                color: "var(--ink-soft)",
+                letterSpacing: "-0.005em",
+              }}
+            >
+              {n.body}
+            </div>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
 
 function Closing() {
   return (
     <div
       style={{
         textAlign: "center",
-        paddingTop: 32,
+        paddingTop: 36,
+        marginTop: 36,
         borderTop: "1px solid var(--line)",
-        marginTop: 16,
       }}
     >
       <p

@@ -83,13 +83,13 @@ export function ChatSheet({ eventId, onClose }: ChatSheetProps) {
   return (
     <>
       <div className="chat-scrim" onClick={onClose} />
-      <div className="chat-sheet" role="dialog" aria-modal="true" aria-label="Chat about this prediction">
+      <div className="chat-sheet" role="dialog" aria-modal="true" aria-label="Chat about this forecast">
         <div className="sheet-handle-area">
           <span className="sheet-handle" aria-hidden />
         </div>
         <div className="sheet-header">
           <div className="sheet-header-text">
-            <div className="sheet-title">Chat about this prediction</div>
+            <div className="sheet-title">Chat about this forecast</div>
             {usage && (
               <div className="sheet-usage">
                 <span className="strong">{remaining}</span> of {total} questions remaining today

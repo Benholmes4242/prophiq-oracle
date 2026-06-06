@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { WhatWeAnalyseSection } from "@/components/site/WhatWeAnalyseSection";
+import { WordmarkTagline } from "@/components/brand/WordmarkTagline";
 
 export const Route = createFileRoute("/about")({
   head: () => ({
@@ -43,6 +44,7 @@ function AboutPage() {
   return (
     <main className="mx-auto max-w-2xl">
         <section className="px-5 pb-7 pt-9">
+          <WordmarkTagline wordmarkSize={28} className="mb-6" />
           <h1
             className="font-display tracking-[-0.035em]"
             style={{

@@ -16,13 +16,13 @@ export const Route = createFileRoute("/")({
     const ogImage = `${getPublicBaseUrl()}/api/og/home`;
     return {
       meta: [
-        { title: "Prophiq — Predict what happens next" },
+        { title: "Prophiq — Forecast what happens next" },
         {
           name: "description",
           content:
             "From the Grand National to the FOMC, Prophiq forecasts every upcoming event worth following.",
         },
-        { property: "og:title", content: "Prophiq — Predict what happens next" },
+        { property: "og:title", content: "Prophiq — Forecast what happens next" },
         {
           property: "og:description",
           content: "Calibrated forecasts for every upcoming event.",
@@ -141,7 +141,7 @@ function BottomCTA({
       style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
     >
       <div
-        className="font-display mb-3 text-center"
+        className="font-display mb-2 text-center"
         style={{
           fontSize: 22,
           fontWeight: 600,
@@ -150,8 +150,21 @@ function BottomCTA({
           color: "var(--ink)",
         }}
       >
-        Predict what <span style={{ color: "var(--amber)" }}>happens</span> next
+        Forecast what <span style={{ color: "var(--amber)" }}>happens</span> next
       </div>
+      <p
+        className="mb-3 text-center"
+        style={{
+          fontFamily: "var(--font-sans)",
+          fontStyle: "italic",
+          fontSize: 13,
+          lineHeight: 1.35,
+          color: "#64748B",
+          letterSpacing: "-0.005em",
+        }}
+      >
+        Prophecy × IQ. The intelligent way to forecast what&apos;s next.
+      </p>
 
       {showChips && (
         <div className="relative -mx-4 mb-2.5">
