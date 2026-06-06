@@ -63,10 +63,14 @@ const TITLE_SYNONYMS: Array<[RegExp, string]> = [
 // Generic event qualifiers and filler words that carry no identity. Stripping
 // these is what makes "2026 Belmont Stakes - Triple Crown Race" and "Belmont
 // Stakes" both reduce to { belmont, stakes }.
+// Note: "game", "round", "leg", "day" are intentionally NOT in this list.
+// They often appear next to a series number ("NBA Finals Game 3", "Test
+// Day 4") and stripping them combined with dropping single-digit tokens
+// caused distinct fixtures to collapse to the same canonical key.
 const QUALIFIER_WORDS = new Set([
-  "race", "match", "game", "fixture", "event", "edition",
+  "race", "match", "fixture", "event", "edition",
   "final", "finals", "semi", "semifinal", "semifinals",
-  "quarterfinal", "quarterfinals", "round", "playoff", "playoffs",
+  "quarterfinal", "quarterfinals", "playoff", "playoffs",
   "stage", "tournament", "championship", "championships",
   "league", "cup", "season",
   "the", "a", "an", "of", "for",
@@ -96,7 +100,10 @@ export function canonicaliseTitle(title: string): string {
   // Tokenise: drop qualifier/filler words and 1-char tokens, dedupe, sort.
   const seen = new Set<string>();
   for (const tok of t.split(/\s+/)) {
-    if (!tok || tok.length < 2) continue;
+    if (!tok) continue;
+    // Preserve single-digit numeric tokens (series/game/leg/day numbers).
+    // Only drop length-1 tokens that are non-numeric.
+    if (tok.length < 2 && !/^\d+$/.test(tok)) continue;
     if (QUALIFIER_WORDS.has(tok)) continue;
     seen.add(tok);
   }

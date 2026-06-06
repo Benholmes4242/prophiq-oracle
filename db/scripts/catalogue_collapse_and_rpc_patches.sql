@@ -308,10 +308,13 @@ DECLARE
   tok text;
   parts text[];
   out_parts text[] := ARRAY[]::text[];
+  -- NOTE: 'game','round','leg','day' are intentionally NOT qualifiers.
+  -- They sit next to series numbers ("NBA Finals Game 3") and stripping
+  -- them combined with dropping 1-char tokens collapsed distinct fixtures.
   qualifiers text[] := ARRAY[
-    'race','match','game','fixture','event','edition',
+    'race','match','fixture','event','edition',
     'final','finals','semi','semifinal','semifinals',
-    'quarterfinal','quarterfinals','round','playoff','playoffs',
+    'quarterfinal','quarterfinals','playoff','playoffs',
     'stage','tournament','championship','championships',
     'league','cup','season',
     'the','a','an','of','for',
@@ -348,12 +351,13 @@ BEGIN
   t := regexp_replace(t, '[^[:alnum:][:space:]]', ' ', 'g');
   t := regexp_replace(t, '\s+', ' ', 'g');
   t := btrim(t);
-  -- tokenise, drop qualifiers + 1-char tokens, dedupe via UNION
+  -- tokenise; keep numeric single-char tokens (series numbers); drop
+  -- non-numeric 1-char tokens and qualifiers; dedupe.
   parts := string_to_array(t, ' ');
   SELECT array_agg(DISTINCT x ORDER BY x)
     INTO out_parts
     FROM unnest(parts) AS x
-   WHERE length(x) >= 2
+   WHERE (length(x) >= 2 OR x ~ '^[0-9]+$')
      AND NOT (x = ANY(qualifiers));
   RETURN COALESCE(array_to_string(out_parts, ' '), '');
 END;
