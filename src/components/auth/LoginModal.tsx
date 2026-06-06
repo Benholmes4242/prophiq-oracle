@@ -95,14 +95,15 @@ export function LoginModal({ open, onClose, message, mode = "signin" }: LoginMod
     try {
       const { error: authError } = await supabase.auth.signInWithOtp({
         email: targetEmail,
-        options: { shouldCreateUser: false },
+        options: { shouldCreateUser: mode === "signup" },
       });
       if (authError) {
         const msg = authError.message.toLowerCase();
         if (
-          msg.includes("user not found") ||
-          msg.includes("does not exist") ||
-          msg.includes("not allowed")
+          mode === "signin" &&
+          (msg.includes("user not found") ||
+            msg.includes("does not exist") ||
+            msg.includes("not allowed"))
         ) {
           setError(
             "We couldn't find an account with that email. Double-check the address or subscribe via /pricing.",
