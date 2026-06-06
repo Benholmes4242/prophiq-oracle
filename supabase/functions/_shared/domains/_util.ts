@@ -118,6 +118,13 @@ export async function coerceDiscoveredEvent(
 
   const startsAtDate = new Date(startsAt);
   if (isNaN(startsAtDate.getTime())) return null;
+
+  // Bug 3: never accept a past event as upcoming. This catches stale LLM
+  // recall (prior-year fields) and any feed that mislabels resolved events.
+  if (startsAtDate.getTime() < Date.now() - STALE_EVENT_GRACE_MS) {
+    return null;
+  }
+
   let resolvesAt = resolvesAtRaw;
   if (!resolvesAt) {
     // Default: +6 hours after start
@@ -142,6 +149,14 @@ export async function coerceDiscoveredEvent(
     }
   }
   if (outcomes.length < 2) return null;
+
+  // Bug 4: reject the entire event if any outcome label is a positional
+  // placeholder ("Player with lowest round", "Tied lowest round",
+  // "Driver 1", "Field"...). One placeholder is enough to make the whole
+  // forecast meaningless — better no event than a fabricated one.
+  if (hasPlaceholderOutcomes(outcomes.map((o) => o.label))) {
+    return null;
+  }
 
   const externalId = await stableEventId(title, startsAtDate);
   const slug = `${opts.slugPrefix}-${externalId.slice(0, 12)}`;
