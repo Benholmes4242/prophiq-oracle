@@ -101,9 +101,17 @@ function UserDetailPage() {
   if (!data) return null;
 
   const d: AdminUserDetail = data;
+  const billingPlatform = d.subscription?.billing_platform ?? (d.subscription ? "stripe" : null);
   const stripeUrl = d.subscription?.stripe_subscription_id
     ? `https://dashboard.stripe.com/subscriptions/${d.subscription.stripe_subscription_id}`
     : null;
+  const platformLabel = billingPlatform === "apple"
+    ? "Apple"
+    : billingPlatform === "google"
+      ? "Google"
+      : billingPlatform === "stripe"
+        ? "Stripe"
+        : null;
 
   return (
     <div>
@@ -182,24 +190,37 @@ function UserDetailPage() {
                 label="Cancel at end"
                 value={d.subscription.cancel_at_period_end ? "Yes" : "No"}
               />
-              <Row
-                label="Stripe"
-                value={
-                  stripeUrl ? (
-                    <a
-                      href={stripeUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="font-mono text-[11px] hover:underline"
-                      style={{ color: "var(--amber-strong)" }}
-                    >
-                      {d.subscription.stripe_subscription_id.slice(0, 14)}…
-                    </a>
-                  ) : (
-                    "—"
-                  )
-                }
-              />
+              {platformLabel && <Row label="Platform" value={platformLabel} />}
+              {billingPlatform === "stripe" && (
+                <Row
+                  label="Stripe"
+                  value={
+                    stripeUrl ? (
+                      <a
+                        href={stripeUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="font-mono text-[11px] hover:underline"
+                        style={{ color: "var(--amber-strong)" }}
+                      >
+                        {d.subscription.stripe_subscription_id!.slice(0, 14)}…
+                      </a>
+                    ) : (
+                      "—"
+                    )
+                  }
+                />
+              )}
+              {billingPlatform === "apple" && (
+                <Row
+                  label="Apple txn"
+                  value={
+                    <span className="font-mono text-[11px]" style={{ color: "var(--ink-soft)" }}>
+                      {d.subscription.apple_original_transaction_id_masked ?? "—"}
+                    </span>
+                  }
+                />
+              )}
             </>
           ) : (
             <p className="font-body text-[13px]" style={{ color: "var(--ink-soft)" }}>

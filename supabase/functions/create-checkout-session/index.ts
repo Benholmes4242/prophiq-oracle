@@ -45,6 +45,23 @@ Deno.serve(async (req: Request) => {
     return errorResponse("Missing price_id", 400);
   }
 
+  // Reverse single-subscription guard: refuse if the caller already has an
+  // active subscription on a different platform (apple/google). The app
+  // should not have offered web checkout to such a user, but enforce
+  // server-side regardless.
+  const { data: existingPlatform, error: platformErr } = await supabase
+    .rpc("user_active_subscription_platform", { p_user_id: authedUser.user_id });
+  if (platformErr) {
+    return errorResponse(platformErr.message, 500);
+  }
+  if (existingPlatform && existingPlatform !== "stripe") {
+    return errorResponse(
+      "You have an active subscription in the mobile app. Manage it there.",
+      409,
+      { existing_platform: existingPlatform },
+    );
+  }
+
   const { data: priceRow } = await supabase
     .from("prophiq_prices")
     .select("stripe_price_id, tier")
