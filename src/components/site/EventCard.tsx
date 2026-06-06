@@ -57,7 +57,7 @@ export function EventCard({
           <p className="mt-1 text-sm font-medium text-[var(--brand-ink)]">{topPick.outcome_label ?? topPick.outcome_id}</p>
         </div>
       ) : (
-        <p className="mt-3 text-xs italic text-slate-400">Prediction generating…</p>
+        <p className="mt-3 text-xs italic text-slate-400">Forecast generating…</p>
       )}
     </Link>
   );

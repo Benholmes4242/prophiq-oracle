@@ -77,7 +77,7 @@ export function DigestSignup({ source = "homepage" }: { source?: string }) {
         className="mt-1 font-body text-[13px]"
         style={{ color: "var(--ink-soft)" }}
       >
-        Tomorrow's predictions, one email a day.
+        Tomorrow&apos;s forecasts, one email a day.
       </p>
       <div className="mt-3 flex flex-col gap-2 sm:flex-row">
         <input

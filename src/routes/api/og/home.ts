@@ -8,7 +8,7 @@ export const Route = createFileRoute("/api/og/home")({
         try {
           const png = await renderOgPng({
             eyebrow: "Calibrated forecasts",
-            title: "Predict what happens next",
+            title: "Forecast what happens next",
             topPickLabel: "Ask anything",
           });
           return new Response(png as unknown as BodyInit, {

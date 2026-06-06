@@ -262,7 +262,7 @@ function ResultBody({
         data-r-stagger="4"
         style={{ background: "var(--amber)", color: "white" }}
       >
-        Full prediction →
+        Full forecast →
       </button>
     </div>
   );
