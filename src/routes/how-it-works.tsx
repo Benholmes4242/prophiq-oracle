@@ -9,7 +9,7 @@ export const Route = createFileRoute("/how-it-works")({
       {
         name: "description",
         content:
-          "Multi-model AI consensus, grounded in live data, calibrated against reality. Three frontier models, eight structured data sources, four domains.",
+          "Multi-model AI consensus, grounded in live data and our own forecasting database, calibrated against reality.",
       },
       {
         property: "og:title",
@@ -18,7 +18,7 @@ export const Route = createFileRoute("/how-it-works")({
       {
         property: "og:description",
         content:
-          "Multi-model AI consensus, grounded in live data, calibrated against reality.",
+          "Multi-model AI consensus, grounded in live data and our own forecasting database, calibrated against reality.",
       },
     ],
   }),
@@ -29,6 +29,21 @@ export const Route = createFileRoute("/how-it-works")({
 // Content
 // ============================================================
 
+const LAYERS = [
+  {
+    title: "Our own forecasting database",
+    body: "Built and refined over thousands of forecasts, with continuous event discovery, classification, and curation tuned for each domain. Every resolved forecast feeds back into our calibration system.",
+  },
+  {
+    title: "Live data from authoritative sources",
+    body: "Real-time feeds from official data providers, government statistical agencies, prediction market platforms, and industry-standard databases. The exact mix depends on the domain, so forecasts always rest on domain-appropriate evidence.",
+  },
+  {
+    title: "Multi-model AI reasoning",
+    body: "Multiple frontier AI reasoning models analyze the assembled evidence independently. Their outputs are combined via a consensus algorithm so no single model's quirks dominate the answer.",
+  },
+];
+
 const DOMAINS = [
   {
     id: "sport",
@@ -37,7 +52,7 @@ const DOMAINS = [
     examples:
       "Match outcomes, championship winners, player milestones, tournament progression.",
     sources:
-      "football-data.org (top European football leagues), TheSportsDB (multi-sport coverage including F1, NBA, NHL, cricket, MMA).",
+      "Live data from official sports data providers covering top European football leagues, F1, NBA, NHL, cricket, MMA, tennis, and more.",
   },
   {
     id: "politics",
@@ -46,7 +61,7 @@ const DOMAINS = [
     examples:
       "Elections, leadership changes, policy outcomes, geopolitical events.",
     sources:
-      "Polymarket and Kalshi prediction market prices, providing real-time crowd consensus alongside our AI analysis.",
+      "Real-time prices from leading prediction market platforms, providing crowd consensus alongside our AI analysis.",
   },
   {
     id: "markets",
@@ -55,7 +70,7 @@ const DOMAINS = [
     examples:
       "Economic indicators, earnings, central bank decisions, macroeconomic releases.",
     sources:
-      "FRED for macro series (LEI, CPI, NFP, Unemployment Rate, Fed Funds Rate, GDP), Alpha Vantage for ticker-level data.",
+      "Official government economic data sources covering leading indicators, inflation, employment, interest rates and GDP, plus live market data feeds.",
   },
   {
     id: "entertainment",
@@ -64,7 +79,7 @@ const DOMAINS = [
     examples:
       "Award winners, release performance, cultural milestones.",
     sources:
-      "TMDb for film and TV data, Spotify for music industry signals.",
+      "Industry-standard entertainment databases and leading music industry data sources for cultural signals.",
   },
 ] as const;
 
@@ -77,32 +92,32 @@ const STEPS = [
   {
     n: "02",
     title: "Live research and structured data",
-    body: "Perplexity researches the latest context in real time, pulling in news and analysis from the moment your forecast is requested. In parallel, the relevant domain-specific data sources are queried, so a forecast about a Fed rate decision sees the actual current Fed Funds Rate from FRED, and a forecast about a Premier League match sees the latest standings from football-data.org. All evidence is assembled before reasoning begins.",
+    body: "Real-time AI research pulls the latest context from the moment your forecast is requested. In parallel, the relevant domain-specific data sources are queried, so a forecast about a central bank rate decision sees the actual current interest rate from authoritative macro sources, and a forecast about a Premier League match sees the latest standings from established sports data feeds. All evidence is assembled and combined with Prophiq's own historical forecasting data before reasoning begins.",
   },
   {
     n: "03",
     title: "Multi-model consensus",
-    body: "Three frontier AI models analyze the evidence independently: Claude (Anthropic), GPT (OpenAI), and Gemini (Google). Each produces its own probability estimate. When models disagree, that disagreement itself is signal worth examining.",
+    body: "Multiple frontier AI reasoning models analyze the evidence independently. Each produces its own probability estimate. When models disagree, that disagreement itself is signal worth examining.",
   },
   {
     n: "04",
     title: "Calibrated consensus",
-    body: "A Borda count consensus algorithm combines the three models' outputs into a single forecast. Confidence labels reflect how strongly the models agree with each other: high confidence means all three converged on similar probabilities, lower confidence means the models split.",
+    body: "A consensus algorithm combines the models' outputs into a single forecast. Confidence labels reflect how strongly the models agree with each other, where high confidence means the models converged on similar probabilities, and lower confidence means they split.",
   },
 ];
 
 const WHY = [
   {
     title: "Live data, not just training data",
-    body: "Foundation models know what they learned during training, which can be months or years stale. Prophiq queries live data sources at forecast time: Polymarket prices from minutes ago, the most recent CPI print, current sports standings. Your forecast reflects the world as it is now, not as it was when the model was trained.",
+    body: "Foundation models know what they learned during training, which can be months or years stale. Prophiq queries live data sources at forecast time: real-time prediction market prices, the most recent economic data prints, current sports standings, latest entertainment industry signals. Your forecast reflects the world as it is now, not as it was when the model was trained.",
   },
   {
-    title: "Three models check each other",
-    body: "Single-LLM forecasts are confidently wrong too often. By running the same question through Claude, GPT, and Gemini independently, then combining their answers via a consensus algorithm, we surface real signal and dampen individual model quirks. When all three agree, that's meaningful. When they disagree, that disagreement is itself information.",
+    title: "Multiple models check each other",
+    body: "Single-model forecasts are confidently wrong too often. By running the same question through multiple independent frontier AI models, then combining their answers via a consensus algorithm, we surface real signal and dampen individual model quirks. When the models agree, that's meaningful. When they disagree, that disagreement is itself information.",
   },
   {
     title: "Track record, not vibes",
-    body: "Every forecast is logged. Every resolution is recorded. We compute Brier scores and reliability curves so the accuracy of Prophiq's forecasts is measurable, not just claimed. Forecasting tools that don't publish their calibration shouldn't be trusted.",
+    body: "Every forecast is logged. Every resolution is recorded. We compute calibration metrics so the accuracy of Prophiq's forecasts is measurable, not just claimed. Forecasting tools that don't publish their calibration shouldn't be trusted.",
   },
 ];
 
@@ -133,6 +148,8 @@ function HowItWorksPage() {
   return (
     <main className="mx-auto max-w-2xl px-6 pb-16 pt-8">
       <Hero />
+      <Divider />
+      <LayersSection />
       <Divider />
       <DomainsSection />
       <Divider />
@@ -173,11 +190,11 @@ function Hero() {
           lineHeight: 1.5,
           color: "var(--ink-soft)",
           letterSpacing: "-0.005em",
-          maxWidth: "42ch",
+          maxWidth: "52ch",
         }}
       >
-        Multi-model AI consensus, grounded in live data, calibrated against
-        reality.
+        Multi-model AI consensus, grounded in live data and our own forecasting
+        database, calibrated against reality.
       </p>
     </header>
   );
@@ -247,6 +264,79 @@ function EditorialP({ children }: { children: ReactNode }) {
     >
       {children}
     </p>
+  );
+}
+
+// --- Section: layers ---
+
+function LayersSection() {
+  return (
+    <section>
+      <SectionEyebrow>Three layers feed every forecast</SectionEyebrow>
+      <SectionHeading>The foundation underneath every answer.</SectionHeading>
+      <EditorialP>
+        Prophiq doesn&apos;t just ask an AI model a question. Three layers of
+        intelligence feed every forecast, in a process we&apos;ve refined over
+        thousands of events.
+      </EditorialP>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
+          gap: 12,
+          marginTop: 18,
+        }}
+      >
+        {LAYERS.map((l, i) => (
+          <div
+            key={l.title}
+            style={{
+              background: "var(--bg-card)",
+              border: "1px solid var(--line)",
+              borderRadius: 14,
+              padding: 18,
+            }}
+          >
+            <div
+              style={{
+                fontFamily: "var(--font-mono)",
+                fontSize: 10,
+                fontWeight: 700,
+                letterSpacing: "0.18em",
+                color: "var(--amber-2)",
+                marginBottom: 8,
+              }}
+            >
+              {String(i + 1).padStart(2, "0")}
+            </div>
+            <div
+              style={{
+                fontFamily: "var(--font-sans)",
+                fontWeight: 700,
+                fontSize: 16,
+                letterSpacing: "-0.02em",
+                color: "var(--ink)",
+                marginBottom: 8,
+              }}
+            >
+              {l.title}
+            </div>
+            <p
+              style={{
+                fontFamily: "var(--font-sans)",
+                fontSize: 13.5,
+                lineHeight: 1.5,
+                color: "var(--ink-soft)",
+                letterSpacing: "-0.005em",
+                margin: 0,
+              }}
+            >
+              {l.body}
+            </p>
+          </div>
+        ))}
+      </div>
+    </section>
   );
 }
 
@@ -336,7 +426,7 @@ function DomainCard({
           marginBottom: 6,
         }}
       >
-        Data sources
+        How we ground it
       </div>
       <p
         style={{
@@ -406,7 +496,7 @@ function EngineSection() {
       <SectionEyebrow>The forecasting engine</SectionEyebrow>
       <SectionHeading>A four-step pipeline.</SectionHeading>
       <EditorialP>
-        Each forecast goes through a four-step process. We don&apos;t just ask
+        Every forecast goes through a four-step process. We don&apos;t just ask
         one AI model and hope for the best.
       </EditorialP>
       <div style={{ marginTop: 20 }}>
@@ -480,7 +570,7 @@ function WhySection() {
       <SectionEyebrow>Why this matters</SectionEyebrow>
       <SectionHeading>What makes Prophiq different.</SectionHeading>
       <EditorialP>
-        Three reasons Prophiq forecasts differently from asking ChatGPT
+        Three reasons Prophiq forecasts differently from asking an AI chatbot
         &quot;what&apos;s the probability of X?&quot;
       </EditorialP>
       <div style={{ marginTop: 18, display: "flex", flexDirection: "column", gap: 12 }}>
