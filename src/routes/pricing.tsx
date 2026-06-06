@@ -15,7 +15,7 @@ export const Route = createFileRoute("/pricing")({
       {
         name: "description",
         content:
-          "Free for browsing. Paid for serious forecasting. Standard at GBP 6/month, Pro at GBP 24/month, with a 7-day Pro trial on every plan.",
+          "Free for browsing. Paid for serious forecasting. Standard at GBP 6/month, Pro at GBP 24/month, with a 7-day free trial on every plan.",
       },
     ],
   }),
