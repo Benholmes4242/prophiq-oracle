@@ -12,6 +12,7 @@ import { getServiceClient } from "../_shared/supabaseClient.ts";
 import { handleCorsPreflight, jsonResponse, errorResponse } from "../_shared/http.ts";
 import { generateSubQuestions } from "../_shared/subQuestions.ts";
 import { hasPlaceholderOutcomes } from "../_shared/outcomeQuality.ts";
+import { canonicaliseTitle } from "../_shared/domains/_util.ts";
 
 registerAllDomains();
 
@@ -19,6 +20,13 @@ registerAllDomains();
 // but a discover() adapter could in principle hand us a stale one. Belt and
 // braces.
 const STALE_EVENT_GRACE_MS = 60 * 60 * 1000;
+
+// Fix 1 (near-duplicate guard): when scanning for an existing event that
+// represents the same real-world fixture as the one we are about to insert,
+// look ±36h around starts_at. Wider than a calendar day so an event that
+// crosses midnight UTC (frequent for US sport / overnight markets data) is
+// still matched.
+const NEAR_DUPLICATE_WINDOW_MS = 36 * 60 * 60 * 1000;
 
 interface DiscoverBody { domains?: string[]; source?: string; manual?: boolean; }
 
