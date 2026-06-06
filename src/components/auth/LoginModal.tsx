@@ -17,7 +17,7 @@ type State =
   | { kind: "verifying"; email: string }
   | { kind: "success"; email: string };
 
-export function LoginModal({ open, onClose, message }: LoginModalProps) {
+export function LoginModal({ open, onClose, message, mode = "signin" }: LoginModalProps) {
   const [state, setState] = useState<State>({ kind: "enter-email" });
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
