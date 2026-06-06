@@ -25,6 +25,7 @@ import {
 import { fetchFredMacroSnapshot } from "../dataSources/fred.ts";
 import { fetchAlphaVantageContext } from "../dataSources/alphaVantage.ts";
 import { coerceDiscoveredEvent, logSkip, safeExtractJsonArray } from "./_util.ts";
+import { forecastDisciplineBlock } from "../forecastDiscipline.ts";
 
 const RESEARCH_PROMPT_VERSION = "markets.research.v1";
 
@@ -248,7 +249,8 @@ Scheduled: ${event.starts_at}
 Outcomes:
 ${outcomes.map((o, i) => `${i + 1}. ${o.label}`).join("\n")}
 ${researchBlock}${priorBlock}${marketBlock}${structuredBlock}
-Rank every outcome from most likely (rank 1) to least likely. For each, provide a probability (0-1), a fit_score (0-1), and 1-3 short reasons grounded in recent data, analyst consensus, historical base rates, current macro conditions, and the research above when present.`;
+Rank every outcome from most likely (rank 1) to least likely. For each, provide a probability (0-1), a fit_score (0-1), and 1-3 short reasons grounded in recent data, analyst consensus, historical base rates, current macro conditions, and the research above when present.
+${forecastDisciplineBlock()}`;
   },
 
   gatherStructuredData(): Promise<StructuredData | null> {

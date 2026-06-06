@@ -35,6 +35,7 @@ import {
 } from "../dataSources/apiSports.ts";
 import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.45.4";
 import { coerceDiscoveredEvent, logSkip, safeExtractJsonArray } from "./_util.ts";
+import { forecastDisciplineBlock } from "../forecastDiscipline.ts";
 
 const RESEARCH_PROMPT_VERSION = "sport.research.v1";
 
@@ -263,7 +264,8 @@ ${outcomes.map((o, i) => `${i + 1}. ${o.label}`).join("\n")}
 ${researchBlock}${priorBlock}${marketBlock}${structuredBlock}
 ${oddsHint}
 
-Use the structured data above as authoritative factual ground truth where present. The live research and market signals are useful context. Rank every outcome from most likely (rank 1) to least likely. For each, provide a probability (0-1), a fit_score (0-1) for how strongly the data supports it, and 1-3 short reasons grounded in form, head-to-head, injuries, venue, and the research above.`;
+Use the structured data above as authoritative factual ground truth where present. The live research and market signals are useful context. Rank every outcome from most likely (rank 1) to least likely. For each, provide a probability (0-1), a fit_score (0-1) for how strongly the data supports it, and 1-3 short reasons grounded in form, head-to-head, injuries, venue, and the research above.
+${forecastDisciplineBlock()}`;
   },
 
   async gatherStructuredData(

@@ -11,8 +11,14 @@ import { listDomains, getDomain } from "../_shared/domains/registry.ts";
 import { getServiceClient } from "../_shared/supabaseClient.ts";
 import { handleCorsPreflight, jsonResponse, errorResponse } from "../_shared/http.ts";
 import { generateSubQuestions } from "../_shared/subQuestions.ts";
+import { hasPlaceholderOutcomes } from "../_shared/outcomeQuality.ts";
 
 registerAllDomains();
+
+// Bug 3 secondary gate: discovery-side coerce already rejects past events,
+// but a discover() adapter could in principle hand us a stale one. Belt and
+// braces.
+const STALE_EVENT_GRACE_MS = 60 * 60 * 1000;
 
 interface DiscoverBody { domains?: string[]; source?: string; manual?: boolean; }
 
@@ -54,6 +60,26 @@ Deno.serve(async (req) => {
     console.log(`[discover-events:${id}] discovered ${events.length} events; metadata keys:`, events.slice(0, 3).map((ev) => Object.keys(ev.metadata ?? {})));
     for (const ev of events) {
       try {
+        // Bug 4 secondary gate: never persist an event whose outcomes
+        // contain positional placeholders. Adapter-side coerce already
+        // enforces this, but enforce at the write boundary too so a future
+        // non-LLM path (sync, manual insert) cannot bypass it.
+        if (hasPlaceholderOutcomes(ev.outcomes.map((o) => o.label))) {
+          res.skipped++;
+          console.warn(
+            `[discover-events:${id}] skipped event ${ev.slug}: placeholder outcomes`,
+          );
+          continue;
+        }
+        // Bug 3 secondary gate: skip past events.
+        if (new Date(ev.starts_at).getTime() < Date.now() - STALE_EVENT_GRACE_MS) {
+          res.skipped++;
+          console.warn(
+            `[discover-events:${id}] skipped event ${ev.slug}: starts_at in the past (${ev.starts_at})`,
+          );
+          continue;
+        }
+
         const eventMetadata = ev.metadata ?? null;
         console.log(`[discover-events:${id}] upserting event:`, JSON.stringify({ slug: ev.slug, metadata: eventMetadata }));
         const { data: upserted, error } = await supabase
