@@ -229,16 +229,78 @@ export function computeConsensus(
       };
     });
 
+  const normalised = normaliseAndOrder(sorted);
+
   const agreement = pairwiseTopNAgreement(usable, AGREEMENT_WINDOW);
 
   return {
     method: usable.length === 1 ? "single_model_fallback" : "weighted_borda_count",
-    ranked_outcomes: sorted,
+    ranked_outcomes: normalised,
     agreement_score: Math.round(agreement * 100),
-    consensus_score: maxPossible > 0 ? sorted[0].score / maxPossible : 0,
+    consensus_score: maxPossible > 0 ? normalised[0].score / maxPossible : 0,
     models_used: usable.map((r) => r.model),
     models_failed: failed.map((r) => r.model),
   };
+}
+
+/**
+ * Force named-outcome probabilities to be a valid distribution (sum ≤ 100 on
+ * the 0–100 scale used throughout the consensus pipeline) and re-rank by
+ * probability descending, with Borda score as tiebreak.
+ *
+ * - If every probability is null (no model supplied probabilities), derive
+ *   them proportionally from the Borda scores so the headline still ranks
+ *   the strongest pick first instead of inheriting null/0.
+ * - If the named probabilities sum to more than 100, scale uniformly so they
+ *   sum to exactly 100 (field share = 0). This is the fix for the
+ *   "Journalism 100 + Baeza 70 + Sovereignty 2 = 172%" class of bug.
+ * - Otherwise leave probabilities as the per-outcome model average. The
+ *   leftover mass (100 − sum) is the implicit "rest of the field" share that
+ *   downstream calibration and the UI already understand.
+ */
+function normaliseAndOrder(items: ConsensusOutcome[]): ConsensusOutcome[] {
+  if (items.length === 0) return items;
+
+  const hasAnyProb = items.some((o) => typeof o.probability === "number");
+  let withProb: ConsensusOutcome[];
+
+  if (!hasAnyProb) {
+    const scoreSum = items.reduce((s, o) => s + Math.max(0, o.score), 0);
+    withProb = items.map((o) => ({
+      ...o,
+      probability: scoreSum > 0
+        ? round1((Math.max(0, o.score) / scoreSum) * 100)
+        : round1(100 / items.length),
+    }));
+  } else {
+    const rawSum = items.reduce(
+      (s, o) => s + (typeof o.probability === "number" ? o.probability : 0),
+      0,
+    );
+    if (rawSum > 100) {
+      const scale = 100 / rawSum;
+      withProb = items.map((o) => ({
+        ...o,
+        probability: typeof o.probability === "number"
+          ? round1(o.probability * scale)
+          : 0,
+      }));
+    } else {
+      withProb = items.map((o) => ({
+        ...o,
+        probability: typeof o.probability === "number" ? o.probability : 0,
+      }));
+    }
+  }
+
+  withProb.sort((a, b) => {
+    const pa = a.probability ?? 0;
+    const pb = b.probability ?? 0;
+    if (pb !== pa) return pb - pa;
+    return b.score - a.score;
+  });
+
+  return withProb.map((o, i) => ({ ...o, rank: i + 1 }));
 }
 
 function round1(x: number): number {
