@@ -225,10 +225,17 @@ export function LoginModal({ open, onClose, message, mode = "signin" }: LoginMod
         {state.kind === "enter-email" && (
           <>
             <h2 className="text-xl font-bold mb-2" style={{ color: "var(--ink)" }}>
-              {message ? "Sign in to continue" : "Log in"}
+              {mode === "signup"
+                ? "Sign up to start your free 7-day Pro trial"
+                : message
+                  ? "Sign in to continue"
+                  : "Log in"}
             </h2>
             <p className="text-sm text-[var(--ink)]/70 mb-6">
-              {message ?? "Enter the email you used to sign up. We'll send you a 6-digit code."}
+              {message ??
+                (mode === "signup"
+                  ? "Enter your email and we'll send you a 6-digit code to create your account."
+                  : "Enter the email you used to sign up. We'll send you a 6-digit code.")}
             </p>
             <form onSubmit={handleEmailSubmit}>
               <input
