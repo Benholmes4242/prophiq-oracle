@@ -11,8 +11,14 @@ import { listDomains, getDomain } from "../_shared/domains/registry.ts";
 import { getServiceClient } from "../_shared/supabaseClient.ts";
 import { handleCorsPreflight, jsonResponse, errorResponse } from "../_shared/http.ts";
 import { generateSubQuestions } from "../_shared/subQuestions.ts";
+import { hasPlaceholderOutcomes } from "../_shared/outcomeQuality.ts";
 
 registerAllDomains();
+
+// Bug 3 secondary gate: discovery-side coerce already rejects past events,
+// but a discover() adapter could in principle hand us a stale one. Belt and
+// braces.
+const STALE_EVENT_GRACE_MS = 60 * 60 * 1000;
 
 interface DiscoverBody { domains?: string[]; source?: string; manual?: boolean; }
 
