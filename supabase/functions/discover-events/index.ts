@@ -60,6 +60,26 @@ Deno.serve(async (req) => {
     console.log(`[discover-events:${id}] discovered ${events.length} events; metadata keys:`, events.slice(0, 3).map((ev) => Object.keys(ev.metadata ?? {})));
     for (const ev of events) {
       try {
+        // Bug 4 secondary gate: never persist an event whose outcomes
+        // contain positional placeholders. Adapter-side coerce already
+        // enforces this, but enforce at the write boundary too so a future
+        // non-LLM path (sync, manual insert) cannot bypass it.
+        if (hasPlaceholderOutcomes(ev.outcomes.map((o) => o.label))) {
+          res.skipped++;
+          console.warn(
+            `[discover-events:${id}] skipped event ${ev.slug}: placeholder outcomes`,
+          );
+          continue;
+        }
+        // Bug 3 secondary gate: skip past events.
+        if (new Date(ev.starts_at).getTime() < Date.now() - STALE_EVENT_GRACE_MS) {
+          res.skipped++;
+          console.warn(
+            `[discover-events:${id}] skipped event ${ev.slug}: starts_at in the past (${ev.starts_at})`,
+          );
+          continue;
+        }
+
         const eventMetadata = ev.metadata ?? null;
         console.log(`[discover-events:${id}] upserting event:`, JSON.stringify({ slug: ev.slug, metadata: eventMetadata }));
         const { data: upserted, error } = await supabase
