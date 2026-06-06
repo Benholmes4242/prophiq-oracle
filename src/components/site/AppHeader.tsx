@@ -146,8 +146,9 @@ export function AppHeader({ onMenuClick }: AppHeaderProps) {
   // Listen for cross-component login-open requests (e.g. from Drawer or /pricing)
   useEffect(() => {
     function onOpenLogin(e: Event) {
-      const detail = (e as CustomEvent<{ message?: string }>).detail;
+      const detail = (e as CustomEvent<{ message?: string; mode?: "signin" | "signup" }>).detail;
       setLoginMessage(detail?.message);
+      setLoginMode(detail?.mode ?? "signin");
       setLoginOpen(true);
     }
     window.addEventListener("prophiq:open-login", onOpenLogin);
