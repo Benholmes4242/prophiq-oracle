@@ -25,6 +25,7 @@ import {
 import { searchPolymarketMarkets } from "../marketVenues/polymarket.ts";
 import { searchKalshiMarkets } from "../marketVenues/kalshi.ts";
 import { coerceDiscoveredEvent, logSkip, safeExtractJsonArray } from "./_util.ts";
+import { forecastDisciplineBlock } from "../forecastDiscipline.ts";
 
 const RESEARCH_PROMPT_VERSION = "politics.research.v1";
 
@@ -243,7 +244,8 @@ Date: ${event.starts_at}
 Outcomes:
 ${outcomes.map((o, i) => `${i + 1}. ${o.label}`).join("\n")}
 ${researchBlock}${priorBlock}${marketBlock}${structuredBlock}
-Rank every outcome from most likely (rank 1) to least likely. For each, provide a probability (0-1), a fit_score (0-1), and 1-3 short reasons grounded in polling, recent statements, historical base rates, current political dynamics, and the research above when present.`;
+Rank every outcome from most likely (rank 1) to least likely. For each, provide a probability (0-1), a fit_score (0-1), and 1-3 short reasons grounded in polling, recent statements, historical base rates, current political dynamics, and the research above when present.
+${forecastDisciplineBlock()}`;
   },
 
   gatherStructuredData(): Promise<StructuredData | null> {
