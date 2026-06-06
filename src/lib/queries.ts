@@ -30,6 +30,11 @@ export interface EventsFilter {
 
 function applyEventFilters(q: any, filter: EventsFilter): any {
   let out = q;
+  // Fix 3: hide sub-question child events from every public feed. They are
+  // surfaced underneath their parent via fetchEventFamilyBySlug. Leaving
+  // them in the main feed produced standalone rows like "Will the print
+  // beat consensus?" / "Will the winning margin be more than 10 points?".
+  out = out.is("parent_event_id", null);
   if (filter.domain) {
     if (Array.isArray(filter.domain)) out = out.in("domain", filter.domain);
     else out = out.eq("domain", filter.domain);
