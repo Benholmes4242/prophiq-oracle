@@ -88,6 +88,40 @@ Deno.serve(async (req) => {
           continue;
         }
 
+        // Fix 1 (pre-insert near-duplicate guard): the hardened canonical
+        // hash in stableEventId() already collapses most title-variance
+        // duplicates. This guard catches the residue — typo'd titles,
+        // missing-token variants, or events whose canonical hash happened
+        // to differ by one token. We look for any existing TOP-LEVEL event
+        // in the same domain within ±36h of starts_at whose title shares
+        // the same canonical token set, then re-point the upsert at it.
+        const evCanon = canonicaliseTitle(ev.title);
+        if (evCanon.length > 0) {
+          const startMs = new Date(ev.starts_at).getTime();
+          const windowFrom = new Date(startMs - NEAR_DUPLICATE_WINDOW_MS).toISOString();
+          const windowTo = new Date(startMs + NEAR_DUPLICATE_WINDOW_MS).toISOString();
+          const { data: nearby } = await supabase
+            .from("events")
+            .select("id, external_id, title")
+            .eq("domain", id)
+            .is("parent_event_id", null)
+            .gte("starts_at", windowFrom)
+            .lte("starts_at", windowTo)
+            .limit(50);
+          if (nearby && nearby.length > 0) {
+            const match = nearby.find((row) => {
+              if (row.external_id === ev.external_id) return true;
+              return canonicaliseTitle(row.title ?? "") === evCanon;
+            });
+            if (match && match.external_id !== ev.external_id) {
+              console.log(
+                `[discover-events:${id}] near-duplicate of existing event ${match.id} (\"${match.title}\"); reusing external_id`,
+              );
+              ev.external_id = match.external_id;
+            }
+          }
+        }
+
         const eventMetadata = ev.metadata ?? null;
         console.log(`[discover-events:${id}] upserting event:`, JSON.stringify({ slug: ev.slug, metadata: eventMetadata }));
         const { data: upserted, error } = await supabase
