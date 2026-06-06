@@ -128,7 +128,7 @@ function PricingPage() {
                 cadenceCopy={cadence === "monthly" ? "per month" : "per year"}
                 savingsCopy={cadence === "annual" ? "About 2 months free" : undefined}
                 features={getTierFeatures(tier, row.daily_forecast_cap)}
-                ctaLabel={currentTier === tier ? "Current plan" : "Start 7-day Pro trial"}
+                ctaLabel={currentTier === tier ? "Current plan" : "Start 7-day free trial"}
                 ctaDisabled={currentTier === tier}
                 isPopular={tier === "pro"}
                 priceId={row.stripe_price_id}
