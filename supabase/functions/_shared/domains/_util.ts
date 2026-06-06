@@ -2,6 +2,12 @@
 // class — each adapter is independent and imports what it needs.
 
 import type { DiscoveredEvent } from "../domain.ts";
+import { hasPlaceholderOutcomes, isPlaceholderLabel } from "../outcomeQuality.ts";
+
+// Reject events whose start time is more than this far in the past. Small
+// grace window (60 minutes) so an event that ticked over while discovery
+// was running is not dropped.
+const STALE_EVENT_GRACE_MS = 60 * 60 * 1000;
 
 /**
  * Deterministic event ID derived from a normalised title + ISO start date.
