@@ -56,7 +56,7 @@ function PricingPage() {
     sessionStorage.setItem("pendingCheckoutPriceId", priceId);
     window.dispatchEvent(
       new CustomEvent("prophiq:open-login", {
-        detail: { message: "Sign up to start your free 7-day Pro trial.", mode: "signup" },
+        detail: { mode: "signup" },
       }),
     );
   }
