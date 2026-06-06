@@ -2,7 +2,7 @@
 // class — each adapter is independent and imports what it needs.
 
 import type { DiscoveredEvent } from "../domain.ts";
-import { hasPlaceholderOutcomes, isPlaceholderLabel } from "../outcomeQuality.ts";
+import { hasPlaceholderOutcomes } from "../outcomeQuality.ts";
 
 // Reject events whose start time is more than this far in the past. Small
 // grace window (60 minutes) so an event that ticked over while discovery
