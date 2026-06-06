@@ -77,23 +77,24 @@ function PricingPage() {
 
   return (
     <div
-      className="min-h-screen px-4 py-12"
+      className="min-h-screen px-4 py-8 sm:py-12 overflow-x-hidden"
       style={{ background: "var(--bg)", color: "var(--ink)" }}
     >
-      <div className="mx-auto max-w-5xl">
+      <div className="mx-auto w-full max-w-5xl">
         <div className="text-center mb-12">
           <Wordmark className="mx-auto mb-6 h-10" />
           <h1
-            className="text-4xl font-bold mb-3"
+            className="text-3xl sm:text-4xl font-bold mb-3"
             style={{ fontFamily: "Geist, sans-serif", letterSpacing: "-0.02em" }}
           >
             Pricing.
           </h1>
           <p className="text-base text-[var(--ink)]/70 max-w-md mx-auto">
             Free for browsing. Paid for serious forecasting. All paid plans
-            start with a 7-day Pro trial. Cancel anytime, no charge.
+            start with a 7-day free trial. Cancel anytime, no charge.
           </p>
         </div>
+
 
         <div className="flex justify-center mb-10">
           <AnnualToggle value={cadence} onChange={setCadence} />
