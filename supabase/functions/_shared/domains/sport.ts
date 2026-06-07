@@ -27,6 +27,7 @@ import {
 import { fetchFootballDataContext } from "../dataSources/footballData.ts";
 import { fetchTheSportsDBContext } from "../dataSources/theSportsDB.ts";
 import { fetchRacingContext } from "../dataSources/racingApi.ts";
+import { fetchGolfContext } from "../dataSources/sportRadarGolf.ts";
 import {
   apiSportsVersionTag,
   getHeadToHead,
@@ -309,6 +310,7 @@ ${forecastDisciplineBlock()}`;
     // returned empty-but-non-null payloads that mis-triggered feed_backed.
     const football = isFootballEvent(event);
     const horseRacing = isHorseRacingEvent(event);
+    const golf = isGolfEvent(event);
 
     const tasks: Array<Promise<SourceResult>> = [];
     if (football) {
@@ -323,6 +325,12 @@ ${forecastDisciplineBlock()}`;
       const p = readEnv("RACING_API_PASSWORD");
       if (u && p) {
         tasks.push(runSource("racingApi", () => fetchRacingContext(u, p, hints)));
+      }
+    }
+    if (golf && !football && !horseRacing) {
+      const gk = readEnv("SPORTRADAR_GOLF_API_KEY");
+      if (gk) {
+        tasks.push(runSource("sportRadarGolf", () => fetchGolfContext(gk, hints)));
       }
     }
 
@@ -437,6 +445,32 @@ export function isHorseRacingEvent(event: DomainEvent): boolean {
   if (/\b\d{1,2}[:.]\d{2}\s+(?:(?!at\b)\w+\s+)?at\s+[a-z]/i.test(text)) return true;
   // Best-effort: word "race"/"races" + a TIME + "at <place>" shape together.
   if (/\brace(s)?\b/.test(text) && /\b\d{1,2}[:.]\d{2}\b/.test(text) && /\bat\s+[a-z]/i.test(text)) return true;
+  return false;
+}
+
+export function isGolfEvent(event: DomainEvent): boolean {
+  const meta = (typeof event.metadata === "object" && event.metadata !== null)
+    ? (event.metadata as Record<string, unknown>)
+    : {};
+  const subCat = String(meta.sub_category ?? meta.subcategory ?? "")
+    .toLowerCase().trim();
+  if (subCat === "golf") return true;
+
+  const text = [
+    event.title,
+    event.question,
+    String(meta.subcategory ?? ""),
+    String(meta.sub_category ?? ""),
+    String(meta.sport ?? ""),
+    String(meta.league ?? ""),
+  ].join(" ").toLowerCase();
+
+  // Strong golf signals (tour names, well-known golf-only majors/events).
+  if (/\bgolf\b/.test(text)) return true;
+  if (/\b(pga tour|pga championship|dp world|european tour|lpga|korn ferry|ryder cup|presidents cup|liv golf)\b/.test(text)) return true;
+  if (/\b(the masters|masters tournament|the open championship|british open|memorial tournament|players championship|tour championship|fedex ?cup|arnold palmer invitational|wgc|wells fargo|wyndham championship|travelers championship|john deere classic|rocket mortgage|sentry tournament|farmers insurance|waste management|phoenix open|valspar|valero|zurich classic|charles schwab|rbc|genesis invitational|hero world challenge)\b/.test(text)) return true;
+  // "US Open" alone is ambiguous (tennis). Require an explicit golf signal,
+  // which the rules above already enforce — so do not match bare "us open".
   return false;
 }
 

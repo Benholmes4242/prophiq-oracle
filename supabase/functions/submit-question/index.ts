@@ -483,12 +483,14 @@ Deno.serve(async (req) => {
       let outcomePairs2 = outcomePairs;
       let outcomeIdsFinal = outcomeIds ?? [];
       if (ctx.racingRunners && ctx.racingRunners.length > 0) {
+        const { isGolfRunnersSource } = await import("../_shared/forecastContext.ts");
+        const isGolf = isGolfRunnersSource(ctx.structuredSources);
         const MAX_NAMED = 8;
         const runners = ctx.racingRunners;
         const useBucket = runners.length > MAX_NAMED;
         const named = useBucket ? runners.slice(0, MAX_NAMED) : runners;
         const newLabels: string[] = named.map((r) => r.horse);
-        if (useBucket) newLabels.push("Any other runner");
+        if (useBucket) newLabels.push(isGolf ? "Any other player" : "Any other runner");
 
         // Replace event_outcomes for this event with runner-based rows.
         await supabase.from("event_outcomes").delete().eq("event_id", event.id);

@@ -32,7 +32,7 @@ import {
   emptyStructuredDataContext,
   formatStructuredSourcesBlock,
 } from "../_shared/structuredData.ts";
-import { extractRacingRunners } from "../_shared/forecastContext.ts";
+import { extractRacingRunners, isGolfRunnersSource } from "../_shared/forecastContext.ts";
 import type {
   DomainEvent,
   EventOutcome,
@@ -285,11 +285,12 @@ Deno.serve(async (req) => {
   // ============================================================
   const racingRunners = extractRacingRunners(structuredSources);
   if (racingRunners && racingRunners.length > 0) {
+    const isGolf = isGolfRunnersSource(structuredSources);
     const MAX_NAMED = 8;
     const useBucket = racingRunners.length > MAX_NAMED;
     const named = useBucket ? racingRunners.slice(0, MAX_NAMED) : racingRunners;
     const newLabels = named.map((r) => r.horse);
-    if (useBucket) newLabels.push("Any other runner");
+    if (useBucket) newLabels.push(isGolf ? "Any other player" : "Any other runner");
 
     const { error: delErr } = await supabase
       .from("event_outcomes").delete().eq("event_id", event.id);

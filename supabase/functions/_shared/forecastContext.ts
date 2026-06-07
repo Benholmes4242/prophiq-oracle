@@ -34,6 +34,23 @@ export interface RacingRunnerSummary {
   odds: number | null; // best (lowest) decimal price across bookmakers, or null
 }
 
+/** True when the extracted runners came from the golf adapter (players, no
+ * odds). Used by the outcome-rewrite to pick the correct bucket label
+ * ("Any other player" vs "Any other runner"). */
+export function isGolfRunnersSource(ctx: StructuredDataContext): boolean {
+  const hasRacing = ctx.sources.some((s) => {
+    if (s.name !== "racingApi") return false;
+    const d = s.data as { runners?: unknown[] } | null;
+    return !!d && Array.isArray(d.runners) && d.runners.length > 0;
+  });
+  if (hasRacing) return false;
+  return ctx.sources.some((s) => {
+    if (s.name !== "sportRadarGolf") return false;
+    const d = s.data as { runners?: unknown[] } | null;
+    return !!d && Array.isArray(d.runners) && d.runners.length > 0;
+  });
+}
+
 export interface ForecastContextResult {
   research: ResearchContext | null;
   researchError: ResearchContextError | null;
@@ -205,35 +222,55 @@ export async function assembleForecastContext(
 export function extractRacingRunners(
   ctx: StructuredDataContext,
 ): RacingRunnerSummary[] | null {
-  const src = ctx.sources.find((s) => s.name === "racingApi");
-  if (!src || !src.data || typeof src.data !== "object") return null;
-  const d = src.data as {
-    runners?: Array<{
-      horse?: string;
-      odds?: Array<{ decimal?: number | string | null }> | null;
-    }>;
-  };
-  if (!Array.isArray(d.runners) || d.runners.length === 0) return null;
-  const runners: RacingRunnerSummary[] = d.runners
-    .map((r) => {
-      const horse = String(r.horse ?? "").trim();
-      if (!horse) return null;
-      const decs: number[] = [];
-      for (const o of r.odds ?? []) {
-        const v = typeof o.decimal === "number" ? o.decimal : Number(o.decimal);
-        if (Number.isFinite(v) && v > 0) decs.push(v);
+  // Racing first (UK/IRE + NA cards). Golf is a fallback that reuses the
+  // same downstream rewrite — players map to runners, no odds.
+  const racing = ctx.sources.find((s) => s.name === "racingApi");
+  if (racing && racing.data && typeof racing.data === "object") {
+    const d = racing.data as {
+      runners?: Array<{
+        horse?: string;
+        odds?: Array<{ decimal?: number | string | null }> | null;
+      }>;
+    };
+    if (Array.isArray(d.runners) && d.runners.length > 0) {
+      const runners: RacingRunnerSummary[] = d.runners
+        .map((r) => {
+          const horse = String(r.horse ?? "").trim();
+          if (!horse) return null;
+          const decs: number[] = [];
+          for (const o of r.odds ?? []) {
+            const v = typeof o.decimal === "number" ? o.decimal : Number(o.decimal);
+            if (Number.isFinite(v) && v > 0) decs.push(v);
+          }
+          return {
+            horse,
+            odds: decs.length > 0 ? Math.min(...decs) : null,
+          };
+        })
+        .filter((r): r is RacingRunnerSummary => r !== null);
+      if (runners.length > 0) {
+        const priced = runners.filter((r) => r.odds !== null).sort((a, b) => (a.odds! - b.odds!));
+        const unpriced = runners.filter((r) => r.odds === null);
+        return [...priced, ...unpriced];
       }
-      return {
-        horse,
-        odds: decs.length > 0 ? Math.min(...decs) : null,
-      };
-    })
-    .filter((r): r is RacingRunnerSummary => r !== null);
-  if (runners.length === 0) return null;
-  // Sort: priced runners ascending by odds (favourite first), then unpriced
-  // in original racecard order.
-  const priced = runners.filter((r) => r.odds !== null).sort((a, b) => (a.odds! - b.odds!));
-  const unpriced = runners.filter((r) => r.odds === null);
-  return [...priced, ...unpriced];
+    }
+  }
+
+  // Golf: players are pre-sorted leader-first by the adapter; preserve order.
+  const golf = ctx.sources.find((s) => s.name === "sportRadarGolf");
+  if (golf && golf.data && typeof golf.data === "object") {
+    const d = golf.data as { runners?: Array<{ horse?: string }> };
+    if (Array.isArray(d.runners) && d.runners.length > 0) {
+      const players: RacingRunnerSummary[] = d.runners
+        .map((r) => {
+          const horse = String(r.horse ?? "").trim();
+          return horse ? { horse, odds: null } : null;
+        })
+        .filter((p): p is RacingRunnerSummary => p !== null);
+      if (players.length > 0) return players;
+    }
+  }
+
+  return null;
 }
 
