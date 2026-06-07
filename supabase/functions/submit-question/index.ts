@@ -351,7 +351,7 @@ Deno.serve(async (req) => {
 
       // ----- 6. CONSENSUS -----
       sse.send({ stage: "consensus", status: "start" });
-      const labelById = new Map((outcomeIds ?? []).map((o) => [o.id, o.label]));
+      const labelById = new Map(outcomeIdsFinal.map((o) => [o.id, o.label]));
       const ranked = consensusOut.consensus.ranked_outcomes.map((r) => ({
         ...r,
         outcome_label: labelById.get(r.outcome_id) ?? r.outcome_id,
