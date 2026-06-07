@@ -151,7 +151,17 @@ export function AskInlinePanel({
       />
 
       {!result && !error && !clarification && <LoadingBody currentStage={currentStage} />}
-      {clarification && (
+      {clarification && clarification.type === "conversational" && (
+        <ConversationalBody
+          clarification={clarification}
+          onReply={(reply) => {
+            if (onResubmit) onResubmit(reply);
+            else onDismiss();
+          }}
+          onDismiss={onDismiss}
+        />
+      )}
+      {clarification && clarification.type !== "conversational" && (
         <ClarificationBody
           clarification={clarification}
           onPick={(value: string) => {
