@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { createFileRoute, useSearch } from "@tanstack/react-router";
 import { AskInput } from "@/components/site/AskInput";
 import { AskInlinePanel, type AskPanelState } from "@/components/site/AskInlinePanel";
+import type { StructuredAsk } from "@/lib/forecast";
 import {
   consumePendingQuestion,
   hasSession,
@@ -57,6 +58,7 @@ function HomePage() {
   const { q: initialQ } = useSearch({ from: "/" });
   const picks = useHomepagePicks();
   const [askQ, setAskQ] = useState<string | null>(null);
+  const [askStructured, setAskStructured] = useState<StructuredAsk | undefined>(undefined);
   const [askState, setAskState] = useState<AskPanelState>("loading");
   const [draft, setDraft] = useState(() => initialQ ?? "");
 
@@ -73,6 +75,7 @@ function HomePage() {
       return;
     }
     setAskQ(trimmed);
+    setAskStructured(undefined);
     setDraft("");
   }
 
@@ -104,9 +107,10 @@ function HomePage() {
               key={askQ}
               question={askQ}
               topic="any"
-              onDismiss={() => setAskQ(null)}
+              structured={askStructured}
+              onDismiss={() => { setAskQ(null); setAskStructured(undefined); }}
               onStateChange={setAskState}
-              onResubmit={(q) => setAskQ(q)}
+              onResubmit={(q, s) => { setAskQ(q); setAskStructured(s); }}
             />
           </section>
           <div />

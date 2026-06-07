@@ -6,6 +6,7 @@ import { DomainUpcomingList } from "@/components/site/DomainUpcomingList";
 import { DomainResolvedStrip } from "@/components/site/DomainResolvedStrip";
 import { AskInput } from "@/components/site/AskInput";
 import { AskInlinePanel } from "@/components/site/AskInlinePanel";
+import type { StructuredAsk } from "@/lib/forecast";
 import { useDomainEvents, useDomainResolvedEvents } from "@/hooks/useEvents";
 import { getChipsForDomain, classifyEvent } from "@/lib/subcategory";
 import type { DomainId, EventWithPrediction } from "@/lib/types";
@@ -50,6 +51,7 @@ export function DomainPage({ domain }: { domain: DomainId }) {
   const { data: resolved = [] } = useDomainResolvedEvents(domain, 5);
 
   const [askQ, setAskQ] = useState<string | null>(null);
+  const [askStructured, setAskStructured] = useState<StructuredAsk | undefined>(undefined);
   async function ask(q: string) {
     const trimmed = q.trim();
     if (!trimmed) return;
@@ -64,6 +66,7 @@ export function DomainPage({ domain }: { domain: DomainId }) {
       return;
     }
     setAskQ(trimmed);
+    setAskStructured(undefined);
   }
 
   useEffect(() => {
@@ -106,8 +109,9 @@ export function DomainPage({ domain }: { domain: DomainId }) {
               key={askQ}
               question={askQ}
               topic={domain}
-              onDismiss={() => setAskQ(null)}
-              onResubmit={(q) => setAskQ(q)}
+              structured={askStructured}
+              onDismiss={() => { setAskQ(null); setAskStructured(undefined); }}
+              onResubmit={(q, s) => { setAskQ(q); setAskStructured(s); }}
             />
           </section>
         )}
