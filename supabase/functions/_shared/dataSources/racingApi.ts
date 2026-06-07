@@ -192,8 +192,19 @@ function parseRacingHints(hints: RacingHints): ParsedHints {
     date = londonDate(now);
   }
 
-  return { course, time, date };
+  // race number: "race 5", "5th race", "race no 5", "race #5"
+  let raceNumber: number | null = null;
+  const rnMatch =
+    text.match(/\brace\s*#?\s*(\d{1,2})\b/i) ??
+    text.match(/\b(\d{1,2})(?:st|nd|rd|th)\s+race\b/i);
+  if (rnMatch) {
+    const n = parseInt(rnMatch[1], 10);
+    if (n >= 1 && n <= 20) raceNumber = n;
+  }
+
+  return { course, time, date, raceNumber };
 }
+
 
 // ---------- API fetch ----------
 
