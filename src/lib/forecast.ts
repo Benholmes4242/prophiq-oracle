@@ -272,8 +272,10 @@ export async function runForecast(opts: RunForecastOpts): Promise<void> {
       return;
     }
 
-    // Fetch the freshly-created prediction to get the top pick + reasoning.
-    try {
+    // Fallback: if the SSE done payload didn't include top_pick_label (older
+    // backend), poll the freshly-created prediction. Skipped when we already
+    // have the top pick from the stream.
+    if (!topLabel) try {
       const { supabase } = await import("@/lib/supabase");
       const { data: ev } = await supabase
         .from("events")
