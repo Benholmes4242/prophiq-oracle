@@ -261,7 +261,7 @@ function matchRace(
 
   let chosen: RawRacecard | null = null;
   if (time) {
-    chosen = candidates.find((c) => normaliseTime(c.off_time) === time) ?? null;
+    chosen = candidates.find((c) => raceLocalTime(c) === time) ?? null;
   }
   if (!chosen && candidates.length === 1) chosen = candidates[0];
   if (!chosen) return null;
@@ -283,11 +283,38 @@ function matchRace(
   };
 }
 
+/**
+ * Authoritative local race time as HH:MM (24h) in Europe/London.
+ * Prefers off_dt (full ISO with TZ) — the feed's off_time is 12-hour
+ * without am/pm so unsafe to compare raw. Falls back to off_time with
+ * the same PM heuristic the user-input parser uses (1–11 → +12) only
+ * when off_dt is missing.
+ */
+function raceLocalTime(c: RawRacecard): string | null {
+  if (c.off_dt) {
+    const d = new Date(c.off_dt);
+    if (!isNaN(d.getTime())) {
+      const parts = new Intl.DateTimeFormat("en-GB", {
+        timeZone: "Europe/London",
+        hour: "2-digit", minute: "2-digit", hour12: false,
+      }).formatToParts(d);
+      const hh = parts.find((p) => p.type === "hour")?.value;
+      const mm = parts.find((p) => p.type === "minute")?.value;
+      if (hh && mm) return `${hh === "24" ? "00" : hh}:${mm}`;
+    }
+  }
+  return normaliseTime(c.off_time);
+}
+
 function normaliseTime(t: string | undefined): string | null {
   if (!t) return null;
   const m = t.match(/(\d{1,2})[:.](\d{2})/);
   if (!m) return null;
-  return `${String(parseInt(m[1], 10)).padStart(2, "0")}:${m[2]}`;
+  let h = parseInt(m[1], 10);
+  const mins = m[2];
+  // PM heuristic mirroring parseRacingHints: bare 1–11 on a racing card = PM.
+  if (h >= 1 && h <= 11) h += 12;
+  return `${String(h).padStart(2, "0")}:${mins}`;
 }
 
 function normaliseRunner(r: RawRunner): RacingRunner {
