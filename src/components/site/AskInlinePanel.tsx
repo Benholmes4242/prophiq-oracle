@@ -12,6 +12,7 @@ import {
   type ClarificationPayload,
   type RacePickerClarification,
   type ConversationalClarification,
+  type StructuredAsk,
 } from "@/lib/forecast";
 
 export type AskPanelState = "loading" | "result" | "error" | "clarification";
@@ -19,14 +20,16 @@ export type AskPanelState = "loading" | "result" | "error" | "clarification";
 interface AskInlinePanelProps {
   question: string;
   topic: AskTopic;
+  structured?: StructuredAsk;
   onDismiss: () => void;
   onStateChange?: (state: AskPanelState) => void;
-  onResubmit?: (newQuestion: string) => void;
+  onResubmit?: (newQuestion: string, structured?: StructuredAsk) => void;
 }
 
 export function AskInlinePanel({
   question,
   topic,
+  structured,
   onDismiss,
   onStateChange,
   onResubmit,
@@ -53,6 +56,7 @@ export function AskInlinePanel({
     void runForecast({
       question,
       topic,
+      structured,
       signal: abort.signal,
       onStage: (stage) => setCurrentStage(stage),
       onResult: (res) => {
@@ -71,7 +75,7 @@ export function AskInlinePanel({
     });
 
     return () => abort.abort();
-  }, [question, topic]);
+  }, [question, topic, structured]);
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
