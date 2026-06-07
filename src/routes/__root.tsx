@@ -16,7 +16,7 @@ import { reclaimLegacyAskedHistory } from "../lib/migrateLocalStorageHistory";
 import { Toaster } from "@/components/ui/sonner";
 import { AppHeader } from "@/components/site/AppHeader";
 import { Drawer } from "@/components/site/Drawer";
-import { TrialBanner } from "@/components/site/TrialBanner";
+
 import { PostCheckoutHandler } from "@/components/checkout/PostCheckoutHandler";
 import { PaywallModalContainer } from "@/components/paywall/PaywallModal";
 
@@ -173,7 +173,6 @@ function RootComponent() {
         {!hideChrome && (
           <>
             <AppHeader onMenuClick={() => setDrawerOpen(true)} />
-            <TrialBanner />
             <Drawer open={drawerOpen} onClose={() => setDrawerOpen(false)} />
           </>
         )}
