@@ -134,7 +134,7 @@ interface ParsedHints {
 }
 
 
-function parseRacingHints(hints: RacingHints): ParsedHints {
+export function parseRacingHints(hints: RacingHints): ParsedHints {
   const text = [hints.title ?? "", hints.question ?? ""].join(" ");
 
   // off-time: "2:20", "14:20", "2.20pm"
