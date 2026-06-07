@@ -306,6 +306,7 @@ export interface RecentResolved {
   actual_outcome: string | null;
   correct: boolean;
   confidence: ConfidenceTier;
+  data_tier: DataTier | null;
 }
 
 export async function fetchRecentResolved(limit = 10): Promise<RecentResolved[]> {
