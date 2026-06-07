@@ -187,13 +187,21 @@ Deno.serve(async (req) => {
       }
       sse.send({ stage: "pre_filter", status: "done" });
 
-      // ----- 2.5 US-RACING CLARIFICATION -----
-      // If the question is for a US/CAN horse-racing track but lacks a race
-      // number, intercept BEFORE moderation/forecast and return the day's
-      // race card so the user can pick one. US races are matched by race
-      // number, not post time (track-local). UK/IRE is unaffected.
+      // ----- 2.5 RACING CLARIFICATION (universal picker) -----
+      // For horse-racing questions with a resolved course, decide BEFORE
+      // moderation/forecast whether to short-circuit into a race picker:
+      //
+      //   US/CAN:
+      //     - race number present -> forecast directly (fall through).
+      //     - no race number      -> picker (pick_by: race_number).
+      //
+      //   UK/IRE (Standard endpoint):
+      //     - time given AND exactly one race matches that local time -> direct.
+      //     - time given but no clean match, OR no time at all, OR multiple
+      //       matches -> picker (pick_by: time).
+      //     - course/day unresolvable -> fall through to normal flow.
       try {
-        const { parseRacingHints, isNorthAmericanTrack, fetchUSRacePicker } =
+        const { parseRacingHints, isNorthAmericanTrack, fetchRacePicker } =
           await import("../_shared/dataSources/racingApi.ts");
         const { isHorseRacingEvent } = await import("../_shared/domains/sport.ts");
         const hints = { title: question, question, starts_at: new Date().toISOString() };
@@ -203,53 +211,66 @@ Deno.serve(async (req) => {
           starts_at: hints.starts_at, resolves_at: hints.starts_at,
           status: "scheduled", mode: "prediction", metadata: null,
         } as unknown as DomainEvent);
-        if (
-          looksLikeRacing &&
-          parsed.course &&
-          isNorthAmericanTrack(parsed.course) &&
-          parsed.raceNumber === null
-        ) {
-          const u = Deno.env.get("RACING_API_USERNAME");
-          const p = Deno.env.get("RACING_API_PASSWORD");
-          if (u && p) {
-            const picker = await fetchUSRacePicker(u, p, hints);
-            if (picker.kind === "races") {
-              sse.send({
-                stage: "clarification",
-                status: "done",
-                data: {
-                  type: "us_race_picker",
-                  track_name: picker.track_name,
-                  date: picker.date,
-                  message: `${picker.track_name} is a US track. US races are picked by race number. Which race would you like a forecast for?`,
-                  races: picker.races,
-                },
-              });
-              sse.close();
-              return;
+
+        if (looksLikeRacing && parsed.course) {
+          const isUS = isNorthAmericanTrack(parsed.course);
+          const usNeedsPicker = isUS && parsed.raceNumber === null;
+          // UK/IRE: we need to consult the card to decide. Only skip the
+          // fetch when we can already tell US has a race number.
+          const shouldConsult = isUS ? usNeedsPicker : true;
+
+          if (shouldConsult) {
+            const u = Deno.env.get("RACING_API_USERNAME");
+            const p = Deno.env.get("RACING_API_PASSWORD");
+            if (u && p) {
+              const picker = await fetchRacePicker(u, p, hints);
+
+              let emit = false;
+              if (picker.kind === "races") {
+                if (isUS) {
+                  emit = true; // US always picks when no race number
+                } else if (parsed.time) {
+                  // UK/IRE: short-circuit only if exactly one race matches.
+                  const exact = picker.races.filter((r) => r.local_time === parsed.time);
+                  emit = exact.length !== 1;
+                } else {
+                  emit = true; // UK no time -> picker
+                }
+              } else if (picker.kind === "dark_day") {
+                emit = true;
+              }
+              // kind === "unmatched" -> fall through
+
+              if (emit && picker.kind !== "unmatched") {
+                const msg = picker.kind === "dark_day"
+                  ? `${picker.track_name} isn't racing on ${picker.date}. Try a different date or track.`
+                  : (isUS
+                      ? `${picker.track_name} is a US track. US races are picked by race number. Which race would you like a forecast for?`
+                      : `Which race at ${picker.track_name} would you like a forecast for?`);
+                sse.send({
+                  stage: "clarification",
+                  status: "done",
+                  data: {
+                    type: "race_picker",
+                    pick_by: picker.pick_by,
+                    track_name: picker.track_name,
+                    date: picker.date,
+                    message: msg,
+                    races: picker.kind === "races" ? picker.races : [],
+                  },
+                });
+                sse.close();
+                return;
+              }
             }
-            if (picker.kind === "dark_day") {
-              sse.send({
-                stage: "clarification",
-                status: "done",
-                data: {
-                  type: "us_race_picker",
-                  track_name: picker.track_name,
-                  date: picker.date,
-                  message: `${picker.track_name} isn't racing on ${picker.date}. Try a different date or track.`,
-                  races: [],
-                },
-              });
-              sse.close();
-              return;
-            }
-            // kind === "unmatched" -> fall through to normal flow
           }
         }
       } catch (e) {
         // Clarification is best-effort; never block the normal pipeline.
-        console.warn("[submit-question] us-race clarification failed:", (e as Error).message);
+        console.warn("[submit-question] race clarification failed:", (e as Error).message);
       }
+
+
 
 
       // ----- 3. MODERATION -----
