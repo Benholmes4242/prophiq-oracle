@@ -153,16 +153,36 @@ export function parseRacingHints(hints: RacingHints): ParsedHints {
     }
   }
 
-  // course: "at <Course>" or known venue list
+  // course: "at <Course>" or known venue list. The capture is multi-word
+  // (because tracks like "Belmont Park", "Golden Gate Fields", "Down Royal"
+  // contain spaces), so we strip trailing date/time words that would
+  // otherwise be slurped — e.g. "at Windsor tomorrow" must not produce
+  // course="Windsor tomorrow". Without this strip, the course lookup fails
+  // silently and the race picker never fires.
   let course: string | null = null;
   const atMatch = text.match(/\bat\s+([A-Z][A-Za-z' -]{2,})/);
-  if (atMatch) course = atMatch[1].trim();
+  if (atMatch) {
+    let cap = atMatch[1].trim();
+    // Drop trailing date/time/filler words.
+    const TRAIL = /\s+(today|tomorrow|tonight|now|this|next|please|pls|races?|racing|meeting|meet|card|cards|fixture|fixtures)$/i;
+    while (TRAIL.test(cap)) cap = cap.replace(TRAIL, "").trim();
+    if (cap.length >= 2) course = cap;
+  }
   if (!course) {
     const venues = [
       "Kempton", "Kempton Park", "Cheltenham", "Aintree", "Ascot", "Epsom",
       "Newmarket", "Goodwood", "Sandown", "Doncaster", "Chester", "Hexham",
       "York", "Wetherby", "Lingfield", "Wolverhampton", "Southwell",
+      "Windsor", "Newbury", "Brighton", "Bath", "Beverley", "Carlisle",
+      "Catterick", "Hamilton", "Musselburgh", "Newcastle", "Nottingham",
+      "Pontefract", "Redcar", "Ripon", "Salisbury", "Thirsk", "Uttoxeter",
+      "Warwick", "Yarmouth", "Ayr", "Leicester", "Ffos Las", "Bangor",
+      "Stratford", "Plumpton", "Fontwell", "Market Rasen", "Sedgefield",
+      "Taunton", "Worcester", "Cartmel", "Perth", "Kelso",
       "Leopardstown", "Punchestown", "Fairyhouse", "Curragh", "Naas",
+      "Down Royal", "Downpatrick", "Dundalk", "Galway", "Gowran Park",
+      "Killarney", "Limerick", "Listowel", "Navan", "Sligo", "Thurles",
+      "Tipperary", "Tramore", "Wexford", "Cork", "Roscommon",
       // US / Canada (North America advanced add-on)
       "Churchill Downs", "Belmont", "Belmont Park", "Saratoga", "Santa Anita",
       "Del Mar", "Gulfstream", "Gulfstream Park", "Keeneland", "Aqueduct",
@@ -176,6 +196,7 @@ export function parseRacingHints(hints: RacingHints): ParsedHints {
       if (lower.includes(v.toLowerCase())) { course = v; break; }
     }
   }
+
 
 
   // date: "today" / "tomorrow" / starts_at / explicit YYYY-MM-DD (Europe/London)
