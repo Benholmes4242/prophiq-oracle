@@ -27,10 +27,12 @@ export function AskInlinePanel({
   topic,
   onDismiss,
   onStateChange,
+  onResubmit,
 }: AskInlinePanelProps) {
   const [currentStage, setCurrentStage] = useState<WireStage | null>(null);
   const [result, setResult] = useState<AskResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [clarification, setClarification] = useState<ClarificationPayload | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   const historyAddedForRef = useRef<string | null>(null);
   const navigate = useNavigate();
@@ -40,7 +42,7 @@ export function AskInlinePanel({
     setCurrentStage(null);
     setResult(null);
     setError(null);
-    // Reset guard when the question changes (new ask)
+    setClarification(null);
     historyAddedForRef.current = null;
 
     const abort = new AbortController();
@@ -53,7 +55,6 @@ export function AskInlinePanel({
       onStage: (stage) => setCurrentStage(stage),
       onResult: (res) => {
         setResult(res);
-        // Guard: only persist once per question, even if onResult fires twice
         if (historyAddedForRef.current !== question) {
           historyAddedForRef.current = question;
           addToHistory({
@@ -63,6 +64,7 @@ export function AskInlinePanel({
           });
         }
       },
+      onClarification: (c) => setClarification(c),
       onError: (msg) => setError(msg),
     });
 
@@ -80,8 +82,10 @@ export function AskInlinePanel({
   useEffect(() => {
     if (result) onStateChange?.("result");
     else if (error) onStateChange?.("error");
+    else if (clarification) onStateChange?.("clarification");
     else onStateChange?.("loading");
-  }, [result, error, onStateChange]);
+  }, [result, error, clarification, onStateChange]);
+
 
 
   return (
