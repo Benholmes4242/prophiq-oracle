@@ -441,13 +441,20 @@ Deno.serve(async (req) => {
     );
   }
 
-  // Mark prior predictions stale (same mode only)
-  await supabase.from("predictions").update({ is_current: false })
-    .eq("event_id", body.event_id).eq("mode", mode);
+  // Mark prior predictions stale (same mode only), then insert the new
+  // current row. The flip-then-insert pair is non-atomic, so two
+  // simultaneous generations (e.g. cron + on-demand trigger) could both
+  // insert is_current=true rows. A partial unique index
+  // (uniq_current_prediction) is the source of truth — on collision we
+  // re-run the flip and retry the insert once.
+  const flipPrior = () =>
+    supabase.from("predictions").update({ is_current: false })
+      .eq("event_id", body.event_id).eq("mode", mode);
+  await flipPrior();
 
   const research_context = research ?? researchError;
 
-  const { data: inserted, error: insErr } = await supabase.from("predictions").insert({
+  const insertRow = {
     event_id: body.event_id,
     mode,
     ranked_outcomes: calibratedTop3,
@@ -463,7 +470,19 @@ Deno.serve(async (req) => {
     data_sources: dataSources,
     is_current: true,
     expires_at: new Date(Date.now() + STALE_AFTER_MS).toISOString(),
-  }).select("*").single();
+  };
+  let { data: inserted, error: insErr } = await supabase
+    .from("predictions").insert(insertRow).select("*").single();
+  if (insErr && (insErr as { code?: string }).code === "23505") {
+    // Concurrent writer beat us to the unique index. Flip again to clear
+    // their row, then retry once. If it still fails, surface the error.
+    console.warn(
+      `[generate-prediction] is_current race detected for event=${body.event_id} mode=${mode}; retrying`,
+    );
+    await flipPrior();
+    ({ data: inserted, error: insErr } = await supabase
+      .from("predictions").insert(insertRow).select("*").single());
+  }
   if (insErr) return errorResponse(`insert failed: ${insErr.message}`, 500);
 
   // =============================================================
