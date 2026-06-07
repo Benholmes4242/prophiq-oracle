@@ -18,16 +18,25 @@ export interface RacingRunner {
   trainer: string | null;
   number: string | null;
   draw: string | null;
+  age: string | null;
+  sex: string | null;
+  lbs: string | null;
+  ofr: string | null;
   odds: Array<{ bookmaker: string; fractional?: string | null; decimal?: number | null }> | null;
 }
 
 export interface RacingRace {
   race_id: string | null;
   course: string;
+  region: string | null;
   off_time: string | null; // local race time, e.g. "14:20"
+  off_dt: string | null;
   race_name: string | null;
+  race_class: string | null;
+  field_size: string | null;
   distance: string | null;
   going: string | null;
+  betting_forecast: string | null;
   runners: RacingRunner[];
 }
 
@@ -55,7 +64,14 @@ export async function fetchRacingContext(
     return emptySnapshot("missing course or date hint");
   }
 
-  const cards = await fetchRacecards(username, password, parsed.date);
+  // Standard plan only serves today/tomorrow (Europe/London). Pro is required
+  // for arbitrary dates — we don't have it, so anything else stays low-data.
+  const day = mapDateToDay(parsed.date);
+  if (!day) {
+    return emptySnapshot("Standard plan covers today/tomorrow only");
+  }
+
+  const cards = await fetchRacecards(username, password, day);
   if (!cards) {
     return emptySnapshot("racecards fetch failed or empty");
   }
@@ -76,6 +92,24 @@ export async function fetchRacingContext(
     matched: `${race.course}${race.off_time ? ` ${race.off_time}` : ""}`,
     note: `matched ${race.runners.length} runners`,
   };
+}
+
+/** YYYY-MM-DD in Europe/London. */
+function londonDate(d: Date): string {
+  // en-CA gives YYYY-MM-DD
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Europe/London",
+    year: "numeric", month: "2-digit", day: "2-digit",
+  }).format(d);
+}
+
+function mapDateToDay(date: string): "today" | "tomorrow" | null {
+  const now = new Date();
+  const today = londonDate(now);
+  const tomorrow = londonDate(new Date(now.getTime() + 24 * 60 * 60 * 1000));
+  if (date === today) return "today";
+  if (date === tomorrow) return "tomorrow";
+  return null;
 }
 
 function emptySnapshot(note: string): RacingSnapshot {
@@ -128,25 +162,21 @@ function parseRacingHints(hints: RacingHints): ParsedHints {
     }
   }
 
-  // date: "today" / "tomorrow" / starts_at / explicit YYYY-MM-DD
+  // date: "today" / "tomorrow" / starts_at / explicit YYYY-MM-DD (Europe/London)
   let date: string | null = null;
   const lower = text.toLowerCase();
   const now = new Date();
   if (/\btomorrow\b/.test(lower)) {
-    date = isoDate(new Date(now.getTime() + 24 * 60 * 60 * 1000));
+    date = londonDate(new Date(now.getTime() + 24 * 60 * 60 * 1000));
   } else if (/\btoday\b/.test(lower)) {
-    date = isoDate(now);
+    date = londonDate(now);
   } else if (hints.starts_at) {
     date = hints.starts_at.slice(0, 10);
   } else {
-    date = isoDate(now);
+    date = londonDate(now);
   }
 
   return { course, time, date };
-}
-
-function isoDate(d: Date): string {
-  return d.toISOString().slice(0, 10);
 }
 
 // ---------- API fetch ----------
@@ -157,11 +187,15 @@ interface RawRacecardsResponse {
 interface RawRacecard {
   race_id?: string;
   course?: string;
+  region?: string;
   off_time?: string; // "14:20"
   off_dt?: string;
   race_name?: string;
+  race_class?: string;
+  field_size?: string | number;
   distance?: string;
   going?: string;
+  betting_forecast?: string;
   runners?: RawRunner[];
 }
 interface RawRunner {
@@ -170,18 +204,22 @@ interface RawRunner {
   trainer?: string;
   number?: string | number;
   draw?: string | number;
+  age?: string | number;
+  sex?: string;
+  lbs?: string | number;
+  ofr?: string | number;
   odds?: Array<{ bookmaker?: string; fractional?: string; decimal?: number | string }>;
 }
 
 async function fetchRacecards(
   username: string,
   password: string,
-  date: string,
+  day: "today" | "tomorrow",
 ): Promise<RawRacecard[] | null> {
   const auth = "Basic " + btoa(`${username}:${password}`);
-  // The Standard+advanced "pro" racecards endpoint returns full runner detail
-  // including bookmaker odds. Filter to the requested day.
-  const url = `${RACING_API_BASE}/v1/racecards/pro?date=${encodeURIComponent(date)}`;
+  // Standard plan: /v1/racecards/standard accepts ?day=today|tomorrow only.
+  // Pro plan (which we don't have) is required for arbitrary ?date=.
+  const url = `${RACING_API_BASE}/v1/racecards/standard?day=${day}`;
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), RACING_API_TIMEOUT_MS);
   try {
@@ -190,7 +228,7 @@ async function fetchRacecards(
       signal: controller.signal,
     });
     if (!res.ok) {
-      console.warn(`[racingApi] non-2xx: ${res.status} for ${date}`);
+      console.warn(`[racingApi] non-2xx: ${res.status} for day=${day}`);
       return null;
     }
     const data = await res.json() as RawRacecardsResponse;
@@ -231,10 +269,16 @@ function matchRace(
   return {
     race_id: chosen.race_id ?? null,
     course: chosen.course ?? course,
+    region: chosen.region ?? null,
     off_time: chosen.off_time ?? null,
+    off_dt: chosen.off_dt ?? null,
     race_name: chosen.race_name ?? null,
+    race_class: chosen.race_class ?? null,
+    field_size: chosen.field_size !== undefined && chosen.field_size !== null
+      ? String(chosen.field_size) : null,
     distance: chosen.distance ?? null,
     going: chosen.going ?? null,
+    betting_forecast: chosen.betting_forecast ?? null,
     runners: (chosen.runners ?? []).map(normaliseRunner),
   };
 }
@@ -247,12 +291,18 @@ function normaliseTime(t: string | undefined): string | null {
 }
 
 function normaliseRunner(r: RawRunner): RacingRunner {
+  const str = (v: unknown) =>
+    v !== undefined && v !== null && String(v).length > 0 ? String(v) : null;
   return {
     horse: String(r.horse ?? "").trim(),
-    jockey: r.jockey ? String(r.jockey) : null,
-    trainer: r.trainer ? String(r.trainer) : null,
-    number: r.number !== undefined && r.number !== null ? String(r.number) : null,
-    draw: r.draw !== undefined && r.draw !== null ? String(r.draw) : null,
+    jockey: str(r.jockey),
+    trainer: str(r.trainer),
+    number: str(r.number),
+    draw: str(r.draw),
+    age: str(r.age),
+    sex: str(r.sex),
+    lbs: str(r.lbs),
+    ofr: str(r.ofr),
     odds: Array.isArray(r.odds) && r.odds.length > 0
       ? r.odds.map((o) => ({
           bookmaker: String(o.bookmaker ?? ""),
