@@ -156,6 +156,48 @@ function AccountPage() {
         )}
         {!userEmail && <div className="mb-8" />}
 
+        {userId && (
+          <div
+            className="rounded-2xl border p-6 mb-6"
+            style={{ background: "var(--bg)", borderColor: "var(--line)" }}
+          >
+            <h2 className="text-lg font-semibold mb-2">Your name</h2>
+            <p className="text-sm text-[var(--ink)]/60 mb-3">
+              Shown in your account. First name or full name — your call. Leave blank to clear.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-2">
+              <input
+                type="text"
+                value={displayName}
+                onChange={(e) => {
+                  setDisplayName(e.target.value);
+                  if (nameStatus !== "idle") setNameStatus("idle");
+                }}
+                placeholder="e.g. Alex"
+                maxLength={80}
+                className="flex-1 px-3 py-2 rounded-lg border text-sm"
+                style={{ background: "var(--bg)", color: "var(--ink)", borderColor: "var(--line)" }}
+              />
+              <button
+                type="button"
+                onClick={handleSaveName}
+                disabled={nameStatus === "saving" || displayName.trim() === initialName.trim()}
+                className="py-2 px-4 rounded-lg font-medium text-sm disabled:opacity-50"
+                style={{ background: "var(--ink)", color: "white" }}
+              >
+                {nameStatus === "saving" ? "Saving..." : "Save"}
+              </button>
+            </div>
+            {nameStatus === "saved" && (
+              <p className="mt-2 text-xs" style={{ color: "var(--ink)" }}>Saved.</p>
+            )}
+            {nameStatus === "error" && nameError && (
+              <p className="mt-2 text-xs text-red-600">{nameError}</p>
+            )}
+          </div>
+        )}
+
+
 
         {isLoading ? (
           <div className="text-center text-sm text-[var(--ink)]/60">Loading...</div>
