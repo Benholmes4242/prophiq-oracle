@@ -403,10 +403,13 @@ interface RawMeetsResponse { meets?: RawMeet[] }
 
 interface RawNARace {
   race_name?: string;
-  race_key?: string | number;
+  race_key?:
+    | string
+    | number
+    | { race_number?: string | number; day_evening?: string };
   race_number?: string | number;
-  post_time?: string;
-  post_time_long?: string;
+  post_time?: string | null;
+  post_time_long?: string | number | null;
   time_zone?: string;
   race_class?: string;
   grade?: string;
@@ -415,6 +418,7 @@ interface RawNARace {
   purse?: string | number;
   runners?: RawNARunner[];
 }
+
 interface RawNARunner {
   horse_name?: string;
   jockey?: string | { first_name?: string; last_name?: string; alias?: string };
