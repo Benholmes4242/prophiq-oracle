@@ -32,6 +32,7 @@ import {
   emptyStructuredDataContext,
   formatStructuredSourcesBlock,
 } from "../_shared/structuredData.ts";
+import { extractRacingRunners } from "../_shared/forecastContext.ts";
 import type {
   DomainEvent,
   EventOutcome,
