@@ -413,19 +413,30 @@ function isHorseRacingEvent(event: DomainEvent): boolean {
   const meta = (typeof event.metadata === "object" && event.metadata !== null)
     ? (event.metadata as Record<string, unknown>)
     : {};
+  // 1. Authoritative: trust sub_category from discovery (schema uses
+  //    `sub_category`; older code wrote `subcategory` — accept both).
+  const subCat = String(meta.sub_category ?? meta.subcategory ?? "")
+    .toLowerCase().trim();
+  if (subCat === "horse_racing" || subCat === "horseracing") return true;
+
   const text = [
     event.title,
     event.question,
     String(meta.subcategory ?? ""),
+    String(meta.sub_category ?? ""),
     String(meta.sport ?? ""),
     String(meta.league ?? ""),
   ].join(" ").toLowerCase();
   if (/\bhorse[ _-]?racing\b/.test(text)) return true;
   if (/\bracecourse\b|\bgallop(s|ing)?\b|\bjockey\b|\bsteeplechase\b|\bhurdle\b/.test(text)) return true;
-  // Common UK/IE racing venues + Australian/US classics
-  if (/\b(hexham|cheltenham|aintree|ascot|epsom|newmarket|goodwood|sandown|kempton|doncaster|chester|leopardstown|punchestown|fairyhouse|flemington|churchill downs|belmont|saratoga|melbourne cup|grand national|kentucky derby)\b/.test(text)) return true;
-  // Race-card time-of-day pattern: "3:45 at Hexham"
-  if (/\b\d{1,2}[:.]\d{2}\s+at\s+[a-z]/i.test(text)) return true;
+  // Expanded UK/IE/AU/US racing venues
+  if (/\b(hexham|cheltenham|aintree|ascot|epsom|newmarket|goodwood|sandown|kempton|doncaster|chester|york|wetherby|lingfield|wolverhampton|southwell|roscommon|windsor|pontefract|carlisle|leicester|beverley|brighton|catterick|hamilton|musselburgh|newcastle|nottingham|redcar|ripon|salisbury|thirsk|uttoxeter|bath|ayr|ballinrobe|cork|galway|gowran park|killarney|limerick|listowel|naas|navan|sligo|thurles|tipperary|tramore|wexford|down royal|downpatrick|dundalk|bellewstown|clonmel|kilbeggan|laytown|leopardstown|punchestown|fairyhouse|curragh|flemington|churchill downs|belmont|saratoga|santa anita|del mar|gulfstream|keeneland|aqueduct|pimlico|melbourne cup|grand national|kentucky derby)\b/.test(text)) return true;
+  // Race-card time-of-day pattern. Allow one optional non-"at" word between
+  // the time and "at" to absorb words like "race"/"fixture":
+  // "3:45 at Hexham", "17:18 race at Roscommon", "5:18 fixture at Windsor".
+  if (/\b\d{1,2}[:.]\d{2}\s+(?:(?!at\b)\w+\s+)?at\s+[a-z]/i.test(text)) return true;
+  // Best-effort: word "race"/"races" + a TIME + "at <place>" shape together.
+  if (/\brace(s)?\b/.test(text) && /\b\d{1,2}[:.]\d{2}\b/.test(text) && /\bat\s+[a-z]/i.test(text)) return true;
   return false;
 }
 
