@@ -269,10 +269,16 @@ function matchRace(
   return {
     race_id: chosen.race_id ?? null,
     course: chosen.course ?? course,
+    region: chosen.region ?? null,
     off_time: chosen.off_time ?? null,
+    off_dt: chosen.off_dt ?? null,
     race_name: chosen.race_name ?? null,
+    race_class: chosen.race_class ?? null,
+    field_size: chosen.field_size !== undefined && chosen.field_size !== null
+      ? String(chosen.field_size) : null,
     distance: chosen.distance ?? null,
     going: chosen.going ?? null,
+    betting_forecast: chosen.betting_forecast ?? null,
     runners: (chosen.runners ?? []).map(normaliseRunner),
   };
 }
