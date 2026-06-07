@@ -9,15 +9,17 @@ import {
   type AskResult,
   type AskTopic,
   type WireStage,
+  type ClarificationPayload,
 } from "@/lib/forecast";
 
-export type AskPanelState = "loading" | "result" | "error";
+export type AskPanelState = "loading" | "result" | "error" | "clarification";
 
 interface AskInlinePanelProps {
   question: string;
   topic: AskTopic;
   onDismiss: () => void;
   onStateChange?: (state: AskPanelState) => void;
+  onResubmit?: (newQuestion: string) => void;
 }
 
 export function AskInlinePanel({
