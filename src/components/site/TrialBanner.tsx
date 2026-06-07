@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
-import { Link } from "@tanstack/react-router";
 import { useUsageQuota } from "../../hooks/useUsageQuota";
+import { useActiveSubscription } from "../../hooks/useActiveSubscription";
 
 const SESSION_DISMISS_KEY = "trial-banner-dismissed-at";
+const SHOW_WITHIN_MS = 48 * 60 * 60 * 1000; // final ~48h
 
 export function TrialBanner() {
   const { usage } = useUsageQuota();
+  const { data: subscription } = useActiveSubscription();
   const [dismissed, setDismissed] = useState(false);
 
   useEffect(() => {
@@ -15,10 +17,25 @@ export function TrialBanner() {
 
   if (!usage?.isTrialing || !usage.trialEnd || dismissed) return null;
 
-  const daysLeft = Math.max(
-    0,
-    Math.ceil((usage.trialEnd.getTime() - Date.now()) / (1000 * 60 * 60 * 24)),
-  );
+  const msLeft = usage.trialEnd.getTime() - Date.now();
+  // Only show during the final ~48h — stay quiet for the bulk of the trial.
+  if (msLeft <= 0 || msLeft > SHOW_WITHIN_MS) return null;
+
+  const hoursLeft = Math.ceil(msLeft / (1000 * 60 * 60));
+  const daysLeft = Math.ceil(msLeft / (1000 * 60 * 60 * 24));
+  const timeLabel =
+    hoursLeft <= 24
+      ? `${hoursLeft} ${hoursLeft === 1 ? "hour" : "hours"}`
+      : `${daysLeft} ${daysLeft === 1 ? "day" : "days"}`;
+
+  const planLabel = subscription?.tier
+    ? subscription.tier.charAt(0).toUpperCase() + subscription.tier.slice(1)
+    : "your paid plan";
+  const endDate = usage.trialEnd.toLocaleDateString("en-GB", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
 
   function handleDismiss() {
     sessionStorage.setItem(SESSION_DISMISS_KEY, new Date().toISOString());
@@ -29,25 +46,16 @@ export function TrialBanner() {
     <div
       className="flex items-center justify-between px-4 py-2 text-sm"
       style={{
-        background: "rgba(247, 147, 30, 0.1)",
+        background: "rgba(247, 147, 30, 0.08)",
         borderBottom: "1px solid var(--line)",
         color: "var(--ink)",
       }}
     >
       <div className="flex-1">
-        <strong>
-          {daysLeft} {daysLeft === 1 ? "day" : "days"} left in your Pro trial.
-        </strong>{" "}
-        Cancel anytime, no charge during trial.
+        Your trial ends in <strong>{timeLabel}</strong> — you'll move to{" "}
+        {planLabel} on {endDate}.
       </div>
       <div className="flex items-center gap-3">
-        <Link
-          to="/account"
-          className="text-sm font-medium underline hover:opacity-80"
-          style={{ color: "var(--ink)" }}
-        >
-          Manage
-        </Link>
         <button
           onClick={handleDismiss}
           className="p-1 rounded hover:bg-black/5"
