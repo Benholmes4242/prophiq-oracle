@@ -267,26 +267,44 @@ export async function runForecast(opts: RunForecastOpts): Promise<void> {
         .eq("slug", resultPayload.slug)
         .maybeSingle();
       if (ev) {
-        const { data: pred } = await supabase
-          .from("v_predictions_public")
-          .select("ranked_outcomes, confidence")
-          .eq("event_id", ev.id)
-          .eq("is_current", true)
-          .maybeSingle();
-        const top =
-          (pred?.ranked_outcomes as Array<{
+        // Poll: prediction row is written asynchronously and may not be
+        // visible immediately after the SSE `done` event.
+        let top:
+          | {
+              outcome_label?: string;
+              probability?: number;
+              reasons?: string[];
+            }
+          | undefined;
+        for (let attempt = 0; attempt < 8; attempt++) {
+          const { data: pred } = await supabase
+            .from("v_predictions_public")
+            .select("ranked_outcomes, confidence, generated_at")
+            .eq("event_id", ev.id)
+            .eq("is_current", true)
+            .order("generated_at", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          const candidate = (pred?.ranked_outcomes as Array<{
             outcome_label?: string;
             probability?: number;
             reasons?: string[];
           }> | undefined)?.[0];
+          if (candidate?.outcome_label) {
+            top = candidate;
+            if (pred?.confidence) confidence = pred.confidence as ConfidenceTier;
+            break;
+          }
+          await new Promise((r) => setTimeout(r, 450));
+        }
         if (top) {
           topLabel = top.outcome_label ?? "—";
           const p = top.probability ?? 0;
           topPct = p > 1 ? p : p * 100;
           reasoningExcerpt = top.reasons?.[0] ?? "";
         }
-        if (pred?.confidence) confidence = pred.confidence as ConfidenceTier;
       }
+
     } catch {
       /* swallow; we still surface the slug/domain via Open full view */
     }
