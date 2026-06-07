@@ -337,7 +337,7 @@ Deno.serve(async (req) => {
       try {
         consensusOut = await runConsensus({
           prompt: ctx.prompt,
-          outcomes: outcomePairs,
+          outcomes: outcomePairs2,
           research: ctx.research,
           priors: ctx.priors.length > 0 ? ctx.priors : null,
           marketSignals: ctx.marketSignals.length > 0 ? ctx.marketSignals : null,
