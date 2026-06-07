@@ -185,6 +185,9 @@ export async function assembleForecastContext(
     prompt = `${prompt}\n${lowDataDisciplineBlock()}`;
   }
 
+  // ----- Racing runners (only populated when racingApi source matched) -----
+  const racingRunners = extractRacingRunners(structuredSources);
+
   return {
     research,
     researchError,
@@ -194,6 +197,43 @@ export async function assembleForecastContext(
     structuredSources,
     dataTier,
     dataSources,
+    racingRunners,
     prompt,
   };
 }
+
+function extractRacingRunners(
+  ctx: StructuredDataContext,
+): RacingRunnerSummary[] | null {
+  const src = ctx.sources.find((s) => s.name === "racingApi");
+  if (!src || !src.data || typeof src.data !== "object") return null;
+  const d = src.data as {
+    runners?: Array<{
+      horse?: string;
+      odds?: Array<{ decimal?: number | string | null }> | null;
+    }>;
+  };
+  if (!Array.isArray(d.runners) || d.runners.length === 0) return null;
+  const runners: RacingRunnerSummary[] = d.runners
+    .map((r) => {
+      const horse = String(r.horse ?? "").trim();
+      if (!horse) return null;
+      const decs: number[] = [];
+      for (const o of r.odds ?? []) {
+        const v = typeof o.decimal === "number" ? o.decimal : Number(o.decimal);
+        if (Number.isFinite(v) && v > 0) decs.push(v);
+      }
+      return {
+        horse,
+        odds: decs.length > 0 ? Math.min(...decs) : null,
+      };
+    })
+    .filter((r): r is RacingRunnerSummary => r !== null);
+  if (runners.length === 0) return null;
+  // Sort: priced runners ascending by odds (favourite first), then unpriced
+  // in original racecard order.
+  const priced = runners.filter((r) => r.odds !== null).sort((a, b) => (a.odds! - b.odds!));
+  const unpriced = runners.filter((r) => r.odds === null);
+  return [...priced, ...unpriced];
+}
+
