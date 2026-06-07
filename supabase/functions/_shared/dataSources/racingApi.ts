@@ -466,10 +466,13 @@ async function fetchNorthAmericaContext(
     return emptySnapshot("NA entries fetch failed or empty");
   }
 
-  const race = matchNARace(entries.races, parsed.time);
+  const race = matchNARace(entries.races, parsed.time, parsed.raceNumber);
   if (!race) {
+    const hint = parsed.raceNumber
+      ? `race ${parsed.raceNumber}`
+      : (parsed.time ?? "");
     return emptySnapshot(
-      `no NA race matched for ${course}${parsed.time ? ` ${parsed.time}` : ""}`,
+      `no NA race matched for ${course}${hint ? ` ${hint}` : ""}`,
     );
   }
   const runners = (race.runners ?? []).map(normaliseNARunner);
@@ -478,16 +481,18 @@ async function fetchNorthAmericaContext(
   }
 
   const trackName = entries.track_name ?? meet.track_name ?? course;
-  const offTime = normalisePostTime(race.post_time);
+  const localTime = derivedNALocalTime(race);
+  const offTime = localTime ?? normalisePostTime(race.post_time);
+  const offDt = derivedNAIsoTime(race);
+  const raceNum = extractNARaceNumber(race);
   return {
     race: {
-      race_id: race.race_key !== undefined && race.race_key !== null
-        ? String(race.race_key) : null,
+      race_id: raceNum !== null ? String(raceNum) : null,
       course: trackName,
       region: entries.country ?? meet.country ?? null,
       off_time: offTime,
-      off_dt: race.post_time_long ?? null,
-      race_name: race.race_name ?? null,
+      off_dt: offDt,
+      race_name: race.race_name ?? (raceNum !== null ? `Race ${raceNum}` : null),
       race_class: race.race_class ?? race.grade ?? null,
       field_size: String(runners.length),
       distance: race.distance_description ?? null,
@@ -496,10 +501,11 @@ async function fetchNorthAmericaContext(
       runners,
     },
     runners,
-    matched: `${trackName}${offTime ? ` ${offTime}` : ""}`,
+    matched: `${trackName}${offTime ? ` ${offTime}` : raceNum !== null ? ` race ${raceNum}` : ""}`,
     note: `matched ${runners.length} NA runners`,
   };
 }
+
 
 async function fetchMeets(
   username: string,
