@@ -31,7 +31,18 @@ registerAllDomains();
 
 const PROMPT_VERSION = "v1.0.0";
 
-interface Body { question?: string; fingerprint?: string; }
+interface Body {
+  question?: string;
+  fingerprint?: string;
+  // Structured racing follow-up (from the race picker / clarification). When
+  // present, the backend canonicalizes the question text from these fields so
+  // that downstream parsing is exact and we never round-trip mangled free
+  // text. See `prophiq-fix-picker-loop.md`.
+  course?: string;
+  race_time?: string;
+  race_number?: number;
+  date_word?: "today" | "tomorrow";
+}
 
 Deno.serve(async (req) => {
   const cors = handleCorsPreflight(req); if (cors) return cors;
@@ -40,9 +51,28 @@ Deno.serve(async (req) => {
   let body: Body;
   try { body = await req.json(); } catch { return errorResponse("invalid JSON body"); }
 
-  const question = (body.question ?? "").trim();
+  let question = (body.question ?? "").trim();
   const fingerprint = getFingerprint(body, req) ?? null;
   if (!question) return errorResponse("question required");
+
+  // Structured racing override: rebuild the question text canonically so the
+  // racing parser (and event title) sees a clean string regardless of what
+  // the client sent for display.
+  const structuredCourse = typeof body.course === "string" ? body.course.trim() : "";
+  const structuredTime = typeof body.race_time === "string" ? body.race_time.trim() : "";
+  const structuredRaceNo = typeof body.race_number === "number" ? body.race_number : null;
+  const structuredDateWord = body.date_word === "today" || body.date_word === "tomorrow"
+    ? body.date_word
+    : null;
+  if (structuredCourse && (structuredTime || structuredRaceNo !== null)) {
+    const dateBit = structuredDateWord ? ` ${structuredDateWord}` : "";
+    if (structuredTime) {
+      question = `who wins the ${structuredTime} at ${structuredCourse}${dateBit}`;
+    } else if (structuredRaceNo !== null) {
+      question = `who wins race ${structuredRaceNo} at ${structuredCourse}${dateBit}`;
+    }
+    console.log(`[submit-question] structured-resubmit course=${structuredCourse} time=${structuredTime || "-"} race=${structuredRaceNo ?? "-"} date=${structuredDateWord ?? "-"} -> "${question}"`);
+  }
 
   const supabase = getServiceClient();
 

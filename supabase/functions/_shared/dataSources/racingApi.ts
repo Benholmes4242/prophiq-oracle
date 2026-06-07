@@ -163,6 +163,12 @@ export function parseRacingHints(hints: RacingHints): ParsedHints {
   const atMatch = text.match(/\bat\s+([A-Z][A-Za-z' -]{2,})/);
   if (atMatch) {
     let cap = atMatch[1].trim();
+    // Defence in depth: if the capture slurped malformed/embedded fragments
+    // like "Carlisle tomorrow who wins the", cut at the first filler/verb
+    // token so we recover the clean course head.
+    const EMBEDDED = /\b(who|wins|win|will|the|race|races|please|pls|today|tomorrow|tonight|now|this|next|card|cards|meeting|meet|fixture|fixtures|racing)\b/i;
+    const embeddedIdx = cap.search(EMBEDDED);
+    if (embeddedIdx > 0) cap = cap.slice(0, embeddedIdx).trim();
     // Drop trailing date/time/filler words.
     const TRAIL = /\s+(today|tomorrow|tonight|now|this|next|please|pls|races?|racing|meeting|meet|card|cards|fixture|fixtures)$/i;
     while (TRAIL.test(cap)) cap = cap.replace(TRAIL, "").trim();
