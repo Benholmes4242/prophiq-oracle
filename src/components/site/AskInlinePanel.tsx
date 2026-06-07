@@ -332,7 +332,7 @@ function ClarificationBody({
   onPick,
   onDismiss,
 }: {
-  clarification: ClarificationPayload;
+  clarification: RacePickerClarification;
   onPick: (value: string) => void;
   onDismiss: () => void;
 }) {
