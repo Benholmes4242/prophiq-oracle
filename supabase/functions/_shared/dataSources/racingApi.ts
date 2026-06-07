@@ -760,7 +760,7 @@ function parseUSOddsToDecimal(v: string | null | undefined): number | null {
   return null;
 }
 
-// ---------- US race picker (clarification path) ----------
+// ---------- Race picker (clarification path) ----------
 
 export interface USRacePickerRace {
   race_number: number;
@@ -769,15 +769,168 @@ export interface USRacePickerRace {
   race_type: string | null;
 }
 
+export interface PickerRace {
+  /** Disambiguator to inject back into the question. US: race number as string ("5"). UK/IRE: off-time ("14:15"). */
+  value: string;
+  /** Pre-formatted label, e.g. "14:15 — Racing TV Apprentice Handicap (Class 5, 9 runners)". */
+  label: string;
+  local_time: string | null;
+  runners: number;
+  race_name: string | null;
+  race_class: string | null;
+  /** US-only; null for UK/IRE. */
+  race_number: number | null;
+}
+
+export type PickBy = "race_number" | "time";
+
+export type RacePickerResult =
+  | {
+      kind: "races";
+      pick_by: PickBy;
+      track_name: string;
+      date: string;
+      races: PickerRace[];
+    }
+  | { kind: "dark_day"; pick_by: PickBy; track_name: string; date: string }
+  | { kind: "unmatched"; reason: string };
+
 export type USRacePickerResult =
   | { kind: "races"; track_name: string; date: string; races: USRacePickerRace[] }
   | { kind: "dark_day"; track_name: string; date: string }
   | { kind: "unmatched"; reason: string };
 
 /**
- * For US/CAN tracks where the user did NOT specify a race number, build a
- * picker payload listing the day's races. Returns kind:"dark_day" when the
- * track has no card on the requested date.
+ * Universal race picker. Routes to US or UK/IRE based on the track. Returns
+ * a uniform `RacePickerResult` with `pick_by` telling callers how to
+ * interpret each race's `value` when resubmitting the question.
+ */
+export async function fetchRacePicker(
+  username: string,
+  password: string,
+  hints: RacingHints,
+): Promise<RacePickerResult> {
+  const parsed = parseRacingHints(hints);
+  if (!parsed.course || !parsed.date) {
+    return { kind: "unmatched", reason: "missing course or date hint" };
+  }
+  if (isNorthAmericanTrack(parsed.course)) {
+    return await fetchUSRacePickerInner(username, password, parsed);
+  }
+  return await fetchUKRacePickerInner(username, password, parsed);
+}
+
+async function fetchUKRacePickerInner(
+  username: string,
+  password: string,
+  parsed: ParsedHints,
+): Promise<RacePickerResult> {
+  const course = parsed.course!;
+  const date = parsed.date!;
+  const day = mapDateToDay(date);
+  if (!day) {
+    return { kind: "unmatched", reason: "outside today/tomorrow window" };
+  }
+  const cards = await fetchRacecards(username, password, day);
+  if (!cards) return { kind: "unmatched", reason: "racecards fetch failed" };
+
+  const courseLower = course.toLowerCase().replace(/\s+park\b/, "").trim();
+  const candidates = cards.filter((c) => {
+    const cc = (c.course ?? "").toLowerCase().replace(/\s+park\b/, "").trim();
+    if (!cc) return false;
+    return cc === courseLower || cc.includes(courseLower) || courseLower.includes(cc);
+  });
+  if (candidates.length === 0) {
+    return { kind: "unmatched", reason: `course not found: ${course}` };
+  }
+
+  const trackName = candidates[0].course ?? course;
+  const races: PickerRace[] = candidates
+    .map((c): PickerRace | null => {
+      const localTime = raceLocalTime(c);
+      if (!localTime) return null;
+      const runners = Array.isArray(c.runners) ? c.runners.length : 0;
+      const klass = c.race_class ?? null;
+      const name = c.race_name ?? null;
+      const parens: string[] = [];
+      if (klass) parens.push(klass);
+      if (runners > 0) parens.push(`${runners} runner${runners === 1 ? "" : "s"}`);
+      const tail = parens.length ? ` (${parens.join(", ")})` : "";
+      const label = `${localTime}${name ? ` — ${name}` : ""}${tail}`;
+      return {
+        value: localTime,
+        label,
+        local_time: localTime,
+        runners,
+        race_name: name,
+        race_class: klass,
+        race_number: null,
+      };
+    })
+    .filter((x): x is PickerRace => x !== null)
+    .sort((a, b) => (a.local_time ?? "").localeCompare(b.local_time ?? ""));
+
+  if (races.length === 0) {
+    return { kind: "dark_day", pick_by: "time", track_name: trackName, date };
+  }
+  return { kind: "races", pick_by: "time", track_name: trackName, date, races };
+}
+
+async function fetchUSRacePickerInner(
+  username: string,
+  password: string,
+  parsed: ParsedHints,
+): Promise<RacePickerResult> {
+  const course = parsed.course!;
+  const date = parsed.date!;
+  const meets = await fetchMeets(username, password, date, date);
+  if (!meets) return { kind: "unmatched", reason: "meets fetch failed" };
+  const meet = matchMeet(meets, course, date);
+  if (!meet || !meet.meet_id) {
+    return { kind: "dark_day", pick_by: "race_number", track_name: course, date };
+  }
+  const entries = await fetchEntries(username, password, meet.meet_id);
+  const trackName = entries?.track_name ?? meet.track_name ?? course;
+  if (!entries || !Array.isArray(entries.races) || entries.races.length === 0) {
+    return { kind: "dark_day", pick_by: "race_number", track_name: trackName, date };
+  }
+  const races: PickerRace[] = entries.races
+    .map((r): PickerRace | null => {
+      const num = extractNARaceNumber(r);
+      if (num === null) return null;
+      const localTime = derivedNALocalTime(r) ?? normalisePostTime(r.post_time);
+      const runners = Array.isArray(r.runners) ? r.runners.length : 0;
+      const raceType =
+        (r as { race_type_description?: string }).race_type_description ??
+        r.race_class ??
+        r.grade ??
+        null;
+      const parens: string[] = [];
+      if (raceType) parens.push(raceType);
+      if (runners > 0) parens.push(`${runners} runner${runners === 1 ? "" : "s"}`);
+      const tail = parens.length ? ` (${parens.join(", ")})` : "";
+      const timeBit = localTime ? ` · ${localTime}` : "";
+      const label = `Race ${num}${timeBit}${tail}`;
+      return {
+        value: String(num),
+        label,
+        local_time: localTime,
+        runners,
+        race_name: r.race_name ?? null,
+        race_class: r.race_class ?? r.grade ?? null,
+        race_number: num,
+      };
+    })
+    .filter((x): x is PickerRace => x !== null)
+    .sort((a, b) => (a.race_number ?? 0) - (b.race_number ?? 0));
+  if (races.length === 0) {
+    return { kind: "dark_day", pick_by: "race_number", track_name: trackName, date };
+  }
+  return { kind: "races", pick_by: "race_number", track_name: trackName, date, races };
+}
+
+/**
+ * Back-compat US-only picker. Prefer fetchRacePicker for new callers.
  */
 export async function fetchUSRacePicker(
   username: string,
@@ -791,37 +944,24 @@ export async function fetchUSRacePicker(
   if (!isNorthAmericanTrack(parsed.course)) {
     return { kind: "unmatched", reason: "not a North American track" };
   }
-  const meets = await fetchMeets(username, password, parsed.date, parsed.date);
-  if (!meets) return { kind: "unmatched", reason: "meets fetch failed" };
-  const meet = matchMeet(meets, parsed.course, parsed.date);
-  if (!meet || !meet.meet_id) {
-    return { kind: "dark_day", track_name: parsed.course, date: parsed.date };
+  const result = await fetchUSRacePickerInner(username, password, parsed);
+  if (result.kind === "races") {
+    return {
+      kind: "races",
+      track_name: result.track_name,
+      date: result.date,
+      races: result.races.map((r) => ({
+        race_number: r.race_number ?? 0,
+        local_time: r.local_time,
+        runners: r.runners,
+        race_type: r.race_class,
+      })),
+    };
   }
-  const entries = await fetchEntries(username, password, meet.meet_id);
-  const trackName = entries?.track_name ?? meet.track_name ?? parsed.course;
-  if (!entries || !Array.isArray(entries.races) || entries.races.length === 0) {
-    return { kind: "dark_day", track_name: trackName, date: parsed.date };
+  if (result.kind === "dark_day") {
+    return { kind: "dark_day", track_name: result.track_name, date: result.date };
   }
-  const races: USRacePickerRace[] = entries.races
-    .map((r): USRacePickerRace | null => {
-      const num = extractNARaceNumber(r);
-      if (num === null) return null;
-      return {
-        race_number: num,
-        local_time: derivedNALocalTime(r) ?? normalisePostTime(r.post_time),
-        runners: Array.isArray(r.runners) ? r.runners.length : 0,
-        race_type:
-          (r as { race_type_description?: string }).race_type_description ??
-          r.race_class ??
-          r.grade ??
-          null,
-      };
-    })
-    .filter((x): x is USRacePickerRace => x !== null)
-    .sort((a, b) => a.race_number - b.race_number);
-  if (races.length === 0) {
-    return { kind: "dark_day", track_name: trackName, date: parsed.date };
-  }
-  return { kind: "races", track_name: trackName, date: parsed.date, races };
+  return result;
 }
+
 

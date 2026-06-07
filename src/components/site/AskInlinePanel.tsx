@@ -154,14 +154,15 @@ export function AskInlinePanel({
       {clarification && (
         <ClarificationBody
           clarification={clarification}
-          onPick={(raceNumber: number) => {
-            const next = `${question.replace(/\s+$/, "")} race ${raceNumber}`;
+          onPick={(value: string) => {
+            const next = buildResubmittedQuestion(question, clarification.pick_by, value);
             if (onResubmit) onResubmit(next);
             else onDismiss();
           }}
           onDismiss={onDismiss}
         />
       )}
+
       {result && (
         <ResultBody
           result={result}
@@ -320,7 +321,7 @@ function ClarificationBody({
   onDismiss,
 }: {
   clarification: ClarificationPayload;
-  onPick: (raceNumber: number) => void;
+  onPick: (value: string) => void;
   onDismiss: () => void;
 }) {
   const hasRaces = clarification.races.length > 0;
@@ -340,39 +341,50 @@ function ClarificationBody({
       </div>
       {hasRaces && (
         <div className="flex flex-col gap-2">
-          {clarification.races.map((r) => (
-            <button
-              key={r.race_number}
-              onClick={() => onPick(r.race_number)}
-              className="transition-ios flex items-center justify-between rounded-xl px-4 py-3 text-left hover:scale-[1.005]"
-              style={{
-                background: "var(--bg)",
-                border: "1px solid var(--border-soft)",
-              }}
-            >
-              <div className="flex flex-col">
-                <span className="font-sans text-[15px] font-semibold">
-                  Race {r.race_number}
-                  {r.local_time ? ` · ${r.local_time}` : ""}
-                </span>
-                <span
-                  className="font-body text-[12px]"
-                  style={{ color: "var(--ink-soft)" }}
-                >
-                  {r.race_type ?? "Race"} · {r.runners} runner{r.runners === 1 ? "" : "s"}
-                </span>
-              </div>
-              <span
-                className="font-mono text-[18px]"
-                style={{ color: "var(--amber)" }}
-                aria-hidden
+          {clarification.races.map((r, idx) => {
+            const headline = clarification.pick_by === "time"
+              ? (r.local_time ?? r.value)
+              : (r.race_number !== null
+                  ? `Race ${r.race_number}${r.local_time ? ` · ${r.local_time}` : ""}`
+                  : r.label);
+            const subParts: string[] = [];
+            if (r.race_name) subParts.push(r.race_name);
+            if (r.race_class) subParts.push(r.race_class);
+            subParts.push(`${r.runners} runner${r.runners === 1 ? "" : "s"}`);
+            return (
+              <button
+                key={`${r.value}-${idx}`}
+                onClick={() => onPick(r.value)}
+                className="transition-ios flex items-center justify-between rounded-xl px-4 py-3 text-left hover:scale-[1.005]"
+                style={{
+                  background: "var(--bg)",
+                  border: "1px solid var(--border-soft)",
+                }}
               >
-                →
-              </span>
-            </button>
-          ))}
+                <div className="flex flex-col">
+                  <span className="font-sans text-[15px] font-semibold">
+                    {headline}
+                  </span>
+                  <span
+                    className="font-body text-[12px]"
+                    style={{ color: "var(--ink-soft)" }}
+                  >
+                    {subParts.join(" · ")}
+                  </span>
+                </div>
+                <span
+                  className="font-mono text-[18px]"
+                  style={{ color: "var(--amber)" }}
+                  aria-hidden
+                >
+                  →
+                </span>
+              </button>
+            );
+          })}
         </div>
       )}
+
       <button
         onClick={onDismiss}
         className="mt-4 font-body text-[13px] font-semibold underline"
@@ -383,3 +395,25 @@ function ClarificationBody({
     </div>
   );
 }
+
+/**
+ * Build the resubmit question after the user picks a race.
+ * - US (pick_by="race_number"): strip any existing "race N" tokens, then
+ *   append " race {value}".
+ * - UK/IRE (pick_by="time"): strip any existing time tokens (e.g. "2:20",
+ *   "14:20", "2.20pm"), then append " {value}" (HH:MM).
+ */
+function buildResubmittedQuestion(
+  question: string,
+  pickBy: "race_number" | "time",
+  value: string,
+): string {
+  let q = question.trim();
+  if (pickBy === "race_number") {
+    q = q.replace(/\brace\s*#?\s*\d{1,2}\b/gi, "").replace(/\s+/g, " ").trim();
+    return `${q} race ${value}`;
+  }
+  q = q.replace(/\b\d{1,2}[:.]\d{2}\s*(am|pm)?\b/gi, "").replace(/\s+/g, " ").trim();
+  return `${q} ${value}`;
+}
+
