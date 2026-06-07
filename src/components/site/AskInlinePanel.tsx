@@ -439,3 +439,82 @@ function buildResubmittedQuestion(
   return `who wins the ${value}${at}${tail}`.trim();
 }
 
+
+function ConversationalBody({
+  clarification,
+  onReply,
+  onDismiss,
+}: {
+  clarification: ConversationalClarification;
+  onReply: (reply: string) => void;
+  onDismiss: () => void;
+}) {
+  const [draft, setDraft] = useState("");
+  return (
+    <div className="pt-5">
+      <div
+        className="font-mono text-[10px] tracking-[0.22em] mb-2"
+        style={{ color: "var(--ink-faint)", fontWeight: 600 }}
+      >
+        I NEED A LITTLE MORE
+      </div>
+      <div
+        className="font-body text-[15px] leading-snug mb-4"
+        style={{ color: "var(--ink)" }}
+      >
+        {clarification.message}
+      </div>
+
+      {clarification.suggestions.length > 0 && (
+        <div className="flex flex-col gap-2 mb-3">
+          {clarification.suggestions.map((s, i) => (
+            <button
+              key={`${s.reply}-${i}`}
+              onClick={() => onReply(s.reply)}
+              className="transition-ios flex items-center justify-between rounded-xl px-4 py-3 text-left hover:scale-[1.005]"
+              style={{ background: "var(--bg)", border: "1px solid var(--border-soft)" }}
+            >
+              <span className="font-sans text-[14px] font-semibold">{s.label}</span>
+              <span className="font-mono text-[18px]" style={{ color: "var(--amber)" }} aria-hidden>→</span>
+            </button>
+          ))}
+        </div>
+      )}
+
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          const v = draft.trim();
+          if (v) onReply(v);
+        }}
+        className="flex items-center gap-2"
+      >
+        <input
+          type="text"
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          placeholder="Reply with the missing detail…"
+          className="flex-1 rounded-full px-4 py-2.5 font-body text-[14px] outline-none"
+          style={{ background: "var(--bg)", border: "1px solid var(--border-soft)", color: "var(--ink)" }}
+          autoFocus
+        />
+        <button
+          type="submit"
+          disabled={!draft.trim()}
+          className="transition-ios rounded-full px-4 py-2.5 font-body text-[14px] font-semibold disabled:opacity-50"
+          style={{ background: "var(--amber)", color: "white" }}
+        >
+          Send
+        </button>
+      </form>
+
+      <button
+        onClick={onDismiss}
+        className="mt-4 font-body text-[13px] font-semibold underline"
+        style={{ color: "var(--amber-strong)" }}
+      >
+        Cancel
+      </button>
+    </div>
+  );
+}
