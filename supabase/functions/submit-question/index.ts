@@ -337,7 +337,19 @@ Deno.serve(async (req) => {
       }
       const domainId = mod.domain && tryGetDomain(mod.domain) ? mod.domain : null;
       if (!domainId) {
-        sse.send({ stage: "moderation", status: "error", message: "We couldn't categorise this question. Try one more specific to sport, politics, markets, or entertainment.", data: mod });
+        // Conversational clarification instead of a flat error: Prophiq has
+        // multiple LLMs, so a near-miss should open a short dialogue rather
+        // than dead-ending. The user can reply in the same ask box.
+        sse.send({
+          stage: "clarification",
+          status: "done",
+          data: {
+            type: "conversational",
+            message: "I couldn't quite place that question. Tell me a bit more — which sport, market, election, or show did you mean? A specific event name, date, or competitor helps a lot.",
+            suggestions: [],
+            original_question: question,
+          },
+        });
         await recordOutcome("rejected_moderation");
         await logSearchQuery({ result_type: "rejected" });
         sse.close(); return;
