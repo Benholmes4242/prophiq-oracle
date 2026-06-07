@@ -536,9 +536,16 @@ Deno.serve(async (req) => {
         ...r,
         outcome_label: labelById.get(r.outcome_id) ?? r.outcome_id,
       }));
-      await supabase.from("predictions").update({ is_current: false }).eq("event_id", event.id).eq("mode", "prediction");
+      // Flip prior current rows, then insert the new one. The pair is
+      // non-atomic; uniq_current_prediction (partial unique index) is the
+      // DB-level guarantee. On collision (concurrent writer), re-flip and
+      // retry the insert once.
+      const flipPriorPrediction = () =>
+        supabase.from("predictions").update({ is_current: false })
+          .eq("event_id", event.id).eq("mode", "prediction");
+      await flipPriorPrediction();
       const research_context = ctx.research ?? ctx.researchError;
-      const { data: prediction, error: pErr } = await supabase.from("predictions").insert({
+      const insertRow = {
         event_id: event.id,
         mode: "prediction",
         ranked_outcomes: ranked.slice(0, 3),
@@ -553,7 +560,17 @@ Deno.serve(async (req) => {
         data_sources: ctx.dataSources,
         is_current: true,
         expires_at: new Date(Date.now() + PREDICTION_CACHE_TTL_MS).toISOString(),
-      }).select("*").single();
+      };
+      let { data: prediction, error: pErr } = await supabase
+        .from("predictions").insert(insertRow).select("*").single();
+      if (pErr && (pErr as { code?: string }).code === "23505") {
+        console.warn(
+          `[submit-question] is_current race detected for event=${event.id}; retrying`,
+        );
+        await flipPriorPrediction();
+        ({ data: prediction, error: pErr } = await supabase
+          .from("predictions").insert(insertRow).select("*").single());
+      }
       if (pErr) {
         sse.send({ stage: "consensus", status: "error", message: `prediction insert failed: ${pErr.message}` });
         await recordOutcome("failed"); await logSearchQuery({ result_type: "failed", domain: domainId, matched_event_id: event.id }); sse.close(); return;
