@@ -207,7 +207,21 @@ export async function runForecast(opts: RunForecastOpts): Promise<void> {
             if (c) confidence = c;
           }
           if (evt.stage === "done" && evt.data) {
-            resultPayload = evt.data as { slug?: string; domain?: string };
+            const d = evt.data as {
+              slug?: string;
+              domain?: string;
+              top_pick_label?: string | null;
+              top_pick_pct?: number | null;
+              reasoning_excerpt?: string | null;
+              confidence?: ConfidenceTier | null;
+            };
+            resultPayload = { slug: d.slug, domain: d.domain };
+            if (d.top_pick_label) {
+              topLabel = d.top_pick_label;
+              topPct = typeof d.top_pick_pct === "number" ? d.top_pick_pct : 0;
+              reasoningExcerpt = d.reasoning_excerpt ?? "";
+              if (d.confidence) confidence = d.confidence;
+            }
           }
           if (evt.stage === "clarification" && evt.data) {
             onClarification?.(normaliseClarification(evt.data));
