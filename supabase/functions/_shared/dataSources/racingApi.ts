@@ -355,3 +355,316 @@ function normaliseRunner(r: RawRunner): RacingRunner {
       : null,
   };
 }
+
+// ============================================================
+// North America (USA + Canada) — advanced add-on
+// ============================================================
+//
+// Two-step fetch: /v1/north-america/meets?start_date&end_date then
+// /v1/north-america/meets/{meet_id}/entries. Output is normalised into the
+// exact RacingSnapshot shape the UK/IRE path produces so downstream trust
+// classification + extractRacingRunners work unchanged.
+
+const US_TRACKS: string[] = [
+  "churchill downs", "belmont", "belmont park", "saratoga", "santa anita",
+  "del mar", "gulfstream", "gulfstream park", "keeneland", "aqueduct",
+  "pimlico", "parx", "parx racing", "finger lakes", "louisiana downs",
+  "mountaineer", "presque isle", "prairie meadows", "thistledown",
+  "monmouth", "monmouth park", "oaklawn", "fair grounds", "tampa bay downs",
+  "golden gate", "golden gate fields", "woodbine",
+];
+
+function isNorthAmericanTrack(course: string): boolean {
+  const c = course.toLowerCase().trim();
+  return US_TRACKS.some((t) => c === t || c.includes(t) || t.includes(c));
+}
+
+interface RawMeet {
+  meet_id?: string;
+  track_id?: string;
+  track_name?: string;
+  country?: string;
+  date?: string;
+}
+interface RawMeetsResponse { meets?: RawMeet[] }
+
+interface RawNARace {
+  race_name?: string;
+  race_key?: string | number;
+  race_number?: string | number;
+  post_time?: string;
+  post_time_long?: string;
+  time_zone?: string;
+  race_class?: string;
+  grade?: string;
+  surface_description?: string;
+  distance_description?: string;
+  purse?: string | number;
+  runners?: RawNARunner[];
+}
+interface RawNARunner {
+  horse_name?: string;
+  jockey?: string | { first_name?: string; last_name?: string; alias?: string };
+  trainer?: string | { first_name?: string; last_name?: string; alias?: string };
+  morning_line_odds?: string | null;
+  live_odds?: string | null;
+  post_pos?: string | number | null;
+  program_number?: string | number | null;
+  weight?: string | number | null;
+  medication?: string | null;
+  equipment?: string | null;
+}
+interface RawEntriesResponse {
+  meet_id?: string;
+  track_name?: string;
+  country?: string;
+  date?: string;
+  races?: RawNARace[];
+}
+
+async function fetchNorthAmericaContext(
+  username: string,
+  password: string,
+  parsed: ParsedHints,
+): Promise<RacingSnapshot> {
+  const course = parsed.course!;
+  const date = parsed.date!;
+  // Window: the parsed date itself; if it is today, extend +2 days to absorb
+  // late-loading fixtures. Keeps fetch small.
+  const start = date;
+  const end = addDaysISO(date, 2);
+  const meets = await fetchMeets(username, password, start, end);
+  if (!meets) return emptySnapshot("NA meets fetch failed");
+  if (meets.length === 0) {
+    return emptySnapshot(`no NA meets in ${start}..${end}`);
+  }
+
+  const meet = matchMeet(meets, course, date);
+  if (!meet || !meet.meet_id) {
+    return emptySnapshot(`no NA meet matched for ${course} on ${date}`);
+  }
+
+  const entries = await fetchEntries(username, password, meet.meet_id);
+  if (!entries || !Array.isArray(entries.races) || entries.races.length === 0) {
+    return emptySnapshot("NA entries fetch failed or empty");
+  }
+
+  const race = matchNARace(entries.races, parsed.time);
+  if (!race) {
+    return emptySnapshot(
+      `no NA race matched for ${course}${parsed.time ? ` ${parsed.time}` : ""}`,
+    );
+  }
+  const runners = (race.runners ?? []).map(normaliseNARunner);
+  if (runners.length === 0) {
+    return emptySnapshot("matched NA race has no runners published yet");
+  }
+
+  const trackName = entries.track_name ?? meet.track_name ?? course;
+  const offTime = normalisePostTime(race.post_time);
+  return {
+    race: {
+      race_id: race.race_key !== undefined && race.race_key !== null
+        ? String(race.race_key) : null,
+      course: trackName,
+      region: entries.country ?? meet.country ?? null,
+      off_time: offTime,
+      off_dt: race.post_time_long ?? null,
+      race_name: race.race_name ?? null,
+      race_class: race.race_class ?? race.grade ?? null,
+      field_size: String(runners.length),
+      distance: race.distance_description ?? null,
+      going: race.surface_description ?? null,
+      betting_forecast: null,
+      runners,
+    },
+    runners,
+    matched: `${trackName}${offTime ? ` ${offTime}` : ""}`,
+    note: `matched ${runners.length} NA runners`,
+  };
+}
+
+async function fetchMeets(
+  username: string,
+  password: string,
+  start: string,
+  end: string,
+): Promise<RawMeet[] | null> {
+  const auth = "Basic " + btoa(`${username}:${password}`);
+  const url = `${RACING_API_BASE}/v1/north-america/meets?start_date=${start}&end_date=${end}`;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), RACING_API_TIMEOUT_MS);
+  try {
+    const res = await fetch(url, {
+      headers: { Authorization: auth, Accept: "application/json" },
+      signal: controller.signal,
+    });
+    if (!res.ok) {
+      console.warn(`[racingApi] NA meets non-2xx: ${res.status}`);
+      return null;
+    }
+    const data = await res.json() as RawMeetsResponse;
+    return Array.isArray(data.meets) ? data.meets : [];
+  } catch (e) {
+    console.warn(`[racingApi] NA meets error: ${(e as Error).message}`);
+    return null;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function fetchEntries(
+  username: string,
+  password: string,
+  meetId: string,
+): Promise<RawEntriesResponse | null> {
+  const auth = "Basic " + btoa(`${username}:${password}`);
+  const url = `${RACING_API_BASE}/v1/north-america/meets/${encodeURIComponent(meetId)}/entries`;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), RACING_API_TIMEOUT_MS);
+  try {
+    const res = await fetch(url, {
+      headers: { Authorization: auth, Accept: "application/json" },
+      signal: controller.signal,
+    });
+    if (!res.ok) {
+      console.warn(`[racingApi] NA entries non-2xx: ${res.status}`);
+      return null;
+    }
+    return await res.json() as RawEntriesResponse;
+  } catch (e) {
+    console.warn(`[racingApi] NA entries error: ${(e as Error).message}`);
+    return null;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+function matchMeet(
+  meets: RawMeet[],
+  course: string,
+  date: string,
+): RawMeet | null {
+  const target = course.toLowerCase().trim();
+  const sameDate = meets.filter((m) => (m.date ?? "").slice(0, 10) === date);
+  const pool = sameDate.length > 0 ? sameDate : meets;
+  // exact / contains-either-way fuzzy match
+  let best: RawMeet | null = null;
+  let bestScore = -1;
+  for (const m of pool) {
+    const tn = (m.track_name ?? "").toLowerCase().trim();
+    if (!tn) continue;
+    let score = -1;
+    if (tn === target) score = 100;
+    else if (tn.includes(target)) score = 80;
+    else if (target.includes(tn)) score = 70;
+    if (score > bestScore) { best = m; bestScore = score; }
+  }
+  return best;
+}
+
+function matchNARace(races: RawNARace[], time: string | null): RawNARace | null {
+  if (races.length === 0) return null;
+  if (!time) {
+    // No user-specified time: if only one race, return it; otherwise decline
+    // rather than guess.
+    return races.length === 1 ? races[0] : null;
+  }
+  // Try exact match on normalised post_time, then nearest by minutes-of-day.
+  const targetMinutes = parseHHMMToMinutes(time);
+  let best: RawNARace | null = null;
+  let bestDelta = Number.POSITIVE_INFINITY;
+  for (const r of races) {
+    const pt = normalisePostTime(r.post_time);
+    if (!pt) continue;
+    if (pt === time) return r;
+    if (targetMinutes !== null) {
+      const m = parseHHMMToMinutes(pt);
+      if (m === null) continue;
+      const d = Math.abs(m - targetMinutes);
+      if (d < bestDelta) { best = r; bestDelta = d; }
+    }
+  }
+  // Accept nearest only if within 30 minutes; otherwise decline.
+  return bestDelta <= 30 ? best : null;
+}
+
+function parseHHMMToMinutes(t: string): number | null {
+  const m = t.match(/^(\d{1,2}):(\d{2})$/);
+  if (!m) return null;
+  return parseInt(m[1], 10) * 60 + parseInt(m[2], 10);
+}
+
+/** Normalise NA post_time (e.g. "1:35 PM", "13:35") to HH:MM 24h, track-local. */
+function normalisePostTime(t: string | undefined | null): string | null {
+  if (!t) return null;
+  const m = t.match(/(\d{1,2})[:.](\d{2})\s*(am|pm)?/i);
+  if (!m) return null;
+  let h = parseInt(m[1], 10);
+  const mins = m[2];
+  const ap = (m[3] ?? "").toLowerCase();
+  if (ap === "pm" && h < 12) h += 12;
+  else if (ap === "am" && h === 12) h = 0;
+  if (h < 0 || h > 23) return null;
+  return `${String(h).padStart(2, "0")}:${mins}`;
+}
+
+function normaliseNARunner(r: RawNARunner): RacingRunner {
+  const decimal = parseUSOddsToDecimal(r.live_odds) ?? parseUSOddsToDecimal(r.morning_line_odds);
+  const str = (v: unknown) =>
+    v !== undefined && v !== null && String(v).length > 0 ? String(v) : null;
+  return {
+    horse: String(r.horse_name ?? "").trim(),
+    jockey: extractPersonName(r.jockey),
+    trainer: extractPersonName(r.trainer),
+    number: str(r.program_number),
+    draw: str(r.post_pos),
+    age: null,
+    sex: null,
+    lbs: str(r.weight),
+    ofr: null,
+    odds: decimal !== null
+      ? [{
+          bookmaker: r.live_odds ? "live" : "morning_line",
+          fractional: r.live_odds ?? r.morning_line_odds ?? null,
+          decimal,
+        }]
+      : null,
+  };
+}
+
+function extractPersonName(
+  v: string | { first_name?: string; last_name?: string; alias?: string } | undefined | null,
+): string | null {
+  if (!v) return null;
+  if (typeof v === "string") return v.trim() || null;
+  if (v.alias && v.alias.trim()) return v.alias.trim();
+  const combined = [v.first_name, v.last_name].filter(Boolean).join(" ").trim();
+  return combined || null;
+}
+
+/** Parse US dash-fractional odds ("7-2") or plain fractions ("7/2") to decimal. */
+function parseUSOddsToDecimal(v: string | null | undefined): number | null {
+  if (!v) return null;
+  const s = String(v).trim();
+  if (!s) return null;
+  const m = s.match(/^(\d+(?:\.\d+)?)\s*[-/]\s*(\d+(?:\.\d+)?)$/);
+  if (m) {
+    const num = Number(m[1]);
+    const den = Number(m[2]);
+    if (den > 0 && Number.isFinite(num) && Number.isFinite(den)) {
+      return num / den + 1;
+    }
+  }
+  // bare decimal fallback
+  const n = Number(s);
+  if (Number.isFinite(n) && n > 1) return n;
+  return null;
+}
+
+function addDaysISO(date: string, days: number): string {
+  const d = new Date(`${date}T00:00:00Z`);
+  if (isNaN(d.getTime())) return date;
+  d.setUTCDate(d.getUTCDate() + days);
+  return d.toISOString().slice(0, 10);
+}
