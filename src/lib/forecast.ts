@@ -35,6 +35,21 @@ export interface AskResult {
   reasoningExcerpt: string;
 }
 
+export interface USRacePickerRace {
+  race_number: number;
+  local_time: string | null;
+  runners: number;
+  race_type: string | null;
+}
+
+export interface ClarificationPayload {
+  type: "us_race_picker";
+  track_name: string;
+  date: string;
+  message: string;
+  races: USRacePickerRace[];
+}
+
 interface RunForecastOpts {
   question: string;
   topic: AskTopic;
@@ -42,6 +57,7 @@ interface RunForecastOpts {
   onStage?: (stage: WireStage) => void;
   onResult?: (r: AskResult) => void;
   onError?: (message: string) => void;
+  onClarification?: (c: ClarificationPayload) => void;
 }
 
 export async function runForecast(opts: RunForecastOpts): Promise<void> {
