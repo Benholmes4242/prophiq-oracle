@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { PhiMark } from "@/components/brand/PhiMark";
-import { TierBadge } from "@/components/site/TierBadge";
+
 import { LoginModal } from "@/components/auth/LoginModal";
 import { useUsageQuota } from "@/hooks/useUsageQuota";
 import { useIsAdmin } from "@/lib/admin/useIsAdmin";
@@ -38,11 +38,16 @@ function UserMenu() {
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="focus:outline-none"
+        aria-label="Account menu"
         aria-haspopup="menu"
         aria-expanded={open}
+        className="grid h-11 w-11 place-items-center rounded-full transition-ios-colors hover:bg-[rgba(11,18,32,0.05)] active:bg-[rgba(11,18,32,0.1)] focus:outline-none"
+        style={{ color: "var(--ink)" }}
       >
-        <TierBadge />
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="12" cy="8" r="4" />
+          <path d="M4 21c0-4 4-6 8-6s8 2 8 6" />
+        </svg>
       </button>
       {open && (
         <div

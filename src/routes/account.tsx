@@ -27,6 +27,11 @@ function AccountPage() {
   const [portalError, setPortalError] = useState<string | null>(null);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
+  const [displayName, setDisplayName] = useState("");
+  const [initialName, setInitialName] = useState("");
+  const [nameStatus, setNameStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const [nameError, setNameError] = useState<string | null>(null);
 
   // Refresh on mount in case the user just returned from Stripe Customer Portal.
   useEffect(() => {
@@ -37,15 +42,48 @@ function AccountPage() {
 
   useEffect(() => {
     let mounted = true;
-    void supabase.auth.getUser().then(({ data: { user } }) => {
+    void supabase.auth.getUser().then(async ({ data: { user } }) => {
       if (!mounted) return;
       setUserEmail(user?.email ?? null);
+      setUserId(user?.id ?? null);
       setSignedOut(!user);
+      if (user) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("display_name")
+          .eq("id", user.id)
+          .maybeSingle();
+        if (!mounted) return;
+        const name = (profile?.display_name as string | null) ?? "";
+        setDisplayName(name);
+        setInitialName(name);
+      }
     });
     return () => {
       mounted = false;
     };
   }, []);
+
+  async function handleSaveName() {
+    if (!userId) return;
+    const trimmed = displayName.trim();
+    setNameStatus("saving");
+    setNameError(null);
+    const { error } = await supabase
+      .from("profiles")
+      .update({ display_name: trimmed.length ? trimmed : null })
+      .eq("id", userId);
+    if (error) {
+      setNameStatus("error");
+      setNameError(error.message);
+      return;
+    }
+    setDisplayName(trimmed);
+    setInitialName(trimmed);
+    setNameStatus("saved");
+    setTimeout(() => setNameStatus((s) => (s === "saved" ? "idle" : s)), 2000);
+  }
+
 
 
   async function handleManageSubscription() {
@@ -117,6 +155,48 @@ function AccountPage() {
           </p>
         )}
         {!userEmail && <div className="mb-8" />}
+
+        {userId && (
+          <div
+            className="rounded-2xl border p-6 mb-6"
+            style={{ background: "var(--bg)", borderColor: "var(--line)" }}
+          >
+            <h2 className="text-lg font-semibold mb-2">Your name</h2>
+            <p className="text-sm text-[var(--ink)]/60 mb-3">
+              Shown in your account. First name or full name — your call. Leave blank to clear.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-2">
+              <input
+                type="text"
+                value={displayName}
+                onChange={(e) => {
+                  setDisplayName(e.target.value);
+                  if (nameStatus !== "idle") setNameStatus("idle");
+                }}
+                placeholder="e.g. Alex"
+                maxLength={80}
+                className="flex-1 px-3 py-2 rounded-lg border text-sm"
+                style={{ background: "var(--bg)", color: "var(--ink)", borderColor: "var(--line)" }}
+              />
+              <button
+                type="button"
+                onClick={handleSaveName}
+                disabled={nameStatus === "saving" || displayName.trim() === initialName.trim()}
+                className="py-2 px-4 rounded-lg font-medium text-sm disabled:opacity-50"
+                style={{ background: "var(--ink)", color: "white" }}
+              >
+                {nameStatus === "saving" ? "Saving..." : "Save"}
+              </button>
+            </div>
+            {nameStatus === "saved" && (
+              <p className="mt-2 text-xs" style={{ color: "var(--ink)" }}>Saved.</p>
+            )}
+            {nameStatus === "error" && nameError && (
+              <p className="mt-2 text-xs text-red-600">{nameError}</p>
+            )}
+          </div>
+        )}
+
 
 
         {isLoading ? (
