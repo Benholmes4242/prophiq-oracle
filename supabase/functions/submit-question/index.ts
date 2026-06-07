@@ -16,6 +16,8 @@ import { truncateQuestion } from "../_shared/rateLimit.ts";
 import { preFilter, runModeration, defaultResolvesAt } from "../_shared/moderation.ts";
 import { stableEventId } from "../_shared/domains/_util.ts";
 import { runConsensus } from "../_shared/runConsensus.ts";
+import { assembleForecastContext } from "../_shared/forecastContext.ts";
+import type { DomainEvent, EventOutcome } from "../_shared/domain.ts";
 import { getServiceClient } from "../_shared/supabaseClient.ts";
 import { scoreToConfidence } from "../_shared/confidence.ts";
 import { requireAuthenticatedUser, type AuthedUser } from "../_shared/auth.ts";
@@ -207,11 +209,13 @@ Deno.serve(async (req) => {
       const resolvesAt = defaultResolvesAt(mod, today);
       sse.send({ stage: "moderation", status: "done", data: { domain: domainId, normalized_question: normalized, starts_at: startsAt, resolves_at: resolvesAt } });
 
-      // ----- 4. RESEARCH (informational stage - placeholder for now) -----
+      // ----- 4. RESEARCH (description preview from moderation metadata) -----
       sse.send({ stage: "research", status: "start" });
       const description = mod.metadata && typeof mod.metadata === "object" && typeof (mod.metadata as Record<string, unknown>).context === "string"
         ? (mod.metadata as Record<string, string>).context
         : null;
+      // Note: actual research fetch happens below in assembleForecastContext;
+      // we keep this SSE stage for UX continuity (existing UI listens for it).
       sse.send({ stage: "research", status: "done", data: { description } });
 
       // ----- Upsert event + outcomes -----
@@ -268,14 +272,42 @@ Deno.serve(async (req) => {
         .from("event_outcomes").select("id,label,external_id").eq("event_id", event.id).order("created_at");
       const outcomePairs = (outcomeIds ?? []).map((o) => ({ id: o.id, label: o.label }));
 
+      // ----- Assemble forecast context (research + structured + priors + markets)
+      // Parity with generate-prediction. Emits SSE progress so the user sees
+      // motion during the 4-10s research fetch.
+      const adapter = tryGetDomain(domainId) ?? getDomain("sport"); // safe fallback prompt shape
+      sse.send({ stage: "context", status: "start" });
+      const ctx = await assembleForecastContext(
+        supabase,
+        adapter,
+        event as DomainEvent,
+        (outcomeIds ?? []) as EventOutcome[],
+        {
+          mode: "prediction",
+          onProgress: (stage, status, info) => {
+            sse.send({ stage: `context_${stage}`, status, data: info });
+          },
+        },
+      );
+      sse.send({
+        stage: "context",
+        status: "done",
+        data: { data_tier: ctx.dataTier, feed_sources: ctx.dataSources.feed, research_chars: ctx.dataSources.research_chars },
+      });
+
       // ----- 5. MODELS -----
       sse.send({ stage: "models", status: "start", data: { models: ["claude", "gpt", "gemini"] } });
-      const adapter = tryGetDomain(domainId) ?? getDomain("sport"); // safe fallback prompt shape
-      const prompt = adapter.buildPrompt(event as never, (outcomeIds ?? []) as never);
 
       let consensusOut;
       try {
-        consensusOut = await runConsensus({ prompt, outcomes: outcomePairs });
+        consensusOut = await runConsensus({
+          prompt: ctx.prompt,
+          outcomes: outcomePairs,
+          research: ctx.research,
+          priors: ctx.priors.length > 0 ? ctx.priors : null,
+          marketSignals: ctx.marketSignals.length > 0 ? ctx.marketSignals : null,
+          structuredData: ctx.structuredData,
+        });
       } catch (e) {
         sse.send({ stage: "models", status: "error", message: (e as Error).message });
         await recordOutcome("failed"); await logSearchQuery({ result_type: "failed", domain: domainId, matched_event_id: event.id }); sse.close(); return;
@@ -290,6 +322,7 @@ Deno.serve(async (req) => {
         outcome_label: labelById.get(r.outcome_id) ?? r.outcome_id,
       }));
       await supabase.from("predictions").update({ is_current: false }).eq("event_id", event.id).eq("mode", "prediction");
+      const research_context = ctx.research ?? ctx.researchError;
       const { data: prediction, error: pErr } = await supabase.from("predictions").insert({
         event_id: event.id,
         mode: "prediction",
@@ -299,8 +332,10 @@ Deno.serve(async (req) => {
         consensus_score: consensusOut.consensus.consensus_score,
         agreement_score: consensusOut.consensus.agreement_score,
         model_results: consensusOut.model_results,
-        research_context: null,
+        research_context,
         prompt_version: PROMPT_VERSION,
+        data_tier: ctx.dataTier,
+        data_sources: ctx.dataSources,
         is_current: true,
         expires_at: new Date(Date.now() + PREDICTION_CACHE_TTL_MS).toISOString(),
       }).select("*").single();
@@ -308,7 +343,7 @@ Deno.serve(async (req) => {
         sse.send({ stage: "consensus", status: "error", message: `prediction insert failed: ${pErr.message}` });
         await recordOutcome("failed"); await logSearchQuery({ result_type: "failed", domain: domainId, matched_event_id: event.id }); sse.close(); return;
       }
-      sse.send({ stage: "consensus", status: "done", data: { confidence: scoreToConfidence(consensusOut.consensus.agreement_score) } });
+      sse.send({ stage: "consensus", status: "done", data: { confidence: scoreToConfidence(consensusOut.consensus.agreement_score), data_tier: ctx.dataTier } });
 
       // ----- 7. DONE -----
       await recordOutcome("accepted");
