@@ -150,6 +150,30 @@ export async function runForecast(opts: RunForecastOpts): Promise<void> {
             resultPayload = evt.data as { slug?: string; domain?: string };
           }
         } else if (evt.status === "error") {
+          // Daily-limit hits arrive as an SSE rate_limit error (HTTP 200) with
+          // tier/quota context in evt.data — route to the paywall, not generic
+          // onError.
+          if (evt.stage === "rate_limit") {
+            const d = (evt.data ?? {}) as Partial<PaywallQuotaInfo> & {
+              code?: string;
+            };
+            if (
+              d.code === "DAILY_LIMIT_REACHED" &&
+              typeof d.daily_cap === "number"
+            ) {
+              showPaywall({
+                daily_cap: d.daily_cap,
+                used_today: d.used_today ?? 0,
+                tier: d.tier ?? "free",
+                is_trialing: !!d.is_trialing,
+                trial_end: d.trial_end ?? null,
+              });
+              onError?.(
+                evt.message ?? "You've reached today's submission limit.",
+              );
+              return;
+            }
+          }
           const map: Record<string, string> = {
             moderation:
               "We couldn't answer that. Try a more specific public-event question.",
