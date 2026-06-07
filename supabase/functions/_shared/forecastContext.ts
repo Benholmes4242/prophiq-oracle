@@ -34,6 +34,23 @@ export interface RacingRunnerSummary {
   odds: number | null; // best (lowest) decimal price across bookmakers, or null
 }
 
+/** True when the extracted runners came from the golf adapter (players, no
+ * odds). Used by the outcome-rewrite to pick the correct bucket label
+ * ("Any other player" vs "Any other runner"). */
+export function isGolfRunnersSource(ctx: StructuredDataContext): boolean {
+  const hasRacing = ctx.sources.some((s) => {
+    if (s.name !== "racingApi") return false;
+    const d = s.data as { runners?: unknown[] } | null;
+    return !!d && Array.isArray(d.runners) && d.runners.length > 0;
+  });
+  if (hasRacing) return false;
+  return ctx.sources.some((s) => {
+    if (s.name !== "sportRadarGolf") return false;
+    const d = s.data as { runners?: unknown[] } | null;
+    return !!d && Array.isArray(d.runners) && d.runners.length > 0;
+  });
+}
+
 export interface ForecastContextResult {
   research: ResearchContext | null;
   researchError: ResearchContextError | null;
