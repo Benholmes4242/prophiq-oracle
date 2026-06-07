@@ -83,7 +83,7 @@ Deno.serve(async (req) => {
     return errorResponse("event does not support odds mode", 422);
   }
 
-  const { data: outcomes, error: oErr } = await supabase
+  let { data: outcomes, error: oErr } = await supabase
     .from("event_outcomes").select("*").eq("event_id", body.event_id).order("created_at");
   if (oErr) return errorResponse(`outcomes load failed: ${oErr.message}`, 500);
   if (!outcomes || outcomes.length < 2) return errorResponse("event has <2 outcomes", 422);
