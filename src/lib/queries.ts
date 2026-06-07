@@ -192,6 +192,7 @@ export interface HomepagePick {
   top_pick_label: string | null;
   top_pick_pct: number | null;
   confidence: ConfidenceTier;
+  data_tier: DataTier | null;
   reasoning_excerpt: string | null;
   is_marquee: boolean;
 }
