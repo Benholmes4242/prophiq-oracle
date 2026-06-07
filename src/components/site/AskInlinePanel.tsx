@@ -155,7 +155,7 @@ export function AskInlinePanel({
         <ClarificationBody
           clarification={clarification}
           onPick={(value: string) => {
-            const next = buildResubmittedQuestion(question, clarification.pick_by, value);
+            const next = buildResubmittedQuestion(question, clarification, value);
             if (onResubmit) onResubmit(next);
             else onDismiss();
           }}
@@ -397,23 +397,33 @@ function ClarificationBody({
 }
 
 /**
- * Build the resubmit question after the user picks a race.
- * - US (pick_by="race_number"): strip any existing "race N" tokens, then
- *   append " race {value}".
- * - UK/IRE (pick_by="time"): strip any existing time tokens (e.g. "2:20",
- *   "14:20", "2.20pm"), then append " {value}" (HH:MM).
+ * Build a CLEAN, canonical resubmit question after the user picks a race.
+ * We don't mutate the user's original text (which led to garbled strings like
+ * "who wins the at Carlisle tomorrow 16:18"). Instead we construct a fresh
+ * canonical question from the picked race + known track/date context.
+ *
+ * - UK/IRE (pick_by="time"):    "who wins the {value} at {track} {dateWord}"
+ * - US     (pick_by="race_number"): "who wins race {value} at {track} {dateWord}"
+ *
+ * dateWord precedence: clarification.date_word (from backend) > parsed from
+ * the original question ("today"/"tomorrow") > omitted.
  */
 function buildResubmittedQuestion(
   question: string,
-  pickBy: "race_number" | "time",
+  clarification: { pick_by: "race_number" | "time"; track_name: string; date_word: "today" | "tomorrow" | null },
   value: string,
 ): string {
-  let q = question.trim();
-  if (pickBy === "race_number") {
-    q = q.replace(/\brace\s*#?\s*\d{1,2}\b/gi, "").replace(/\s+/g, " ").trim();
-    return `${q} race ${value}`;
+  const track = (clarification.track_name || "").trim();
+  let dateWord: string = clarification.date_word ?? "";
+  if (!dateWord) {
+    const m = question.toLowerCase().match(/\b(today|tomorrow|tonight)\b/);
+    if (m) dateWord = m[1] === "tonight" ? "tonight" : m[1];
   }
-  q = q.replace(/\b\d{1,2}[:.]\d{2}\s*(am|pm)?\b/gi, "").replace(/\s+/g, " ").trim();
-  return `${q} ${value}`;
+  const tail = dateWord ? ` ${dateWord}` : "";
+  const at = track ? ` at ${track}` : "";
+  if (clarification.pick_by === "race_number") {
+    return `who wins race ${value}${at}${tail}`.trim();
+  }
+  return `who wins the ${value}${at}${tail}`.trim();
 }
 
