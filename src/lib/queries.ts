@@ -119,6 +119,10 @@ export async function fetchRecentPicks(limit = 6): Promise<EventWithPrediction[]
     // Trust-layer gate: never feature a low_data forecast on home rails.
     // Legacy rows without a tier are still allowed through.
     .or("data_tier.is.null,data_tier.in.(feed_backed,research_grounded)")
+    // Outcome-quality gate: never surface placeholder top outcomes
+    // ("Field", "Any other runner wins", "horse 2 wins", etc.).
+    // Legacy rows where the column is null are still allowed through.
+    .or("is_placeholder_outcome.is.null,is_placeholder_outcome.eq.false")
     .order("generated_at", { ascending: false })
     .limit(limit);
   if (error) throw error;
