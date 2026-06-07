@@ -61,7 +61,7 @@ interface RunForecastOpts {
 }
 
 export async function runForecast(opts: RunForecastOpts): Promise<void> {
-  const { question, topic, signal, onStage, onResult, onError } = opts;
+  const { question, topic, signal, onStage, onResult, onError, onClarification } = opts;
   try {
     const fingerprint = await getBrowserFingerprint();
     const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/submit-question`;
