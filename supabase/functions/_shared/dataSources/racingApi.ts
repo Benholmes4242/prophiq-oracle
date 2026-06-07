@@ -586,19 +586,35 @@ function matchMeet(
   return best;
 }
 
-function matchNARace(races: RawNARace[], time: string | null): RawNARace | null {
+function matchNARace(
+  races: RawNARace[],
+  time: string | null,
+  raceNumber: number | null,
+): RawNARace | null {
   if (races.length === 0) return null;
+
+  // 1. Explicit race-number match wins (US users typically ask "race 5 at Parx").
+  if (raceNumber !== null) {
+    const byNum = races.find((r) => extractNARaceNumber(r) === raceNumber);
+    if (byNum) return byNum;
+    // If a race number was asked for but we cannot find it, decline rather
+    // than fall through to time-matching guesswork.
+    return null;
+  }
+
   if (!time) {
-    // No user-specified time: if only one race, return it; otherwise decline
-    // rather than guess.
+    // No user-specified time and no race number: if only one race, return it;
+    // otherwise decline rather than guess.
     return races.length === 1 ? races[0] : null;
   }
-  // Try exact match on normalised post_time, then nearest by minutes-of-day.
+
+  // 2. Time match. Prefer derived track-local time from post_time_long
+  // (post_time itself is null on the NA feed); fall back to normalisePostTime.
   const targetMinutes = parseHHMMToMinutes(time);
   let best: RawNARace | null = null;
   let bestDelta = Number.POSITIVE_INFINITY;
   for (const r of races) {
-    const pt = normalisePostTime(r.post_time);
+    const pt = derivedNALocalTime(r) ?? normalisePostTime(r.post_time);
     if (!pt) continue;
     if (pt === time) return r;
     if (targetMinutes !== null) {
@@ -611,6 +627,64 @@ function matchNARace(races: RawNARace[], time: string | null): RawNARace | null 
   // Accept nearest only if within 30 minutes; otherwise decline.
   return bestDelta <= 30 ? best : null;
 }
+
+function extractNARaceNumber(r: RawNARace): number | null {
+  const candidates: Array<string | number | undefined> = [];
+  if (r.race_key && typeof r.race_key === "object") {
+    candidates.push(r.race_key.race_number);
+  } else if (typeof r.race_key === "string" || typeof r.race_key === "number") {
+    candidates.push(r.race_key);
+  }
+  candidates.push(r.race_number);
+  for (const c of candidates) {
+    if (c === undefined || c === null) continue;
+    const n = parseInt(String(c), 10);
+    if (Number.isFinite(n) && n > 0) return n;
+  }
+  return null;
+}
+
+/** Map the feed's short timezone code (E/C/M/P) to an IANA zone. */
+function naIanaZone(code: string | undefined | null): string {
+  switch ((code ?? "").trim().toUpperCase()) {
+    case "E": return "America/New_York";
+    case "C": return "America/Chicago";
+    case "M": return "America/Denver";
+    case "P": return "America/Los_Angeles";
+    default: return "America/New_York";
+  }
+}
+
+/** Derive HH:MM (24h) track-local from post_time_long (epoch ms). */
+function derivedNALocalTime(r: RawNARace): string | null {
+  const epoch = parseEpochMs(r.post_time_long);
+  if (epoch === null) return null;
+  const d = new Date(epoch);
+  if (isNaN(d.getTime())) return null;
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    timeZone: naIanaZone(r.time_zone),
+    hour: "2-digit", minute: "2-digit", hour12: false,
+  }).formatToParts(d);
+  const hh = parts.find((p) => p.type === "hour")?.value;
+  const mm = parts.find((p) => p.type === "minute")?.value;
+  if (!hh || !mm) return null;
+  return `${hh === "24" ? "00" : hh}:${mm}`;
+}
+
+function derivedNAIsoTime(r: RawNARace): string | null {
+  const epoch = parseEpochMs(r.post_time_long);
+  if (epoch === null) return null;
+  const d = new Date(epoch);
+  return isNaN(d.getTime()) ? null : d.toISOString();
+}
+
+function parseEpochMs(v: string | number | null | undefined): number | null {
+  if (v === null || v === undefined) return null;
+  const n = typeof v === "number" ? v : Number(String(v).trim());
+  if (!Number.isFinite(n) || n <= 0) return null;
+  return n;
+}
+
 
 function parseHHMMToMinutes(t: string): number | null {
   const m = t.match(/^(\d{1,2}):(\d{2})$/);
