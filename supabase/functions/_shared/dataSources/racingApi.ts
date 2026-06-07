@@ -18,16 +18,25 @@ export interface RacingRunner {
   trainer: string | null;
   number: string | null;
   draw: string | null;
+  age: string | null;
+  sex: string | null;
+  lbs: string | null;
+  ofr: string | null;
   odds: Array<{ bookmaker: string; fractional?: string | null; decimal?: number | null }> | null;
 }
 
 export interface RacingRace {
   race_id: string | null;
   course: string;
+  region: string | null;
   off_time: string | null; // local race time, e.g. "14:20"
+  off_dt: string | null;
   race_name: string | null;
+  race_class: string | null;
+  field_size: string | null;
   distance: string | null;
   going: string | null;
+  betting_forecast: string | null;
   runners: RacingRunner[];
 }
 
