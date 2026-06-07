@@ -310,6 +310,7 @@ ${forecastDisciplineBlock()}`;
     // returned empty-but-non-null payloads that mis-triggered feed_backed.
     const football = isFootballEvent(event);
     const horseRacing = isHorseRacingEvent(event);
+    const golf = isGolfEvent(event);
 
     const tasks: Array<Promise<SourceResult>> = [];
     if (football) {
@@ -324,6 +325,12 @@ ${forecastDisciplineBlock()}`;
       const p = readEnv("RACING_API_PASSWORD");
       if (u && p) {
         tasks.push(runSource("racingApi", () => fetchRacingContext(u, p, hints)));
+      }
+    }
+    if (golf && !football && !horseRacing) {
+      const gk = readEnv("SPORTRADAR_GOLF_API_KEY");
+      if (gk) {
+        tasks.push(runSource("sportRadarGolf", () => fetchGolfContext(gk, hints)));
       }
     }
 
