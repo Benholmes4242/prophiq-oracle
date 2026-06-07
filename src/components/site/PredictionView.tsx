@@ -4,6 +4,7 @@
 
 import type { PredictionRow, RankedOutcome } from "@/lib/types";
 import { ConfidenceLabel } from "./ConfidenceLabel";
+import { DataTierBadge } from "./DataTierBadge";
 
 function pct(p: number | undefined): string {
   if (typeof p !== "number") return "—";
