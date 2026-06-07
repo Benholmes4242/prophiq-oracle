@@ -154,14 +154,15 @@ export function AskInlinePanel({
       {clarification && (
         <ClarificationBody
           clarification={clarification}
-          onPick={(raceNumber: number) => {
-            const next = `${question.replace(/\s+$/, "")} race ${raceNumber}`;
+          onPick={(value: string) => {
+            const next = buildResubmittedQuestion(question, clarification.pick_by, value);
             if (onResubmit) onResubmit(next);
             else onDismiss();
           }}
           onDismiss={onDismiss}
         />
       )}
+
       {result && (
         <ResultBody
           result={result}
