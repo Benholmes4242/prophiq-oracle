@@ -162,25 +162,21 @@ function parseRacingHints(hints: RacingHints): ParsedHints {
     }
   }
 
-  // date: "today" / "tomorrow" / starts_at / explicit YYYY-MM-DD
+  // date: "today" / "tomorrow" / starts_at / explicit YYYY-MM-DD (Europe/London)
   let date: string | null = null;
   const lower = text.toLowerCase();
   const now = new Date();
   if (/\btomorrow\b/.test(lower)) {
-    date = isoDate(new Date(now.getTime() + 24 * 60 * 60 * 1000));
+    date = londonDate(new Date(now.getTime() + 24 * 60 * 60 * 1000));
   } else if (/\btoday\b/.test(lower)) {
-    date = isoDate(now);
+    date = londonDate(now);
   } else if (hints.starts_at) {
     date = hints.starts_at.slice(0, 10);
   } else {
-    date = isoDate(now);
+    date = londonDate(now);
   }
 
   return { course, time, date };
-}
-
-function isoDate(d: Date): string {
-  return d.toISOString().slice(0, 10);
 }
 
 // ---------- API fetch ----------
