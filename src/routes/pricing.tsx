@@ -42,7 +42,7 @@ function PricingPage() {
     async function refresh() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!mounted) return;
-      setIsAuthenticated(!!user && !user.is_anonymous);
+      setIsAuthenticated(!!user);
     }
     refresh();
     const { data: { subscription: sub } } = supabase.auth.onAuthStateChange(() => refresh());

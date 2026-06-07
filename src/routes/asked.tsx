@@ -30,9 +30,9 @@ interface AskedRow {
   moderation_status: string;
 }
 
-async function loadAsked(): Promise<QuestionHistoryEntry[]> {
+async function loadAsked(): Promise<QuestionHistoryEntry[] | "signed-out"> {
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return [];
+  if (!user) return "signed-out";
   const { data, error } = await supabase
     .from("events")
     .select(
@@ -56,13 +56,18 @@ async function loadAsked(): Promise<QuestionHistoryEntry[]> {
 
 function AskedPage() {
   const [history, setHistory] = useState<QuestionHistoryEntry[]>([]);
+  const [signedOut, setSignedOut] = useState(false);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     let active = true;
     loadAsked().then((rows) => {
       if (!active) return;
-      setHistory(rows);
+      if (rows === "signed-out") {
+        setSignedOut(true);
+      } else {
+        setHistory(rows);
+      }
       setMounted(true);
     });
     return () => {
@@ -72,13 +77,49 @@ function AskedPage() {
 
   const groups = useMemo(() => groupByDay(history), [history]);
 
-  const isEmpty = mounted && history.length === 0;
+  const isEmpty = mounted && !signedOut && history.length === 0;
 
   return (
     <main className="mx-auto max-w-2xl px-5 pb-16 pt-9">
       <PageHeader />
-      {isEmpty ? <EmptyState /> : <DayGroups groups={groups} />}
+      {signedOut ? (
+        <SignedOutState />
+      ) : isEmpty ? (
+        <EmptyState />
+      ) : (
+        <DayGroups groups={groups} />
+      )}
     </main>
+  );
+}
+
+function SignedOutState() {
+  return (
+    <div className="flex flex-col items-center pt-16 text-center">
+      <div style={{ opacity: 0.18 }} aria-hidden>
+        <PhiMark size={64} strokeWidth={9} />
+      </div>
+      <p
+        className="mt-6 max-w-[34ch] font-body text-[15px] leading-relaxed"
+        style={{ color: "var(--ink-soft)" }}
+      >
+        Sign in to see the questions you've asked.
+      </p>
+      <button
+        type="button"
+        onClick={() =>
+          window.dispatchEvent(
+            new CustomEvent("prophiq:open-login", {
+              detail: { mode: "signup" },
+            }),
+          )
+        }
+        className="mt-6 inline-flex items-center rounded-full px-5 py-2.5 font-body text-[14px] font-semibold transition-ios"
+        style={{ background: "var(--amber)", color: "#fff" }}
+      >
+        Sign in or create a free account →
+      </button>
+    </div>
   );
 }
 

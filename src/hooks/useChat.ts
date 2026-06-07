@@ -1,9 +1,16 @@
-// Chat panel hook. Posts to the chat-message edge function with the anon key,
-// persists thread_id per-event in localStorage so a refresh preserves context.
+// Chat panel hook. Posts to the chat-message edge function with the user's
+// JWT (Option C: chat requires a free account). Persists thread_id per-event
+// in localStorage so a refresh preserves context.
 
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { getBrowserFingerprint } from "./useBrowserFingerprint";
+import {
+  hasSession,
+  openSignupModal,
+  setPendingChat,
+  consumePendingChat,
+} from "@/lib/authGate";
 
 export interface ChatMessage {
   id: string;
@@ -52,6 +59,17 @@ export function useChat(eventId: string | undefined) {
   const sendMessage = useCallback(
     async (content: string) => {
       if (!eventId || !content.trim()) return;
+
+      // Gate on auth (Option C).
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        setPendingChat({ eventId, message: content });
+        openSignupModal(
+          "Create a free account to chat about this forecast — 3 free a day, no card required.",
+        );
+        return;
+      }
+
       setSending(true);
       setError(null);
       // Optimistic user message
@@ -68,7 +86,7 @@ export function useChat(eventId: string | undefined) {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${ANON_KEY}`,
+            Authorization: `Bearer ${session.access_token}`,
             apikey: ANON_KEY,
           },
           body: JSON.stringify({
@@ -120,6 +138,24 @@ export function useChat(eventId: string | undefined) {
     },
     [eventId, threadId],
   );
+
+  // Resume a pending chat message after sign-in.
+  useEffect(() => {
+    if (!eventId) return;
+    async function tryResume() {
+      if (!eventId) return;
+      if (!(await hasSession())) return;
+      const pending = consumePendingChat(eventId);
+      if (pending) void sendMessage(pending.message);
+    }
+    void tryResume();
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event) => {
+        if (event === "SIGNED_IN") void tryResume();
+      },
+    );
+    return () => subscription.unsubscribe();
+  }, [eventId, sendMessage]);
 
   return { threadId, messages, sendMessage, sending, error };
 }

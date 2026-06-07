@@ -30,7 +30,7 @@ export function LoginModal({ open, onClose, message, mode = "signin" }: LoginMod
     if (!open) return;
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        if (event === "SIGNED_IN" && session?.user && !session.user.is_anonymous) {
+        if (event === "SIGNED_IN" && session?.user) {
           await invalidate();
           // Continue a pending checkout if the user came from /pricing while signed out.
           const pendingPriceId =

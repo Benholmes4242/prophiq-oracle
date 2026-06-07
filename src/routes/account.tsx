@@ -33,10 +33,14 @@ function AccountPage() {
     void invalidate();
   }, [invalidate]);
 
+  const [signedOut, setSignedOut] = useState(false);
+
   useEffect(() => {
     let mounted = true;
     void supabase.auth.getUser().then(({ data: { user } }) => {
-      if (mounted) setUserEmail(user?.email ?? null);
+      if (!mounted) return;
+      setUserEmail(user?.email ?? null);
+      setSignedOut(!user);
     });
     return () => {
       mounted = false;
@@ -62,6 +66,37 @@ function AccountPage() {
   }
 
   const isLoading = subLoading || quotaLoading;
+
+  if (signedOut) {
+    return (
+      <div
+        className="min-h-screen px-4 py-12 grid place-items-center"
+        style={{ background: "var(--bg)", color: "var(--ink)" }}
+      >
+        <div className="text-center max-w-sm">
+          <Wordmark className="mx-auto mb-6 h-9" />
+          <h1 className="text-2xl font-bold mb-2">Your account</h1>
+          <p className="text-sm text-[var(--ink)]/70 mb-6">
+            Sign in to view your subscription, usage, and account settings.
+          </p>
+          <button
+            type="button"
+            onClick={() =>
+              window.dispatchEvent(
+                new CustomEvent("prophiq:open-login", {
+                  detail: { mode: "signup" },
+                }),
+              )
+            }
+            className="py-2.5 px-5 rounded-lg font-medium text-sm"
+            style={{ background: "var(--ink)", color: "white" }}
+          >
+            Sign in or create a free account
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div

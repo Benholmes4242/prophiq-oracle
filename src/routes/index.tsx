@@ -1,7 +1,15 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createFileRoute, useSearch } from "@tanstack/react-router";
 import { AskInput } from "@/components/site/AskInput";
 import { AskInlinePanel, type AskPanelState } from "@/components/site/AskInlinePanel";
+import {
+  consumePendingQuestion,
+  hasSession,
+  openSignupModal,
+  setPendingQuestion,
+} from "@/lib/authGate";
+import { supabase } from "@/lib/supabase";
+
 
 import { FeatureCard } from "@/components/site/FeatureCard";
 import { SupportingTilesGrid } from "@/components/site/SupportingTilesGrid";
@@ -56,12 +64,36 @@ function HomePage() {
   const feature = all.find((p) => p.is_marquee) ?? all[0] ?? null;
   const supporting = all.filter((p) => p !== feature).slice(0, 4);
 
-  function ask(q: string) {
+  async function ask(q: string) {
     const trimmed = q.trim();
     if (!trimmed) return;
+    if (!(await hasSession())) {
+      setPendingQuestion({ question: trimmed, topic: "any", scope: "home" });
+      openSignupModal();
+      return;
+    }
     setAskQ(trimmed);
     setDraft("");
   }
+
+  // Resume a pending question after sign-in (or on initial mount if one is stashed).
+  useEffect(() => {
+    async function tryResume() {
+      if (!(await hasSession())) return;
+      const pending = consumePendingQuestion((p) => p.scope === "home");
+      if (pending) {
+        setAskQ(pending.question);
+        setDraft("");
+      }
+    }
+    void tryResume();
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event) => {
+        if (event === "SIGNED_IN") void tryResume();
+      },
+    );
+    return () => subscription.unsubscribe();
+  }, []);
 
   return (
     <div className="mx-auto flex h-full max-w-2xl flex-col justify-between pb-4">

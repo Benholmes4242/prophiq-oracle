@@ -57,7 +57,7 @@ export function Drawer({ open, onClose }: DrawerProps) {
     async function refresh() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!mounted) return;
-      setIsAuthenticated(!!user && !user.is_anonymous);
+      setIsAuthenticated(!!user);
     }
     refresh();
 

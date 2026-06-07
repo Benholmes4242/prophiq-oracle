@@ -1,6 +1,7 @@
-// Shared daily quota anchored on the Supabase user_id (anonymous or email).
-// Reads public.get_user_quota_today() RPC (Brief CC), which returns the
-// caller's used/cap/remaining alongside tier and trial info.
+// Shared daily quota anchored on the authenticated Supabase user.
+// Reads public.get_user_quota_today() RPC (Brief CC). Returns null when no
+// session — callers should treat that as "sign up required" rather than
+// implying a free allowance.
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
@@ -21,19 +22,6 @@ export interface UsageQuota {
 
 const FREE_DAILY_CAP = 3;
 
-function freeFallback(): UsageQuota {
-  return {
-    used: 0,
-    total: FREE_DAILY_CAP,
-    remaining: FREE_DAILY_CAP,
-    dailyCap: FREE_DAILY_CAP,
-    tier: "free",
-    isTrialing: false,
-    trialEnd: null,
-    subscriptionStatus: "free",
-  };
-}
-
 export function useUsageQuota() {
   const queryClient = useQueryClient();
 
@@ -41,15 +29,19 @@ export function useUsageQuota() {
     queryKey: ["user-quota-today"],
     queryFn: async (): Promise<UsageQuota | null> => {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return freeFallback();
+      // Logged out: no quota. Don't fake "3 remaining" — Option C gates
+      // forecasting on a free account.
+      if (!user) return null;
 
       const { data, error } = await supabase
         .rpc("get_user_quota_today", { p_user_id: user.id });
 
       if (error) {
         console.error("[useUsageQuota] RPC failed:", error.message);
-        return freeFallback();
+        return null;
       }
+
+
 
       const row = (Array.isArray(data) ? data[0] : data) as {
         used_today: number;
@@ -60,7 +52,7 @@ export function useUsageQuota() {
         trial_end: string | null;
         subscription_status: string;
       } | null;
-      if (!row) return freeFallback();
+      if (!row) return null;
 
       return {
         used: Number(row.used_today ?? 0),

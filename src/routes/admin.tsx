@@ -22,7 +22,7 @@ export const Route = createFileRoute("/admin")({
   }),
   beforeLoad: async () => {
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user || user.is_anonymous) {
+    if (!user) {
       throw redirect({ to: "/", search: { reason: "admin_required" } as never });
     }
     const { data: isAdmin } = await supabase.rpc("is_admin");

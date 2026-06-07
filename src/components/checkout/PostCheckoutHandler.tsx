@@ -59,27 +59,7 @@ export function PostCheckoutHandler() {
           return;
         }
 
-        const isAnonymous = (user as { is_anonymous?: boolean }).is_anonymous ?? false;
-
-        if (isAnonymous) {
-          const { error: updateError } = await supabase.auth.updateUser({
-            email: info.email,
-          });
-          if (updateError) {
-            setState({
-              kind: "error",
-              message: `Could not initiate email verification: ${updateError.message}`,
-            });
-            return;
-          }
-          setState({
-            kind: "enter-code",
-            email: info.email,
-            cooldownUntil: Date.now() + 30_000,
-          });
-        } else {
-          setState({ kind: "success", email: user.email ?? info.email });
-        }
+        setState({ kind: "success", email: user.email ?? info.email });
       } catch (e) {
         setState({ kind: "error", message: (e as Error).message });
       }
@@ -101,18 +81,8 @@ export function PostCheckoutHandler() {
     return () => clearInterval(interval);
   }, [state]);
 
-  useEffect(() => {
-    if (state.kind !== "enter-code" && state.kind !== "verifying") return;
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        if (event === "USER_UPDATED" && session?.user && !session.user.is_anonymous) {
-          await invalidate();
-          setState({ kind: "success", email: session.user.email ?? "" });
-        }
-      },
-    );
-    return () => subscription.unsubscribe();
-  }, [state, invalidate]);
+  // (Anon→email upgrade listener removed — signup is the normal flow now.)
+
 
   async function handleCodeSubmit(codeValue: string) {
     if (state.kind !== "enter-code") return;
