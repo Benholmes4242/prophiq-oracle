@@ -27,6 +27,11 @@ function AccountPage() {
   const [portalError, setPortalError] = useState<string | null>(null);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
+  const [displayName, setDisplayName] = useState("");
+  const [initialName, setInitialName] = useState("");
+  const [nameStatus, setNameStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const [nameError, setNameError] = useState<string | null>(null);
 
   // Refresh on mount in case the user just returned from Stripe Customer Portal.
   useEffect(() => {
@@ -37,15 +42,48 @@ function AccountPage() {
 
   useEffect(() => {
     let mounted = true;
-    void supabase.auth.getUser().then(({ data: { user } }) => {
+    void supabase.auth.getUser().then(async ({ data: { user } }) => {
       if (!mounted) return;
       setUserEmail(user?.email ?? null);
+      setUserId(user?.id ?? null);
       setSignedOut(!user);
+      if (user) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("display_name")
+          .eq("id", user.id)
+          .maybeSingle();
+        if (!mounted) return;
+        const name = (profile?.display_name as string | null) ?? "";
+        setDisplayName(name);
+        setInitialName(name);
+      }
     });
     return () => {
       mounted = false;
     };
   }, []);
+
+  async function handleSaveName() {
+    if (!userId) return;
+    const trimmed = displayName.trim();
+    setNameStatus("saving");
+    setNameError(null);
+    const { error } = await supabase
+      .from("profiles")
+      .update({ display_name: trimmed.length ? trimmed : null })
+      .eq("id", userId);
+    if (error) {
+      setNameStatus("error");
+      setNameError(error.message);
+      return;
+    }
+    setDisplayName(trimmed);
+    setInitialName(trimmed);
+    setNameStatus("saved");
+    setTimeout(() => setNameStatus((s) => (s === "saved" ? "idle" : s)), 2000);
+  }
+
 
 
   async function handleManageSubscription() {
