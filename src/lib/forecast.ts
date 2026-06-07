@@ -129,6 +129,7 @@ export async function runForecast(opts: RunForecastOpts): Promise<void> {
         question,
         suggested_domain: topic === "any" ? null : topic,
         fingerprint,
+        ...(structured ?? {}),
       }),
       signal,
     });
