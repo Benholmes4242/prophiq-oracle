@@ -387,7 +387,7 @@ const US_TRACKS: string[] = [
   "golden gate", "golden gate fields", "woodbine",
 ];
 
-function isNorthAmericanTrack(course: string): boolean {
+export function isNorthAmericanTrack(course: string): boolean {
   const c = course.toLowerCase().trim();
   return US_TRACKS.some((t) => c === t || c.includes(t) || t.includes(c));
 }
