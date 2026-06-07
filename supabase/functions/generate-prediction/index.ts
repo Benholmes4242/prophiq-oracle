@@ -39,6 +39,7 @@ import type {
   ResearchContextError,
 } from "../_shared/domain.ts";
 import { extractUserIfAuthenticated } from "../_shared/auth.ts";
+import { lowDataDisciplineBlock } from "../_shared/forecastDiscipline.ts";
 
 registerAllDomains();
 
