@@ -10,6 +10,8 @@ import {
   type AskTopic,
   type WireStage,
   type ClarificationPayload,
+  type RacePickerClarification,
+  type ConversationalClarification,
 } from "@/lib/forecast";
 
 export type AskPanelState = "loading" | "result" | "error" | "clarification";
