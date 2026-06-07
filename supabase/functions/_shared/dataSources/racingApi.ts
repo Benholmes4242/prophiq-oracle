@@ -55,7 +55,14 @@ export async function fetchRacingContext(
     return emptySnapshot("missing course or date hint");
   }
 
-  const cards = await fetchRacecards(username, password, parsed.date);
+  // Standard plan only serves today/tomorrow (Europe/London). Pro is required
+  // for arbitrary dates — we don't have it, so anything else stays low-data.
+  const day = mapDateToDay(parsed.date);
+  if (!day) {
+    return emptySnapshot("Standard plan covers today/tomorrow only");
+  }
+
+  const cards = await fetchRacecards(username, password, day);
   if (!cards) {
     return emptySnapshot("racecards fetch failed or empty");
   }
@@ -76,6 +83,24 @@ export async function fetchRacingContext(
     matched: `${race.course}${race.off_time ? ` ${race.off_time}` : ""}`,
     note: `matched ${race.runners.length} runners`,
   };
+}
+
+/** YYYY-MM-DD in Europe/London. */
+function londonDate(d: Date): string {
+  // en-CA gives YYYY-MM-DD
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Europe/London",
+    year: "numeric", month: "2-digit", day: "2-digit",
+  }).format(d);
+}
+
+function mapDateToDay(date: string): "today" | "tomorrow" | null {
+  const now = new Date();
+  const today = londonDate(now);
+  const tomorrow = londonDate(new Date(now.getTime() + 24 * 60 * 60 * 1000));
+  if (date === today) return "today";
+  if (date === tomorrow) return "tomorrow";
+  return null;
 }
 
 function emptySnapshot(note: string): RacingSnapshot {
