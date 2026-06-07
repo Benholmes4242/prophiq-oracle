@@ -183,10 +183,10 @@ export async function runForecast(opts: RunForecastOpts): Promise<void> {
             resultPayload = evt.data as { slug?: string; domain?: string };
           }
           if (evt.stage === "clarification" && evt.data) {
-            const c = evt.data as unknown as ClarificationPayload;
-            onClarification?.(c);
+            onClarification?.(normaliseClarification(evt.data));
             return;
           }
+
         } else if (evt.status === "error") {
           // Daily-limit hits arrive as an SSE rate_limit error (HTTP 200) with
           // tier/quota context in evt.data — route to the paywall, not generic
