@@ -200,6 +200,12 @@ Deno.serve(async (req) => {
       //     - time given but no clean match, OR no time at all, OR multiple
       //       matches -> picker (pick_by: time).
       //     - course/day unresolvable -> fall through to normal flow.
+      // Hoisted so the post-block conversational fallback can reference them
+      // when the picker recognised a racing course but couldn't pin a race.
+      let racingClarified = false;
+      let racingLooked = false;
+      let racingCourse: string | null = null;
+      let racingDateWord: "today" | "tomorrow" | null = null;
       try {
         const { parseRacingHints, isNorthAmericanTrack, fetchRacePicker } =
           await import("../_shared/dataSources/racingApi.ts");
@@ -211,12 +217,20 @@ Deno.serve(async (req) => {
           starts_at: hints.starts_at, resolves_at: hints.starts_at,
           status: "scheduled", mode: "prediction", metadata: null,
         } as unknown as DomainEvent);
+        racingLooked = looksLikeRacing;
+        racingCourse = parsed.course;
+        // Derive date_word from the parsed date for fallback messaging.
+        if (parsed.date && /^\d{4}-\d{2}-\d{2}$/.test(parsed.date)) {
+          const now = new Date();
+          const todayISO = now.toISOString().slice(0, 10);
+          const tmr = new Date(now.getTime() + 86400000).toISOString().slice(0, 10);
+          if (parsed.date === todayISO) racingDateWord = "today";
+          else if (parsed.date === tmr) racingDateWord = "tomorrow";
+        }
 
         if (looksLikeRacing && parsed.course) {
           const isUS = isNorthAmericanTrack(parsed.course);
           const usNeedsPicker = isUS && parsed.raceNumber === null;
-          // UK/IRE: we need to consult the card to decide. Only skip the
-          // fetch when we can already tell US has a race number.
           const shouldConsult = isUS ? usNeedsPicker : true;
 
           if (shouldConsult) {
@@ -228,18 +242,21 @@ Deno.serve(async (req) => {
               let emit = false;
               if (picker.kind === "races") {
                 if (isUS) {
-                  emit = true; // US always picks when no race number
+                  emit = true;
                 } else if (parsed.time) {
-                  // UK/IRE: short-circuit only if exactly one race matches.
                   const exact = picker.races.filter((r) => r.local_time === parsed.time);
                   emit = exact.length !== 1;
                 } else {
-                  emit = true; // UK no time -> picker
+                  emit = true;
                 }
               } else if (picker.kind === "dark_day") {
                 emit = true;
               }
-              // kind === "unmatched" -> fall through
+
+              // Surface the decision values so silent fall-throughs are debuggable.
+              console.log(
+                `[submit-question] racing-decision isUS=${isUS} course=${parsed.course} time=${parsed.time ?? "-"} raceNumber=${parsed.raceNumber ?? "-"} picker.kind=${picker.kind} races=${picker.kind === "races" ? picker.races.length : 0} emit=${emit}`,
+              );
 
               if (emit && picker.kind !== "unmatched") {
                 const msg = picker.kind === "dark_day"
@@ -247,9 +264,6 @@ Deno.serve(async (req) => {
                   : (isUS
                       ? `${picker.track_name} is a US track. US races are picked by race number. Which race would you like a forecast for?`
                       : `Which race at ${picker.track_name} would you like a forecast for?`);
-                // Compute date_word ("today"/"tomorrow") relative to UTC now so
-                // the frontend can build a canonical resubmit string without
-                // re-parsing the user's original text.
                 let dateWord: "today" | "tomorrow" | null = null;
                 if (picker.date && /^\d{4}-\d{2}-\d{2}$/.test(picker.date)) {
                   const now = new Date();
@@ -271,15 +285,41 @@ Deno.serve(async (req) => {
                     races: picker.kind === "races" ? picker.races : [],
                   },
                 });
+                racingClarified = true;
                 sse.close();
                 return;
               }
+            } else {
+              console.warn("[submit-question] race clarification skipped: RACING_API creds missing");
             }
           }
         }
       } catch (e) {
         // Clarification is best-effort; never block the normal pipeline.
         console.warn("[submit-question] race clarification failed:", (e as Error).message);
+      }
+
+      // ----- 2.6 RACING CONVERSATIONAL FALLBACK -----
+      // We recognised a racing course but couldn't produce a confident
+      // picker. Don't fall through to the generic forecast (it tends to
+      // emit placeholder outcomes like "multiple race winners"). Ask the
+      // user to clarify instead.
+      if (!racingClarified && racingLooked && racingCourse) {
+        const dateBit = racingDateWord ? ` ${racingDateWord}` : "";
+        sse.send({
+          stage: "clarification",
+          status: "done",
+          data: {
+            type: "conversational",
+            message: `I think you're asking about horse racing at ${racingCourse}${dateBit}. Tell me a race time (e.g. "16:18") or a race number, and I'll forecast it — or tap below to see the card.`,
+            suggestions: [
+              { label: `Show the card at ${racingCourse}`, reply: `show the card at ${racingCourse}${dateBit}` },
+            ],
+            original_question: question,
+          },
+        });
+        sse.close();
+        return;
       }
 
 
