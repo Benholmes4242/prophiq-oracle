@@ -50,10 +50,13 @@ export async function runForecast(opts: RunForecastOpts): Promise<void> {
     const fingerprint = await getBrowserFingerprint();
     const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/submit-question`;
     const anon = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
-    // Send the user's JWT when available so the edge function can quota the
-    // authenticated user (anonymous or email). Falls back to the anon key.
+    // The ask box is gated on auth (Option C) — a session must exist here.
     const { data: { session } } = await supabase.auth.getSession();
-    const bearer = session?.access_token ?? anon;
+    if (!session?.access_token) {
+      onError?.("Please sign in to get a forecast.");
+      return;
+    }
+    const bearer = session.access_token;
 
     const res = await fetch(url, {
       method: "POST",
