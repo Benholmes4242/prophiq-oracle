@@ -56,7 +56,7 @@ export interface PickerRace {
 
 export type PickBy = "race_number" | "time";
 
-export interface ClarificationPayload {
+export interface RacePickerClarification {
   /** New: "race_picker". Back-compat: "us_race_picker". */
   type: "race_picker" | "us_race_picker";
   pick_by: PickBy;
@@ -67,6 +67,22 @@ export interface ClarificationPayload {
   message: string;
   races: PickerRace[];
 }
+
+export interface ConversationalSuggestion {
+  label: string;
+  reply: string;
+}
+
+export interface ConversationalClarification {
+  type: "conversational";
+  message: string;
+  suggestions: ConversationalSuggestion[];
+  original_question: string;
+}
+
+export type ClarificationPayload =
+  | RacePickerClarification
+  | ConversationalClarification;
 
 
 interface RunForecastOpts {
