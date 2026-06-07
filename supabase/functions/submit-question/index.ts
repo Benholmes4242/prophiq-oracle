@@ -247,6 +247,17 @@ Deno.serve(async (req) => {
                   : (isUS
                       ? `${picker.track_name} is a US track. US races are picked by race number. Which race would you like a forecast for?`
                       : `Which race at ${picker.track_name} would you like a forecast for?`);
+                // Compute date_word ("today"/"tomorrow") relative to UTC now so
+                // the frontend can build a canonical resubmit string without
+                // re-parsing the user's original text.
+                let dateWord: "today" | "tomorrow" | null = null;
+                if (picker.date && /^\d{4}-\d{2}-\d{2}$/.test(picker.date)) {
+                  const now = new Date();
+                  const todayISO = now.toISOString().slice(0, 10);
+                  const tmr = new Date(now.getTime() + 86400000).toISOString().slice(0, 10);
+                  if (picker.date === todayISO) dateWord = "today";
+                  else if (picker.date === tmr) dateWord = "tomorrow";
+                }
                 sse.send({
                   stage: "clarification",
                   status: "done",
@@ -255,6 +266,7 @@ Deno.serve(async (req) => {
                     pick_by: picker.pick_by,
                     track_name: picker.track_name,
                     date: picker.date,
+                    date_word: dateWord,
                     message: msg,
                     races: picker.kind === "races" ? picker.races : [],
                   },

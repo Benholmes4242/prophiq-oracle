@@ -62,6 +62,8 @@ export interface ClarificationPayload {
   pick_by: PickBy;
   track_name: string;
   date: string;
+  /** "today" | "tomorrow" | null — backend-computed relative to UTC now. */
+  date_word: "today" | "tomorrow" | null;
   message: string;
   races: PickerRace[];
 }
@@ -328,6 +330,7 @@ function normaliseClarification(data: Record<string, unknown>): ClarificationPay
     pick_by,
     track_name: (data.track_name as string) ?? "",
     date: (data.date as string) ?? "",
+    date_word: (data.date_word as "today" | "tomorrow" | null) ?? null,
     message: (data.message as string) ?? "",
     races,
   };
