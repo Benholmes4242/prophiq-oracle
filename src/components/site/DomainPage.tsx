@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { DomainHero } from "@/components/site/DomainHero";
 import { FilterChips } from "@/components/site/FilterChips";
 import { TodaysLeadCard } from "@/components/site/TodaysLeadCard";
@@ -10,6 +10,13 @@ import { useDomainEvents, useDomainResolvedEvents } from "@/hooks/useEvents";
 import { getChipsForDomain, classifyEvent } from "@/lib/subcategory";
 import type { DomainId, EventWithPrediction } from "@/lib/types";
 import type { HomepagePick } from "@/lib/queries";
+import {
+  consumePendingQuestion,
+  hasSession,
+  openSignupModal,
+  setPendingQuestion,
+} from "@/lib/authGate";
+import { supabase } from "@/lib/supabase";
 
 function toHomepagePick(ep: EventWithPrediction): HomepagePick | null {
   const top = ep.prediction?.ranked_outcomes?.[0];
@@ -43,11 +50,38 @@ export function DomainPage({ domain }: { domain: DomainId }) {
   const { data: resolved = [] } = useDomainResolvedEvents(domain, 5);
 
   const [askQ, setAskQ] = useState<string | null>(null);
-  function ask(q: string) {
+  async function ask(q: string) {
     const trimmed = q.trim();
     if (!trimmed) return;
+    if (!(await hasSession())) {
+      setPendingQuestion({
+        question: trimmed,
+        topic: domain,
+        scope: "domain",
+        domain,
+      });
+      openSignupModal();
+      return;
+    }
     setAskQ(trimmed);
   }
+
+  useEffect(() => {
+    async function tryResume() {
+      if (!(await hasSession())) return;
+      const pending = consumePendingQuestion(
+        (p) => p.scope === "domain" && p.domain === domain,
+      );
+      if (pending) setAskQ(pending.question);
+    }
+    void tryResume();
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event) => {
+        if (event === "SIGNED_IN") void tryResume();
+      },
+    );
+    return () => subscription.unsubscribe();
+  }, [domain]);
 
   const lead = events[0] ?? null;
   const rest = lead ? events.slice(1) : events;
