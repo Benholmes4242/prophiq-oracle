@@ -52,7 +52,7 @@ export function useUsageQuota() {
         trial_end: string | null;
         subscription_status: string;
       } | null;
-      if (!row) return freeFallback();
+      if (!row) return null;
 
       return {
         used: Number(row.used_today ?? 0),
