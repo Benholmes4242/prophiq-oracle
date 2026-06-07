@@ -280,3 +280,56 @@ export async function runForecast(opts: RunForecastOpts): Promise<void> {
     onError?.("Network error. Please try again.");
   }
 }
+
+/**
+ * Normalises an SSE clarification payload into the new generic shape.
+ * Accepts both `type: "race_picker"` (current) and the legacy
+ * `type: "us_race_picker"` payload from earlier deploys.
+ */
+function normaliseClarification(data: Record<string, unknown>): ClarificationPayload {
+  const type = (data.type as ClarificationPayload["type"]) ?? "race_picker";
+  const pick_by: PickBy = (data.pick_by as PickBy) ?? "race_number";
+  const rawRaces = Array.isArray(data.races) ? data.races : [];
+  const races: PickerRace[] = rawRaces.map((r) => {
+    const rec = r as Record<string, unknown>;
+    if (typeof rec.value === "string" && typeof rec.label === "string") {
+      return {
+        value: rec.value,
+        label: rec.label,
+        local_time: (rec.local_time as string | null) ?? null,
+        runners: (rec.runners as number) ?? 0,
+        race_name: (rec.race_name as string | null) ?? null,
+        race_class: (rec.race_class as string | null) ?? null,
+        race_number: (rec.race_number as number | null) ?? null,
+      };
+    }
+    // Legacy US shape.
+    const num = (rec.race_number as number) ?? 0;
+    const localTime = (rec.local_time as string | null) ?? null;
+    const runners = (rec.runners as number) ?? 0;
+    const raceType = (rec.race_type as string | null) ?? null;
+    const parens: string[] = [];
+    if (raceType) parens.push(raceType);
+    if (runners > 0) parens.push(`${runners} runner${runners === 1 ? "" : "s"}`);
+    const tail = parens.length ? ` (${parens.join(", ")})` : "";
+    const timeBit = localTime ? ` · ${localTime}` : "";
+    return {
+      value: String(num),
+      label: `Race ${num}${timeBit}${tail}`,
+      local_time: localTime,
+      runners,
+      race_name: null,
+      race_class: raceType,
+      race_number: num,
+    };
+  });
+  return {
+    type,
+    pick_by,
+    track_name: (data.track_name as string) ?? "",
+    date: (data.date as string) ?? "",
+    message: (data.message as string) ?? "",
+    races,
+  };
+}
+
