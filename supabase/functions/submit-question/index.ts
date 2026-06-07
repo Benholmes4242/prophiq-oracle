@@ -586,7 +586,23 @@ Deno.serve(async (req) => {
         domain: domainId,
         matched_event_id: event.id,
       });
-      sse.send({ stage: "done", status: "done", data: { event_id: event.id, prediction_id: prediction.id, slug: event.slug, domain: domainId } });
+      const topOutcome = ranked[0];
+      const topProb = topOutcome?.probability ?? 0;
+      sse.send({
+        stage: "done",
+        status: "done",
+        data: {
+          event_id: event.id,
+          prediction_id: prediction.id,
+          slug: event.slug,
+          domain: domainId,
+          top_pick_label: topOutcome?.outcome_label ?? null,
+          top_pick_pct: topProb > 1 ? topProb : topProb * 100,
+          reasoning_excerpt: topOutcome?.reasons?.[0] ?? null,
+          confidence: scoreToConfidence(consensusOut.consensus.agreement_score),
+          data_tier: ctx.dataTier,
+        },
+      });
       sse.close();
     } catch (err) {
       sse.send({ stage: "done", status: "error", message: (err as Error).message });
