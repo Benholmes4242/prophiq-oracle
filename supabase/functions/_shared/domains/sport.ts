@@ -26,6 +26,7 @@ import {
 } from "../structuredData.ts";
 import { fetchFootballDataContext } from "../dataSources/footballData.ts";
 import { fetchTheSportsDBContext } from "../dataSources/theSportsDB.ts";
+import { fetchRacingContext } from "../dataSources/racingApi.ts";
 import {
   apiSportsVersionTag,
   getHeadToHead,
@@ -316,6 +317,13 @@ ${forecastDisciplineBlock()}`;
     // theSportsDB covers many sports but has no horse-racing data.
     if (!horseRacing) {
       tasks.push(runSource("theSportsDB", () => fetchTheSportsDBContext(tsdbKey, hints)));
+    }
+    if (horseRacing) {
+      const u = readEnv("RACING_API_USERNAME");
+      const p = readEnv("RACING_API_PASSWORD");
+      if (u && p) {
+        tasks.push(runSource("racingApi", () => fetchRacingContext(u, p, hints)));
+      }
     }
 
     const settled = await Promise.allSettled(tasks);
