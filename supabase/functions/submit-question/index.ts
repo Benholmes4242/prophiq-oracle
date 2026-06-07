@@ -295,6 +295,41 @@ Deno.serve(async (req) => {
         data: { data_tier: ctx.dataTier, feed_sources: ctx.dataSources.feed, research_chars: ctx.dataSources.research_chars },
       });
 
+      // ----- Racing runner rewrite -----
+      // When racingApi matched a race, replace placeholder "Horse A/B/C wins"
+      // outcomes with the real runners so the model ranks actual horses and
+      // chips show real names. Guarded: non-racing events and racing events
+      // without a matched card are untouched.
+      let outcomePairs2 = outcomePairs;
+      let outcomeIdsFinal = outcomeIds ?? [];
+      if (ctx.racingRunners && ctx.racingRunners.length > 0) {
+        const MAX_NAMED = 8;
+        const runners = ctx.racingRunners;
+        const useBucket = runners.length > MAX_NAMED;
+        const named = useBucket ? runners.slice(0, MAX_NAMED) : runners;
+        const newLabels: string[] = named.map((r) => r.horse);
+        if (useBucket) newLabels.push("Any other runner");
+
+        // Replace event_outcomes for this event with runner-based rows.
+        await supabase.from("event_outcomes").delete().eq("event_id", event.id);
+        const newRows = newLabels.map((label) => ({
+          event_id: event.id, external_id: label, label, metadata: null,
+        }));
+        const { error: rwErr } = await supabase
+          .from("event_outcomes")
+          .upsert(newRows, { onConflict: "event_id,external_id" });
+        if (rwErr) {
+          sse.send({ stage: "context", status: "error", message: `racing outcome rewrite failed: ${rwErr.message}` });
+          await recordOutcome("failed"); await logSearchQuery({ result_type: "failed", domain: domainId, matched_event_id: event.id }); sse.close(); return;
+        }
+        const { data: refreshed } = await supabase
+          .from("event_outcomes").select("id,label,external_id").eq("event_id", event.id).order("created_at");
+        outcomeIdsFinal = refreshed ?? [];
+        outcomePairs2 = outcomeIdsFinal.map((o) => ({ id: o.id, label: o.label }));
+        sse.send({ stage: "context", status: "info", data: { racing_outcomes_rewritten: outcomePairs2.length } });
+      }
+
+
       // ----- 5. MODELS -----
       sse.send({ stage: "models", status: "start", data: { models: ["claude", "gpt", "gemini"] } });
 
