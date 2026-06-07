@@ -759,3 +759,69 @@ function parseUSOddsToDecimal(v: string | null | undefined): number | null {
   if (Number.isFinite(n) && n > 1) return n;
   return null;
 }
+
+// ---------- US race picker (clarification path) ----------
+
+export interface USRacePickerRace {
+  race_number: number;
+  local_time: string | null;
+  runners: number;
+  race_type: string | null;
+}
+
+export type USRacePickerResult =
+  | { kind: "races"; track_name: string; date: string; races: USRacePickerRace[] }
+  | { kind: "dark_day"; track_name: string; date: string }
+  | { kind: "unmatched"; reason: string };
+
+/**
+ * For US/CAN tracks where the user did NOT specify a race number, build a
+ * picker payload listing the day's races. Returns kind:"dark_day" when the
+ * track has no card on the requested date.
+ */
+export async function fetchUSRacePicker(
+  username: string,
+  password: string,
+  hints: RacingHints,
+): Promise<USRacePickerResult> {
+  const parsed = parseRacingHints(hints);
+  if (!parsed.course || !parsed.date) {
+    return { kind: "unmatched", reason: "missing course or date hint" };
+  }
+  if (!isNorthAmericanTrack(parsed.course)) {
+    return { kind: "unmatched", reason: "not a North American track" };
+  }
+  const meets = await fetchMeets(username, password, parsed.date, parsed.date);
+  if (!meets) return { kind: "unmatched", reason: "meets fetch failed" };
+  const meet = matchMeet(meets, parsed.course, parsed.date);
+  if (!meet || !meet.meet_id) {
+    return { kind: "dark_day", track_name: parsed.course, date: parsed.date };
+  }
+  const entries = await fetchEntries(username, password, meet.meet_id);
+  const trackName = entries?.track_name ?? meet.track_name ?? parsed.course;
+  if (!entries || !Array.isArray(entries.races) || entries.races.length === 0) {
+    return { kind: "dark_day", track_name: trackName, date: parsed.date };
+  }
+  const races: USRacePickerRace[] = entries.races
+    .map((r): USRacePickerRace | null => {
+      const num = extractNARaceNumber(r);
+      if (num === null) return null;
+      return {
+        race_number: num,
+        local_time: derivedNALocalTime(r) ?? normalisePostTime(r.post_time),
+        runners: Array.isArray(r.runners) ? r.runners.length : 0,
+        race_type:
+          (r as { race_type_description?: string }).race_type_description ??
+          r.race_class ??
+          r.grade ??
+          null,
+      };
+    })
+    .filter((x): x is USRacePickerRace => x !== null)
+    .sort((a, b) => a.race_number - b.race_number);
+  if (races.length === 0) {
+    return { kind: "dark_day", track_name: trackName, date: parsed.date };
+  }
+  return { kind: "races", track_name: trackName, date: parsed.date, races };
+}
+
