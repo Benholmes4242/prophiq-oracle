@@ -410,6 +410,8 @@ Deno.serve(async (req) => {
     research_context,
     prompt_version: PROMPT_VERSION,
     calibration_curve_version: calibrationCurveVersion,
+    data_tier: dataTier,
+    data_sources: dataSources,
     is_current: true,
     expires_at: new Date(Date.now() + STALE_AFTER_MS).toISOString(),
   }).select("*").single();
