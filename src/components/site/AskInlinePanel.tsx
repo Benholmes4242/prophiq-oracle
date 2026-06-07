@@ -395,3 +395,25 @@ function ClarificationBody({
     </div>
   );
 }
+
+/**
+ * Build the resubmit question after the user picks a race.
+ * - US (pick_by="race_number"): strip any existing "race N" tokens, then
+ *   append " race {value}".
+ * - UK/IRE (pick_by="time"): strip any existing time tokens (e.g. "2:20",
+ *   "14:20", "2.20pm"), then append " {value}" (HH:MM).
+ */
+function buildResubmittedQuestion(
+  question: string,
+  pickBy: "race_number" | "time",
+  value: string,
+): string {
+  let q = question.trim();
+  if (pickBy === "race_number") {
+    q = q.replace(/\brace\s*#?\s*\d{1,2}\b/gi, "").replace(/\s+/g, " ").trim();
+    return `${q} race ${value}`;
+  }
+  q = q.replace(/\b\d{1,2}[:.]\d{2}\s*(am|pm)?\b/gi, "").replace(/\s+/g, " ").trim();
+  return `${q} ${value}`;
+}
+
