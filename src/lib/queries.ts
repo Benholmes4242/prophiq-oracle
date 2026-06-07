@@ -4,6 +4,7 @@
 import { supabase } from "./supabase";
 import type {
   ConfidenceTier,
+  DataTier,
   DomainId,
   EventMode,
   EventRow,
@@ -115,6 +116,9 @@ export async function fetchRecentPicks(limit = 6): Promise<EventWithPrediction[]
     .eq("is_current", true)
     // Fix 3: hide sub-question predictions from the recent-picks rail.
     .is("event.parent_event_id", null)
+    // Trust-layer gate: never feature a low_data forecast on home rails.
+    // Legacy rows without a tier are still allowed through.
+    .or("data_tier.is.null,data_tier.in.(feed_backed,research_grounded)")
     .order("generated_at", { ascending: false })
     .limit(limit);
   if (error) throw error;
@@ -188,6 +192,7 @@ export interface HomepagePick {
   top_pick_label: string | null;
   top_pick_pct: number | null;
   confidence: ConfidenceTier;
+  data_tier: DataTier | null;
   reasoning_excerpt: string | null;
   is_marquee: boolean;
 }
@@ -301,6 +306,7 @@ export interface RecentResolved {
   actual_outcome: string | null;
   correct: boolean;
   confidence: ConfidenceTier;
+  data_tier: DataTier | null;
 }
 
 export async function fetchRecentResolved(limit = 10): Promise<RecentResolved[]> {

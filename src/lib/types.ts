@@ -59,6 +59,9 @@ export interface RankedOutcome {
 
 export type ConfidenceTier = "high" | "medium" | "mixed";
 
+/** Data-quality tier — what real evidence backed this forecast. */
+export type DataTier = "feed_backed" | "research_grounded" | "low_data";
+
 /**
  * Public prediction shape — what clients receive. No raw scoring fields,
  * model count, or aggregation method. The server maps internal scores to
@@ -71,6 +74,8 @@ export interface PredictionPublic {
   ranked_outcomes: RankedOutcome[];
   alternates: RankedOutcome[] | null;
   confidence: ConfidenceTier;
+  /** Null only for legacy rows generated before the trust layer shipped. */
+  data_tier: DataTier | null;
   prompt_version: string;
   is_current: boolean;
   generated_at: string;

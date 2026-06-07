@@ -23,6 +23,7 @@ function toHomepagePick(ep: EventWithPrediction): HomepagePick | null {
     top_pick_label: top?.outcome_label ?? null,
     top_pick_pct: top?.probability ?? null,
     confidence: ep.prediction?.confidence ?? "mixed",
+    data_tier: ep.prediction?.data_tier ?? null,
     reasoning_excerpt: top?.reasons?.[0] ?? null,
     is_marquee: false,
   };

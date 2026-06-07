@@ -32,3 +32,27 @@ PROBABILITY CONSTRAINT:
 - Probabilities for the named outcomes must sum to AT MOST 1.0 across the listed entities. If you believe the true winner is likely outside the listed field, leave the remainder unallocated (do not force the named outcomes to sum to 1.0).
 `;
 }
+
+/**
+ * Strict no-data discipline block. Appended in ADDITION to the standard
+ * discipline block when the trust layer has classified this forecast as
+ * `low_data` (no structured feed, no substantive web research). The model
+ * MUST produce a wide, uncertain distribution and must NOT invent entrants,
+ * form, or factors.
+ */
+export function lowDataDisciplineBlock(): string {
+  return `
+LOW-DATA MODE — CRITICAL.
+
+The trust layer has determined that NEITHER a structured feed NOR substantive live research returned real information about this event. You are forecasting without ground truth.
+
+You MUST therefore:
+- NOT invent entrants, runners, candidates, prices, polls, form, injuries, lineups, recent results, statistics, or any other specific fact. If you cannot cite it from the context blocks above, it does not exist for the purpose of this forecast.
+- NOT reason from an outcome's NAME, POSITION in the list, perceived prestige, brand recognition, historical reputation, or pedigree of similarly-named entities.
+- NOT treat the ABSENCE of negative information as positive evidence.
+- Produce a WIDE, UNCERTAIN distribution that reflects the lack of data. Avoid false-precision confident favourites. A near-uniform distribution across the listed outcomes is the correct answer when no outcome can be meaningfully distinguished from the others on the available evidence.
+- In every reason field, explicitly acknowledge the limited data (e.g. "limited public data available; ranking reflects baseline uncertainty"). Do not fabricate reasons.
+
+A flat, honest forecast is correct in this mode. A confident, fabricated one is a failure.
+`;
+}

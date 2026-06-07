@@ -4,6 +4,7 @@
 
 import type { PredictionRow, RankedOutcome } from "@/lib/types";
 import { ConfidenceLabel } from "./ConfidenceLabel";
+import { DataTierBadge } from "./DataTierBadge";
 
 function pct(p: number | undefined): string {
   if (typeof p !== "number") return "—";
@@ -125,7 +126,10 @@ export function PredictionView({ prediction }: { prediction: PredictionRow }) {
           >
             Top pick
           </h2>
-          <ConfidenceLabel tier={prediction.confidence} />
+          <div className="flex items-center gap-2">
+            <DataTierBadge tier={prediction.data_tier} />
+            <ConfidenceLabel tier={prediction.confidence} />
+          </div>
         </div>
         <OutcomeCard outcome={top} rank={1} highlight />
       </section>

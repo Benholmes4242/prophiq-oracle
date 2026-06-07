@@ -39,6 +39,7 @@ import type {
   ResearchContextError,
 } from "../_shared/domain.ts";
 import { extractUserIfAuthenticated } from "../_shared/auth.ts";
+import { lowDataDisciplineBlock } from "../_shared/forecastDiscipline.ts";
 
 registerAllDomains();
 
@@ -274,6 +275,41 @@ Deno.serve(async (req) => {
     }
   }
 
+  // ============================================================
+  // Trust layer: classify what real evidence backs this forecast.
+  //   feed_backed       — at least one structured feed returned data
+  //   research_grounded — no feed, but substantive web research
+  //   low_data          — neither; honest "we don't really know" mode
+  // The tier drives both prompt enforcement (low_data forces a wide,
+  // uncertain, no-fabrication distribution) and surfacing decisions
+  // (low_data is excluded from home/featured/notable downstream).
+  // ============================================================
+  const hasFeed =
+    structuredData !== null || (structuredSources?.sources?.length ?? 0) > 0;
+  const researchText = (research?.synthesised ?? "").trim();
+  const hasSubstantiveResearch =
+    research !== null && researchText.length >= 200;
+
+  const dataTier: "feed_backed" | "research_grounded" | "low_data" = hasFeed
+    ? "feed_backed"
+    : hasSubstantiveResearch
+      ? "research_grounded"
+      : "low_data";
+
+  const dataSources = {
+    feed: [
+      ...(structuredData ? [structuredData.source] : []),
+      ...(structuredSources?.sources?.map((s) => s.name) ?? []),
+    ],
+    research: hasSubstantiveResearch ? (research?.model ?? "perplexity") : null,
+    research_chars: researchText.length,
+    research_error: researchError?.reason ?? null,
+  };
+
+  console.log(
+    `[generate-prediction] event=${body.event_id} data_tier=${dataTier} feed_sources=${dataSources.feed.length} research_chars=${researchText.length}`,
+  );
+
   // ----- Build prompt with research + priors + markets + structured woven in -----
   let prompt = adapter.buildPrompt(
     event as DomainEvent,
@@ -290,6 +326,13 @@ Deno.serve(async (req) => {
   // during Phase A rollout).
   const sourcesBlock = formatStructuredSourcesBlock(structuredSources);
   if (sourcesBlock.length > 0) prompt = `${prompt}\n${sourcesBlock}`;
+
+  // Trust layer: if we have no real data, append the strict no-fabrication
+  // block. The standard discipline block already lives inside each domain
+  // adapter's buildPrompt; this is an additional, stricter constraint.
+  if (dataTier === "low_data") {
+    prompt = `${prompt}\n${lowDataDisciplineBlock()}`;
+  }
 
   // ----- Run consensus -----
   let consensusOut;
@@ -367,6 +410,8 @@ Deno.serve(async (req) => {
     research_context,
     prompt_version: PROMPT_VERSION,
     calibration_curve_version: calibrationCurveVersion,
+    data_tier: dataTier,
+    data_sources: dataSources,
     is_current: true,
     expires_at: new Date(Date.now() + STALE_AFTER_MS).toISOString(),
   }).select("*").single();
@@ -507,6 +552,7 @@ Deno.serve(async (req) => {
     priors_used: priors.length,
     market_signals_used: marketSignals.length,
     structured_data_used: structuredData !== null,
+    data_tier: dataTier,
     reused: false,
   });
 });
