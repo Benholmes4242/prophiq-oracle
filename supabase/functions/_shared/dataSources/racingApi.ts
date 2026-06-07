@@ -261,7 +261,7 @@ function matchRace(
 
   let chosen: RawRacecard | null = null;
   if (time) {
-    chosen = candidates.find((c) => normaliseTime(c.off_time) === time) ?? null;
+    chosen = candidates.find((c) => raceLocalTime(c) === time) ?? null;
   }
   if (!chosen && candidates.length === 1) chosen = candidates[0];
   if (!chosen) return null;
