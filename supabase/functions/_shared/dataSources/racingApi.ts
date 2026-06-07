@@ -291,12 +291,18 @@ function normaliseTime(t: string | undefined): string | null {
 }
 
 function normaliseRunner(r: RawRunner): RacingRunner {
+  const str = (v: unknown) =>
+    v !== undefined && v !== null && String(v).length > 0 ? String(v) : null;
   return {
     horse: String(r.horse ?? "").trim(),
-    jockey: r.jockey ? String(r.jockey) : null,
-    trainer: r.trainer ? String(r.trainer) : null,
-    number: r.number !== undefined && r.number !== null ? String(r.number) : null,
-    draw: r.draw !== undefined && r.draw !== null ? String(r.draw) : null,
+    jockey: str(r.jockey),
+    trainer: str(r.trainer),
+    number: str(r.number),
+    draw: str(r.draw),
+    age: str(r.age),
+    sex: str(r.sex),
+    lbs: str(r.lbs),
+    ofr: str(r.ofr),
     odds: Array.isArray(r.odds) && r.odds.length > 0
       ? r.odds.map((o) => ({
           bookmaker: String(o.bookmaker ?? ""),
