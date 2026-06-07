@@ -16,6 +16,8 @@ import { truncateQuestion } from "../_shared/rateLimit.ts";
 import { preFilter, runModeration, defaultResolvesAt } from "../_shared/moderation.ts";
 import { stableEventId } from "../_shared/domains/_util.ts";
 import { runConsensus } from "../_shared/runConsensus.ts";
+import { assembleForecastContext } from "../_shared/forecastContext.ts";
+import type { DomainEvent, EventOutcome } from "../_shared/domain.ts";
 import { getServiceClient } from "../_shared/supabaseClient.ts";
 import { scoreToConfidence } from "../_shared/confidence.ts";
 import { requireAuthenticatedUser, type AuthedUser } from "../_shared/auth.ts";
