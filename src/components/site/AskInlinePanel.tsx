@@ -313,3 +313,73 @@ function ErrorBody({
     </div>
   );
 }
+
+function ClarificationBody({
+  clarification,
+  onPick,
+  onDismiss,
+}: {
+  clarification: ClarificationPayload;
+  onPick: (raceNumber: number) => void;
+  onDismiss: () => void;
+}) {
+  const hasRaces = clarification.races.length > 0;
+  return (
+    <div className="pt-5">
+      <div
+        className="font-mono text-[10px] tracking-[0.22em] mb-2"
+        style={{ color: "var(--ink-faint)", fontWeight: 600 }}
+      >
+        PICK A RACE
+      </div>
+      <div
+        className="font-body text-[14px] leading-snug mb-3"
+        style={{ color: "var(--ink-soft)" }}
+      >
+        {clarification.message}
+      </div>
+      {hasRaces && (
+        <div className="flex flex-col gap-2">
+          {clarification.races.map((r) => (
+            <button
+              key={r.race_number}
+              onClick={() => onPick(r.race_number)}
+              className="transition-ios flex items-center justify-between rounded-xl px-4 py-3 text-left hover:scale-[1.005]"
+              style={{
+                background: "var(--bg)",
+                border: "1px solid var(--border-soft)",
+              }}
+            >
+              <div className="flex flex-col">
+                <span className="font-sans text-[15px] font-semibold">
+                  Race {r.race_number}
+                  {r.local_time ? ` · ${r.local_time}` : ""}
+                </span>
+                <span
+                  className="font-body text-[12px]"
+                  style={{ color: "var(--ink-soft)" }}
+                >
+                  {r.race_type ?? "Race"} · {r.runners} runner{r.runners === 1 ? "" : "s"}
+                </span>
+              </div>
+              <span
+                className="font-mono text-[18px]"
+                style={{ color: "var(--amber)" }}
+                aria-hidden
+              >
+                →
+              </span>
+            </button>
+          ))}
+        </div>
+      )}
+      <button
+        onClick={onDismiss}
+        className="mt-4 font-body text-[13px] font-semibold underline"
+        style={{ color: "var(--amber-strong)" }}
+      >
+        Cancel
+      </button>
+    </div>
+  );
+}
