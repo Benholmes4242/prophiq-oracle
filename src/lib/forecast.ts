@@ -305,7 +305,26 @@ export async function runForecast(opts: RunForecastOpts): Promise<void> {
  * `type: "us_race_picker"` payload from earlier deploys.
  */
 function normaliseClarification(data: Record<string, unknown>): ClarificationPayload {
-  const type = (data.type as ClarificationPayload["type"]) ?? "race_picker";
+  const type = (data.type as string) ?? "race_picker";
+
+  if (type === "conversational") {
+    const rawSuggestions = Array.isArray(data.suggestions) ? data.suggestions : [];
+    const suggestions: ConversationalSuggestion[] = rawSuggestions
+      .map((s) => {
+        const rec = s as Record<string, unknown>;
+        const label = typeof rec.label === "string" ? rec.label : "";
+        const reply = typeof rec.reply === "string" ? rec.reply : "";
+        return { label, reply };
+      })
+      .filter((s) => s.label && s.reply);
+    return {
+      type: "conversational",
+      message: (data.message as string) ?? "Could you tell me a bit more?",
+      suggestions,
+      original_question: (data.original_question as string) ?? "",
+    };
+  }
+
   const pick_by: PickBy = (data.pick_by as PickBy) ?? "race_number";
   const rawRaces = Array.isArray(data.races) ? data.races : [];
   const races: PickerRace[] = rawRaces.map((r) => {
@@ -321,7 +340,6 @@ function normaliseClarification(data: Record<string, unknown>): ClarificationPay
         race_number: (rec.race_number as number | null) ?? null,
       };
     }
-    // Legacy US shape.
     const num = (rec.race_number as number) ?? 0;
     const localTime = (rec.local_time as string | null) ?? null;
     const runners = (rec.runners as number) ?? 0;
@@ -342,7 +360,7 @@ function normaliseClarification(data: Record<string, unknown>): ClarificationPay
     };
   });
   return {
-    type,
+    type: (type === "us_race_picker" ? "us_race_picker" : "race_picker"),
     pick_by,
     track_name: (data.track_name as string) ?? "",
     date: (data.date as string) ?? "",
