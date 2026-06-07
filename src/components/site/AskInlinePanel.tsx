@@ -150,7 +150,18 @@ export function AskInlinePanel({
         style={{ borderColor: "var(--border-soft)" }}
       />
 
-      {!result && !error && <LoadingBody currentStage={currentStage} />}
+      {!result && !error && !clarification && <LoadingBody currentStage={currentStage} />}
+      {clarification && (
+        <ClarificationBody
+          clarification={clarification}
+          onPick={(raceNumber) => {
+            const next = `${question.replace(/\s+$/, "")} race ${raceNumber}`;
+            if (onResubmit) onResubmit(next);
+            else onDismiss();
+          }}
+          onDismiss={onDismiss}
+        />
+      )}
       {result && (
         <ResultBody
           result={result}
