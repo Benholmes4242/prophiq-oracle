@@ -552,6 +552,7 @@ Deno.serve(async (req) => {
     priors_used: priors.length,
     market_signals_used: marketSignals.length,
     structured_data_used: structuredData !== null,
+    data_tier: dataTier,
     reused: false,
   });
 });
