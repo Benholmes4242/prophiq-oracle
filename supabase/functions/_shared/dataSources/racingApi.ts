@@ -161,14 +161,20 @@ function parseRacingHints(hints: RacingHints): ParsedHints {
       "Newmarket", "Goodwood", "Sandown", "Doncaster", "Chester", "Hexham",
       "York", "Wetherby", "Lingfield", "Wolverhampton", "Southwell",
       "Leopardstown", "Punchestown", "Fairyhouse", "Curragh", "Naas",
-      "Churchill Downs", "Belmont", "Saratoga", "Santa Anita", "Del Mar",
-      "Gulfstream", "Keeneland", "Aqueduct", "Pimlico",
+      // US / Canada (North America advanced add-on)
+      "Churchill Downs", "Belmont", "Belmont Park", "Saratoga", "Santa Anita",
+      "Del Mar", "Gulfstream", "Gulfstream Park", "Keeneland", "Aqueduct",
+      "Pimlico", "Parx", "Parx Racing", "Finger Lakes", "Louisiana Downs",
+      "Mountaineer", "Presque Isle", "Prairie Meadows", "Thistledown",
+      "Monmouth", "Monmouth Park", "Oaklawn", "Fair Grounds", "Tampa Bay Downs",
+      "Golden Gate", "Golden Gate Fields", "Woodbine",
     ];
     const lower = text.toLowerCase();
     for (const v of venues) {
       if (lower.includes(v.toLowerCase())) { course = v; break; }
     }
   }
+
 
   // date: "today" / "tomorrow" / starts_at / explicit YYYY-MM-DD (Europe/London)
   let date: string | null = null;
