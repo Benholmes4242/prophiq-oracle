@@ -130,7 +130,9 @@ interface ParsedHints {
   course: string | null;
   time: string | null; // HH:MM 24h
   date: string | null; // YYYY-MM-DD
+  raceNumber: number | null; // e.g. "race 5" -> 5 (NA cards)
 }
+
 
 function parseRacingHints(hints: RacingHints): ParsedHints {
   const text = [hints.title ?? "", hints.question ?? ""].join(" ");
