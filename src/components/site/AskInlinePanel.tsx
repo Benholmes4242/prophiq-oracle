@@ -172,7 +172,17 @@ export function AskInlinePanel({
           clarification={clarification}
           onPick={(value: string) => {
             const next = buildResubmittedQuestion(question, clarification, value);
-            if (onResubmit) onResubmit(next);
+            const struct: StructuredAsk = {
+              course: clarification.track_name || undefined,
+              date_word: clarification.date_word ?? undefined,
+            };
+            if (clarification.pick_by === "race_number") {
+              const n = parseInt(value, 10);
+              if (!Number.isNaN(n)) struct.race_number = n;
+            } else {
+              struct.race_time = value;
+            }
+            if (onResubmit) onResubmit(next, struct);
             else onDismiss();
           }}
           onDismiss={onDismiss}
