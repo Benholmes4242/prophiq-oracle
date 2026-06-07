@@ -273,6 +273,7 @@ Deno.serve(async (req) => {
       console.warn(
         `[generate-prediction] structured sources fetch failed for event ${body.event_id}: ${(sourcesRes.reason as Error).message}`,
       );
+    }
   }
 
   // ============================================================
