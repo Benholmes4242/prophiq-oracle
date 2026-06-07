@@ -35,6 +35,21 @@ export interface AskResult {
   reasoningExcerpt: string;
 }
 
+export interface USRacePickerRace {
+  race_number: number;
+  local_time: string | null;
+  runners: number;
+  race_type: string | null;
+}
+
+export interface ClarificationPayload {
+  type: "us_race_picker";
+  track_name: string;
+  date: string;
+  message: string;
+  races: USRacePickerRace[];
+}
+
 interface RunForecastOpts {
   question: string;
   topic: AskTopic;
@@ -42,10 +57,11 @@ interface RunForecastOpts {
   onStage?: (stage: WireStage) => void;
   onResult?: (r: AskResult) => void;
   onError?: (message: string) => void;
+  onClarification?: (c: ClarificationPayload) => void;
 }
 
 export async function runForecast(opts: RunForecastOpts): Promise<void> {
-  const { question, topic, signal, onStage, onResult, onError } = opts;
+  const { question, topic, signal, onStage, onResult, onError, onClarification } = opts;
   try {
     const fingerprint = await getBrowserFingerprint();
     const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/submit-question`;
@@ -148,6 +164,11 @@ export async function runForecast(opts: RunForecastOpts): Promise<void> {
           }
           if (evt.stage === "done" && evt.data) {
             resultPayload = evt.data as { slug?: string; domain?: string };
+          }
+          if (evt.stage === "clarification" && evt.data) {
+            const c = evt.data as unknown as ClarificationPayload;
+            onClarification?.(c);
+            return;
           }
         } else if (evt.status === "error") {
           // Daily-limit hits arrive as an SSE rate_limit error (HTTP 200) with

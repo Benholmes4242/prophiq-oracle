@@ -106,6 +106,7 @@ function HomePage() {
               topic="any"
               onDismiss={() => setAskQ(null)}
               onStateChange={setAskState}
+              onResubmit={(q) => setAskQ(q)}
             />
           </section>
           <div />

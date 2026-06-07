@@ -9,15 +9,17 @@ import {
   type AskResult,
   type AskTopic,
   type WireStage,
+  type ClarificationPayload,
 } from "@/lib/forecast";
 
-export type AskPanelState = "loading" | "result" | "error";
+export type AskPanelState = "loading" | "result" | "error" | "clarification";
 
 interface AskInlinePanelProps {
   question: string;
   topic: AskTopic;
   onDismiss: () => void;
   onStateChange?: (state: AskPanelState) => void;
+  onResubmit?: (newQuestion: string) => void;
 }
 
 export function AskInlinePanel({
@@ -25,10 +27,12 @@ export function AskInlinePanel({
   topic,
   onDismiss,
   onStateChange,
+  onResubmit,
 }: AskInlinePanelProps) {
   const [currentStage, setCurrentStage] = useState<WireStage | null>(null);
   const [result, setResult] = useState<AskResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [clarification, setClarification] = useState<ClarificationPayload | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   const historyAddedForRef = useRef<string | null>(null);
   const navigate = useNavigate();
@@ -38,7 +42,7 @@ export function AskInlinePanel({
     setCurrentStage(null);
     setResult(null);
     setError(null);
-    // Reset guard when the question changes (new ask)
+    setClarification(null);
     historyAddedForRef.current = null;
 
     const abort = new AbortController();
@@ -51,7 +55,6 @@ export function AskInlinePanel({
       onStage: (stage) => setCurrentStage(stage),
       onResult: (res) => {
         setResult(res);
-        // Guard: only persist once per question, even if onResult fires twice
         if (historyAddedForRef.current !== question) {
           historyAddedForRef.current = question;
           addToHistory({
@@ -61,6 +64,7 @@ export function AskInlinePanel({
           });
         }
       },
+      onClarification: (c) => setClarification(c),
       onError: (msg) => setError(msg),
     });
 
@@ -78,8 +82,10 @@ export function AskInlinePanel({
   useEffect(() => {
     if (result) onStateChange?.("result");
     else if (error) onStateChange?.("error");
+    else if (clarification) onStateChange?.("clarification");
     else onStateChange?.("loading");
-  }, [result, error, onStateChange]);
+  }, [result, error, clarification, onStateChange]);
+
 
 
   return (
@@ -144,7 +150,18 @@ export function AskInlinePanel({
         style={{ borderColor: "var(--border-soft)" }}
       />
 
-      {!result && !error && <LoadingBody currentStage={currentStage} />}
+      {!result && !error && !clarification && <LoadingBody currentStage={currentStage} />}
+      {clarification && (
+        <ClarificationBody
+          clarification={clarification}
+          onPick={(raceNumber: number) => {
+            const next = `${question.replace(/\s+$/, "")} race ${raceNumber}`;
+            if (onResubmit) onResubmit(next);
+            else onDismiss();
+          }}
+          onDismiss={onDismiss}
+        />
+      )}
       {result && (
         <ResultBody
           result={result}
@@ -292,6 +309,76 @@ function ErrorBody({
         style={{ color: "var(--amber-strong)" }}
       >
         Close and try again
+      </button>
+    </div>
+  );
+}
+
+function ClarificationBody({
+  clarification,
+  onPick,
+  onDismiss,
+}: {
+  clarification: ClarificationPayload;
+  onPick: (raceNumber: number) => void;
+  onDismiss: () => void;
+}) {
+  const hasRaces = clarification.races.length > 0;
+  return (
+    <div className="pt-5">
+      <div
+        className="font-mono text-[10px] tracking-[0.22em] mb-2"
+        style={{ color: "var(--ink-faint)", fontWeight: 600 }}
+      >
+        PICK A RACE
+      </div>
+      <div
+        className="font-body text-[14px] leading-snug mb-3"
+        style={{ color: "var(--ink-soft)" }}
+      >
+        {clarification.message}
+      </div>
+      {hasRaces && (
+        <div className="flex flex-col gap-2">
+          {clarification.races.map((r) => (
+            <button
+              key={r.race_number}
+              onClick={() => onPick(r.race_number)}
+              className="transition-ios flex items-center justify-between rounded-xl px-4 py-3 text-left hover:scale-[1.005]"
+              style={{
+                background: "var(--bg)",
+                border: "1px solid var(--border-soft)",
+              }}
+            >
+              <div className="flex flex-col">
+                <span className="font-sans text-[15px] font-semibold">
+                  Race {r.race_number}
+                  {r.local_time ? ` · ${r.local_time}` : ""}
+                </span>
+                <span
+                  className="font-body text-[12px]"
+                  style={{ color: "var(--ink-soft)" }}
+                >
+                  {r.race_type ?? "Race"} · {r.runners} runner{r.runners === 1 ? "" : "s"}
+                </span>
+              </div>
+              <span
+                className="font-mono text-[18px]"
+                style={{ color: "var(--amber)" }}
+                aria-hidden
+              >
+                →
+              </span>
+            </button>
+          ))}
+        </div>
+      )}
+      <button
+        onClick={onDismiss}
+        className="mt-4 font-body text-[13px] font-semibold underline"
+        style={{ color: "var(--amber-strong)" }}
+      >
+        Cancel
       </button>
     </div>
   );

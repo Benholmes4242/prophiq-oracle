@@ -409,7 +409,7 @@ function hasUsableData(data: unknown): boolean {
   return keys.length > 0;
 }
 
-function isHorseRacingEvent(event: DomainEvent): boolean {
+export function isHorseRacingEvent(event: DomainEvent): boolean {
   const meta = (typeof event.metadata === "object" && event.metadata !== null)
     ? (event.metadata as Record<string, unknown>)
     : {};

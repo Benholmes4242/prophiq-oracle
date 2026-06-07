@@ -107,6 +107,7 @@ export function DomainPage({ domain }: { domain: DomainId }) {
               question={askQ}
               topic={domain}
               onDismiss={() => setAskQ(null)}
+              onResubmit={(q) => setAskQ(q)}
             />
           </section>
         )}
