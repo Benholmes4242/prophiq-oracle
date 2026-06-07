@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { PhiMark } from "@/components/brand/PhiMark";
-import { TierBadge } from "@/components/site/TierBadge";
+
 import { LoginModal } from "@/components/auth/LoginModal";
 import { useUsageQuota } from "@/hooks/useUsageQuota";
 import { useIsAdmin } from "@/lib/admin/useIsAdmin";
