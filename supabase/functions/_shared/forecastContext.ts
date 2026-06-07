@@ -202,7 +202,7 @@ export async function assembleForecastContext(
   };
 }
 
-function extractRacingRunners(
+export function extractRacingRunners(
   ctx: StructuredDataContext,
 ): RacingRunnerSummary[] | null {
   const src = ctx.sources.find((s) => s.name === "racingApi");
