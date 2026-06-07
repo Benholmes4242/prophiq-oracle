@@ -42,13 +42,30 @@ export interface USRacePickerRace {
   race_type: string | null;
 }
 
+export interface PickerRace {
+  /** Value to inject back into the question. US: race number string. UK/IRE: off-time HH:MM. */
+  value: string;
+  /** Pre-formatted display label. */
+  label: string;
+  local_time: string | null;
+  runners: number;
+  race_name: string | null;
+  race_class: string | null;
+  race_number: number | null;
+}
+
+export type PickBy = "race_number" | "time";
+
 export interface ClarificationPayload {
-  type: "us_race_picker";
+  /** New: "race_picker". Back-compat: "us_race_picker". */
+  type: "race_picker" | "us_race_picker";
+  pick_by: PickBy;
   track_name: string;
   date: string;
   message: string;
-  races: USRacePickerRace[];
+  races: PickerRace[];
 }
+
 
 interface RunForecastOpts {
   question: string;
