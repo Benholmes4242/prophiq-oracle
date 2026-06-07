@@ -64,6 +64,13 @@ export async function fetchRacingContext(
     return emptySnapshot("missing course or date hint");
   }
 
+  // Route US/CAN tracks (advanced North America add-on) separately from the
+  // UK/IRE Standard plan. They use a different two-step endpoint set and a
+  // different runner shape.
+  if (isNorthAmericanTrack(parsed.course)) {
+    return await fetchNorthAmericaContext(username, password, parsed);
+  }
+
   // Standard plan only serves today/tomorrow (Europe/London). Pro is required
   // for arbitrary dates — we don't have it, so anything else stays low-data.
   const day = mapDateToDay(parsed.date);
@@ -93,6 +100,7 @@ export async function fetchRacingContext(
     note: `matched ${race.runners.length} runners`,
   };
 }
+
 
 /** YYYY-MM-DD in Europe/London. */
 function londonDate(d: Date): string {
