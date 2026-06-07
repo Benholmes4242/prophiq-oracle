@@ -50,7 +50,7 @@ export async function runForecast(opts: RunForecastOpts): Promise<void> {
     const fingerprint = await getBrowserFingerprint();
     const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/submit-question`;
     const anon = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
-    // The ask box is gated on auth (Option C) — a session must exist here.
+    // The ask box is gated on auth (Option C) — a real user session must exist.
     const { data: { session } } = await supabase.auth.getSession();
     if (!session?.access_token) {
       onError?.("Please sign in to get a forecast.");
