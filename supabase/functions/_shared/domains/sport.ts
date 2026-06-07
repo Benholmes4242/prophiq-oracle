@@ -448,6 +448,32 @@ export function isHorseRacingEvent(event: DomainEvent): boolean {
   return false;
 }
 
+export function isGolfEvent(event: DomainEvent): boolean {
+  const meta = (typeof event.metadata === "object" && event.metadata !== null)
+    ? (event.metadata as Record<string, unknown>)
+    : {};
+  const subCat = String(meta.sub_category ?? meta.subcategory ?? "")
+    .toLowerCase().trim();
+  if (subCat === "golf") return true;
+
+  const text = [
+    event.title,
+    event.question,
+    String(meta.subcategory ?? ""),
+    String(meta.sub_category ?? ""),
+    String(meta.sport ?? ""),
+    String(meta.league ?? ""),
+  ].join(" ").toLowerCase();
+
+  // Strong golf signals (tour names, well-known golf-only majors/events).
+  if (/\bgolf\b/.test(text)) return true;
+  if (/\b(pga tour|pga championship|dp world|european tour|lpga|korn ferry|ryder cup|presidents cup|liv golf)\b/.test(text)) return true;
+  if (/\b(the masters|masters tournament|the open championship|british open|memorial tournament|players championship|tour championship|fedex ?cup|arnold palmer invitational|wgc|wells fargo|wyndham championship|travelers championship|john deere classic|rocket mortgage|sentry tournament|farmers insurance|waste management|phoenix open|valspar|valero|zurich classic|charles schwab|rbc|genesis invitational|hero world challenge)\b/.test(text)) return true;
+  // "US Open" alone is ambiguous (tennis). Require an explicit golf signal,
+  // which the rules above already enforce — so do not match bare "us open".
+  return false;
+}
+
 function readEnv(name: string): string | undefined {
   const deno = (globalThis as { Deno?: { env: { get(k: string): string | undefined } } }).Deno;
   if (deno) return deno.env.get(name);
