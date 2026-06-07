@@ -303,17 +303,34 @@ ${forecastDisciplineBlock()}`;
       starts_at: event.starts_at,
     };
 
-    const [fdRes, tsdbRes] = await Promise.allSettled([
-      runSource("footballData", () => fetchFootballDataContext(fdKey, hints)),
-      runSource("theSportsDB", () => fetchTheSportsDBContext(tsdbKey, hints)),
-    ]);
+    // Bug 2 fix: route feed selection by sub-sport. Football feeds must NOT
+    // be called for horse racing, tennis, golf, etc. — they previously
+    // returned empty-but-non-null payloads that mis-triggered feed_backed.
+    const football = isFootballEvent(event);
+    const horseRacing = isHorseRacingEvent(event);
+
+    const tasks: Array<Promise<SourceResult>> = [];
+    if (football) {
+      tasks.push(runSource("footballData", () => fetchFootballDataContext(fdKey, hints)));
+    }
+    // theSportsDB covers many sports but has no horse-racing data.
+    if (!horseRacing) {
+      tasks.push(runSource("theSportsDB", () => fetchTheSportsDBContext(tsdbKey, hints)));
+    }
+
+    const settled = await Promise.allSettled(tasks);
 
     const sources: StructuredDataSource[] = [];
     const errors: StructuredDataError[] = [];
-    for (const res of [fdRes, tsdbRes]) {
+    for (const res of settled) {
       if (res.status === "fulfilled") {
+        // Bug 1 fix: only `ok` (with usable data) counts as a real source.
+        // `empty` results (feed succeeded but found nothing for this event)
+        // are dropped so they cannot inflate hasFeed and suppress the
+        // low_data discipline guardrail downstream.
         if (res.value.kind === "ok") sources.push(res.value.source);
-        else errors.push(res.value.error);
+        else if (res.value.kind === "err") errors.push(res.value.error);
+        // kind === "empty" → silently dropped
       } else {
         errors.push({
           source: "unknown",
@@ -329,6 +346,7 @@ ${forecastDisciplineBlock()}`;
 
 type SourceResult =
   | { kind: "ok"; source: StructuredDataSource }
+  | { kind: "empty"; source: string; duration_ms: number }
   | { kind: "err"; error: StructuredDataError };
 
 async function runSource(
@@ -339,6 +357,9 @@ async function runSource(
   try {
     const data = await withTimeout(fetcher(), STRUCTURED_DATA_TIMEOUT_MS, name);
     const duration_ms = Date.now() - start;
+    if (!hasUsableData(data)) {
+      return { kind: "empty", source: name, duration_ms };
+    }
     return {
       kind: "ok",
       source: { name, data, fetched_at: new Date().toISOString(), duration_ms },
@@ -353,6 +374,51 @@ async function runSource(
       },
     };
   }
+}
+
+/**
+ * Bug 1 fix: classify a feed payload as usable or empty. Both footballData
+ * and theSportsDB return success-with-no-data on a miss (e.g.
+ * `{ matched: null, events: [], note: "no events found" }`). Those payloads
+ * must not count as a real structured-data source — otherwise the trust
+ * layer mis-labels the forecast `feed_backed` and skips the no-fabrication
+ * discipline block.
+ */
+function hasUsableData(data: unknown): boolean {
+  if (data === null || data === undefined) return false;
+  if (typeof data !== "object") return false;
+  const d = data as Record<string, unknown>;
+  if ("matched" in d || "events" in d || "candidates" in d) {
+    if (d.matched !== null && d.matched !== undefined) return true;
+    const events = Array.isArray((d as { events?: unknown[] }).events)
+      ? (d as { events: unknown[] }).events
+      : [];
+    if (events.length > 0) return true;
+    return false;
+  }
+  // Unknown shape: only count it if it has at least one non-note key.
+  const keys = Object.keys(d).filter((k) => k !== "note");
+  return keys.length > 0;
+}
+
+function isHorseRacingEvent(event: DomainEvent): boolean {
+  const meta = (typeof event.metadata === "object" && event.metadata !== null)
+    ? (event.metadata as Record<string, unknown>)
+    : {};
+  const text = [
+    event.title,
+    event.question,
+    String(meta.subcategory ?? ""),
+    String(meta.sport ?? ""),
+    String(meta.league ?? ""),
+  ].join(" ").toLowerCase();
+  if (/\bhorse[ _-]?racing\b/.test(text)) return true;
+  if (/\bracecourse\b|\bgallop(s|ing)?\b|\bjockey\b|\bsteeplechase\b|\bhurdle\b/.test(text)) return true;
+  // Common UK/IE racing venues + Australian/US classics
+  if (/\b(hexham|cheltenham|aintree|ascot|epsom|newmarket|goodwood|sandown|kempton|doncaster|chester|leopardstown|punchestown|fairyhouse|flemington|churchill downs|belmont|saratoga|melbourne cup|grand national|kentucky derby)\b/.test(text)) return true;
+  // Race-card time-of-day pattern: "3:45 at Hexham"
+  if (/\b\d{1,2}[:.]\d{2}\s+at\s+[a-z]/i.test(text)) return true;
+  return false;
 }
 
 function readEnv(name: string): string | undefined {
