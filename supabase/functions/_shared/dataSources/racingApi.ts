@@ -446,10 +446,11 @@ async function fetchNorthAmericaContext(
 ): Promise<RacingSnapshot> {
   const course = parsed.course!;
   const date = parsed.date!;
-  // Window: the parsed date itself; if it is today, extend +2 days to absorb
-  // late-loading fixtures. Keeps fetch small.
+  // Window: single day equal to the parsed date. The NA meets endpoint has a
+  // quirk where a multi-day window can omit the target date's meet for a
+  // track and only return that track's later days. Single-day avoids it.
   const start = date;
-  const end = addDaysISO(date, 2);
+  const end = date;
   const meets = await fetchMeets(username, password, start, end);
   if (!meets) return emptySnapshot("NA meets fetch failed");
   if (meets.length === 0) {
@@ -757,11 +758,4 @@ function parseUSOddsToDecimal(v: string | null | undefined): number | null {
   const n = Number(s);
   if (Number.isFinite(n) && n > 1) return n;
   return null;
-}
-
-function addDaysISO(date: string, days: number): string {
-  const d = new Date(`${date}T00:00:00Z`);
-  if (isNaN(d.getTime())) return date;
-  d.setUTCDate(d.getUTCDate() + days);
-  return d.toISOString().slice(0, 10);
 }
