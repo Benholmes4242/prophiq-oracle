@@ -187,11 +187,15 @@ interface RawRacecardsResponse {
 interface RawRacecard {
   race_id?: string;
   course?: string;
+  region?: string;
   off_time?: string; // "14:20"
   off_dt?: string;
   race_name?: string;
+  race_class?: string;
+  field_size?: string | number;
   distance?: string;
   going?: string;
+  betting_forecast?: string;
   runners?: RawRunner[];
 }
 interface RawRunner {
@@ -200,18 +204,22 @@ interface RawRunner {
   trainer?: string;
   number?: string | number;
   draw?: string | number;
+  age?: string | number;
+  sex?: string;
+  lbs?: string | number;
+  ofr?: string | number;
   odds?: Array<{ bookmaker?: string; fractional?: string; decimal?: number | string }>;
 }
 
 async function fetchRacecards(
   username: string,
   password: string,
-  date: string,
+  day: "today" | "tomorrow",
 ): Promise<RawRacecard[] | null> {
   const auth = "Basic " + btoa(`${username}:${password}`);
-  // The Standard+advanced "pro" racecards endpoint returns full runner detail
-  // including bookmaker odds. Filter to the requested day.
-  const url = `${RACING_API_BASE}/v1/racecards/pro?date=${encodeURIComponent(date)}`;
+  // Standard plan: /v1/racecards/standard accepts ?day=today|tomorrow only.
+  // Pro plan (which we don't have) is required for arbitrary ?date=.
+  const url = `${RACING_API_BASE}/v1/racecards/standard?day=${day}`;
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), RACING_API_TIMEOUT_MS);
   try {
@@ -220,7 +228,7 @@ async function fetchRacecards(
       signal: controller.signal,
     });
     if (!res.ok) {
-      console.warn(`[racingApi] non-2xx: ${res.status} for ${date}`);
+      console.warn(`[racingApi] non-2xx: ${res.status} for day=${day}`);
       return null;
     }
     const data = await res.json() as RawRacecardsResponse;
