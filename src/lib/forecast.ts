@@ -85,10 +85,18 @@ export type ClarificationPayload =
   | ConversationalClarification;
 
 
+export interface StructuredAsk {
+  course?: string;
+  race_time?: string;
+  race_number?: number;
+  date_word?: "today" | "tomorrow";
+}
+
 interface RunForecastOpts {
   question: string;
   topic: AskTopic;
   signal: AbortSignal;
+  structured?: StructuredAsk;
   onStage?: (stage: WireStage) => void;
   onResult?: (r: AskResult) => void;
   onError?: (message: string) => void;
@@ -96,7 +104,7 @@ interface RunForecastOpts {
 }
 
 export async function runForecast(opts: RunForecastOpts): Promise<void> {
-  const { question, topic, signal, onStage, onResult, onError, onClarification } = opts;
+  const { question, topic, structured, signal, onStage, onResult, onError, onClarification } = opts;
   try {
     const fingerprint = await getBrowserFingerprint();
     const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/submit-question`;
