@@ -33,10 +33,14 @@ function AccountPage() {
     void invalidate();
   }, [invalidate]);
 
+  const [signedOut, setSignedOut] = useState(false);
+
   useEffect(() => {
     let mounted = true;
     void supabase.auth.getUser().then(({ data: { user } }) => {
-      if (mounted) setUserEmail(user?.email ?? null);
+      if (!mounted) return;
+      setUserEmail(user?.email ?? null);
+      setSignedOut(!user);
     });
     return () => {
       mounted = false;
