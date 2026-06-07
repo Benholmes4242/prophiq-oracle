@@ -29,6 +29,11 @@ import { lowDataDisciplineBlock } from "./forecastDiscipline.ts";
 
 export type DataTier = "feed_backed" | "research_grounded" | "low_data";
 
+export interface RacingRunnerSummary {
+  horse: string;
+  odds: number | null; // best (lowest) decimal price across bookmakers, or null
+}
+
 export interface ForecastContextResult {
   research: ResearchContext | null;
   researchError: ResearchContextError | null;
@@ -43,6 +48,8 @@ export interface ForecastContextResult {
     research_chars: number;
     research_error: string | null;
   };
+  /** Non-null only when racingApi matched a race; ranked by odds (favourite first). */
+  racingRunners: RacingRunnerSummary[] | null;
   prompt: string;
 }
 
