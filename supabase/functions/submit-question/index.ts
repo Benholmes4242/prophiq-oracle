@@ -711,7 +711,9 @@ Deno.serve(async (req) => {
       // tiering, placeholder-gate behaviour, and never-fabricate rules.
       const normalized = resolverOverride?.normalized_question ?? mod.normalized_question ?? question;
       const startsAt = resolverOverride?.starts_at ?? mod.starts_at ?? today.toISOString();
-      const resolvesAt = defaultResolvesAt(mod, today);
+      const resolvesAt = (footballConfirm?.kind === "league" && footballConfirm.resolves_at)
+        ? footballConfirm.resolves_at
+        : defaultResolvesAt(mod, today);
       sse.send({
         stage: "moderation",
         status: "done",
