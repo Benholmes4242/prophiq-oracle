@@ -79,21 +79,37 @@ Deno.serve(async (req) => {
   const fingerprint = getFingerprint(body, req) ?? null;
   if (!question) return errorResponse("question required");
 
-  // Conversational resubmit: merge the user's prior question with this reply
-  // so every downstream stage (sport detection, moderation, golf picker name
-  // parsing, the forecast itself) operates on the combined context. The
-  // user's reply may be a sport word ("golf"), a tour name ("LPGA"), a full
-  // restatement, or anything else — we never assume the answer space.
-  const priorQuestion = typeof body.original_question === "string"
-    ? body.original_question.trim()
-    : "";
-  if (priorQuestion && priorQuestion.toLowerCase() !== question.toLowerCase()) {
-    question = `${priorQuestion} ${question}`.replace(/\s+/g, " ").trim();
+  // Build the trusted USER-turns transcript. Client-sent assistant turns
+  // are NEVER accepted (jailbreak surface). Prefer the new `user_turns`
+  // array; fall back to legacy `original_question` + current `question`.
+  const rawTurns = Array.isArray(body.user_turns) ? body.user_turns : null;
+  let userTurns: string[] = rawTurns
+    ? rawTurns
+        .filter((t): t is string => typeof t === "string")
+        .map((t) => t.trim())
+        .filter((t) => t.length > 0 && t.length <= 500)
+        .slice(-5)
+    : [];
+  if (userTurns.length === 0) {
+    const priorQuestion = typeof body.original_question === "string"
+      ? body.original_question.trim()
+      : "";
+    if (priorQuestion) userTurns.push(priorQuestion);
+    userTurns.push(question);
+  } else if (userTurns[userTurns.length - 1] !== question) {
+    // Frontend should have already pushed the latest reply, but be defensive.
+    userTurns.push(question);
+    userTurns = userTurns.slice(-5);
+  }
+
+  // Re-run POLICY on the combined transcript text, not just the latest turn.
+  // The conversational loop must not become a jailbreak around the policy gate.
+  const combinedText = userTurns.join(" ").replace(/\s+/g, " ").trim();
+  if (combinedText && combinedText.toLowerCase() !== question.toLowerCase()) {
+    question = combinedText;
     console.log(`[submit-question] conversational-resubmit combined -> "${question}"`);
   }
-  const clarifyTurn = typeof body.clarify_turn === "number" && body.clarify_turn > 0
-    ? Math.min(body.clarify_turn, 5)
-    : 0;
+  const clarifyTurn = userTurns.length;
 
   // Structured racing override: rebuild the question text canonically so the
   // racing parser (and event title) sees a clean string regardless of what
