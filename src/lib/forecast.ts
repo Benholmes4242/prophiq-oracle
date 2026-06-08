@@ -12,6 +12,7 @@ export type WireStage =
   | "rate_limit"
   | "pre_filter"
   | "moderation"
+  | "resolver"
   | "research"
   | "models"
   | "consensus";
@@ -20,6 +21,7 @@ const KNOWN_STAGES: WireStage[] = [
   "rate_limit",
   "pre_filter",
   "moderation",
+  "resolver",
   "research",
   "models",
   "consensus",
