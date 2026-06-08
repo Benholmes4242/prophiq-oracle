@@ -9,7 +9,7 @@ export const Route = createFileRoute("/how-it-works")({
       {
         name: "description",
         content:
-          "Multi-model AI consensus, grounded in live data and our own forecasting database, calibrated against reality.",
+          "Prophiq has a conversation with you to understand exactly what you are forecasting, then grounds the answer in live data and the agreement of multiple AI models, calibrated against reality.",
       },
       {
         property: "og:title",
@@ -18,7 +18,7 @@ export const Route = createFileRoute("/how-it-works")({
       {
         property: "og:description",
         content:
-          "Multi-model AI consensus, grounded in live data and our own forecasting database, calibrated against reality.",
+          "Prophiq has a conversation with you to understand exactly what you are forecasting, then grounds the answer in live data and the agreement of multiple AI models, calibrated against reality.",
       },
     ],
   }),
