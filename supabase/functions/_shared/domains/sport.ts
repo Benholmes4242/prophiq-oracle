@@ -334,6 +334,34 @@ ${forecastDisciplineBlock()}`;
       }
     }
 
+    // Football confirm (Step 4 feed-backed): submit-question's resolver
+    // football branch writes a `football_confirm` payload onto event.metadata
+    // for confirmed match-winner / league-winner questions. Surface it as a
+    // structured-data source so the trust layer flips to feed_backed and the
+    // prompt sees the kickoff / live standings inline. No new fetch here -
+    // the data was already fetched + validated upstream.
+    {
+      const meta = (typeof event.metadata === "object" && event.metadata !== null)
+        ? (event.metadata as Record<string, unknown>)
+        : {};
+      const fc = meta.football_confirm;
+      if (fc && typeof fc === "object") {
+        tasks.push(Promise.resolve({
+          kind: "ok",
+          source: {
+            name: "footballConfirm",
+            data: { matched: fc },
+            fetched_at: new Date().toISOString(),
+            duration_ms: 0,
+          },
+        } as SourceResult));
+      }
+    }
+      if (gk) {
+        tasks.push(runSource("sportRadarGolf", () => fetchGolfContext(gk, hints)));
+      }
+    }
+
     const settled = await Promise.allSettled(tasks);
 
     const sources: StructuredDataSource[] = [];
