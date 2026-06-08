@@ -77,6 +77,11 @@ export interface ConversationalSuggestion {
   structured?: Partial<StructuredAsk>;
 }
 
+export interface TranscriptTurn {
+  role: "user" | "assistant";
+  text: string;
+}
+
 export interface ConversationalClarification {
   type: "conversational";
   message: string;
@@ -84,6 +89,8 @@ export interface ConversationalClarification {
   original_question: string;
   /** Loop counter echoed back on resubmit so the backend can cap clarifying turns. */
   clarify_turn?: number;
+  /** Authoritative user turns echoed back by the server (resolver transcript). */
+  user_turns?: string[];
 }
 
 export interface TournamentPickerOption {
