@@ -163,7 +163,17 @@ export function AskInlinePanel({
         <ConversationalBody
           clarification={clarification}
           onReply={(reply, structured) => {
-            if (onResubmit) onResubmit(reply, structured);
+            // Free-text replies must carry the prior question + turn counter
+            // so the backend re-runs sport detection on the combined context
+            // and can cap the conversational loop. Chip replies (if any)
+            // already supply their own structured payload — merge, don't
+            // overwrite.
+            const merged: StructuredAsk = {
+              original_question: clarification.original_question,
+              clarify_turn: clarification.clarify_turn,
+              ...(structured ?? {}),
+            };
+            if (onResubmit) onResubmit(reply, merged);
             else onDismiss();
           }}
           onDismiss={onDismiss}
