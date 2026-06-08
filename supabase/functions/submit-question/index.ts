@@ -602,6 +602,11 @@ Deno.serve(async (req) => {
             golf_tournament_id: structuredTournamentId,
             golf_tournament_name: structuredTournamentName,
             sub_category: "golf",
+          } : autoGolfMatch ? {
+            golf_tour_alias: autoGolfMatch.tour,
+            golf_tournament_id: autoGolfMatch.tournament_id,
+            golf_tournament_name: autoGolfMatch.tournament_name,
+            sub_category: "golf",
           } : {}),
         },
       }, { onConflict: "domain,external_id" }).select("*").single();
