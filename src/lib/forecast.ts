@@ -457,7 +457,7 @@ function normaliseClarification(data: Record<string, unknown>): ClarificationPay
           status: typeof rec.status === "string" ? rec.status : null,
           label: typeof rec.label === "string"
             ? rec.label
-            : `${String(rec.tournament_name ?? "")} — ${String(rec.tour_name ?? "")}`,
+            : `${String(rec.tournament_name ?? "")} - ${String(rec.tour_name ?? "")}`,
         };
       })
       .filter((o) => o.tour_alias && o.tournament_id && o.tournament_name);
