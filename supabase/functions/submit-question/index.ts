@@ -476,244 +476,165 @@ Deno.serve(async (req) => {
           `[submit-question] resolver-resolve domain=${domainId} sport=${decision.sport ?? "-"} event="${decision.canonical_event}"`,
         );
 
-        // Sport-identity gating (extension point): each per-sport confirm
-        // branch below fires whenever the resolver IDENTIFIES the sport,
-        // regardless of the domain it guessed. A contest between teams /
-        // athletes / nations is ALWAYS a sport event, even if the resolver
-        // tagged it politics/markets/entertainment (e.g. "Serbia vs Croatia
-        // World Cup"). When a branch fires we force domainId="sport" so the
-        // event is stored and displayed as sport. To add a new sport: add a
-        // new branch keyed off `decision.sport === "<kind>"` and force
-        // domainId="sport" at the top.
-
-        // Golf two-tour disambiguation seeded with the resolver's clean
-        // canonical name. Skipped when the user is already coming back via
-        // structured golf resubmit.
-        if (decision.sport === "golf" && !hasStructuredGolf) {
-          domainId = "sport";
-          try {
-            const { findGolfMatches } = await import("../_shared/dataSources/sportRadarGolf.ts");
-            const gk = Deno.env.get("SPORTRADAR_GOLF_API_KEY");
-            if (gk) {
-              const { matches } = await findGolfMatches(gk, {
-                title: decision.canonical_event,
-                question: decision.canonical_event,
-                starts_at: new Date().toISOString(),
-              });
-              console.log(`[submit-question] resolver-golf matches=${matches.length}`);
-              if (matches.length >= 2) {
-                const fmtRange = (s: string | null, e: string | null): string => {
-                  if (!s) return "";
-                  try {
-                    const sd = new Date(s);
-                    const ed = e ? new Date(e) : null;
-                    const mo = sd.toLocaleString("en-US", { month: "short", timeZone: "UTC" });
-                    const d1 = sd.getUTCDate();
-                    if (ed && ed.getUTCMonth() === sd.getUTCMonth()) return `${mo} ${d1}-${ed.getUTCDate()}`;
-                    if (ed) {
-                      const mo2 = ed.toLocaleString("en-US", { month: "short", timeZone: "UTC" });
-                      return `${mo} ${d1} - ${mo2} ${ed.getUTCDate()}`;
-                    }
-                    return `${mo} ${d1}`;
-                  } catch { return ""; }
-                };
-                const options = matches.map((m) => {
-                  const range = fmtRange(m.start_date, m.end_date);
-                  const tail = range ? ` (${range})` : "";
-                  return {
-                    tour_alias: m.tour,
-                    tour_name: m.tour_name,
-                    tournament_id: m.tournament_id,
-                    tournament_name: m.tournament_name,
-                    start_date: m.start_date,
-                    end_date: m.end_date,
-                    status: m.status,
-                    label: `${m.tournament_name} - ${m.tour_name}${tail}`,
-                  };
-                });
-                sse.send({
-                  stage: "clarification",
-                  status: "done",
-                  data: {
-                    type: "tournament_picker",
-                    message: "That name matches more than one golf tour. Which event did you mean?",
-                    options,
-                  },
-                });
-                sse.close(); return;
-              }
-              if (matches.length === 1) {
-                autoGolfMatch = matches[0];
-              }
-            } else {
-              console.warn("[submit-question] resolver-golf skipped: SPORTRADAR_GOLF_API_KEY missing");
-            }
-          } catch (e) {
-            console.warn("[submit-question] resolver-golf disambig failed:", (e as Error).message);
-          }
-        }
-
-        // Racing confirm. Mirrors the golf path: the resolver names the
-        // event (canonical_event should be a clean "<Course> HH:MM <today|
-        // tomorrow|date>" string for racing); fetchRacePicker verifies it
-        // against the live feed and either emits a race_picker for the
-        // user to disambiguate, or falls through to a feed-backed forecast.
-        // Skipped when the user is already coming back via a structured
-        // racing resubmit (course + time / race_number canonicalised above).
-        //
-        // EXTENSION POINT: future sports (football, tennis, f1, ...) plug
-        // a per-sport confirm function in here using the same pattern -
-        // resolver names the event, confirm function verifies via feed,
-        // emit picker on ambiguity OR fall through to forecast. NO sport
-        // ever gets a pre-moderation rule-based clarification block again.
-        const hasStructuredRacing = !!structuredCourse && (!!structuredTime || structuredRaceNo !== null);
+        // Sport-identity gating: the unified sport grounding module fires
+        // whenever the resolver IDENTIFIES the sport, regardless of the
+        // domain it guessed. A contest between teams / athletes / nations
+        // is ALWAYS a sport event, even if the resolver tagged it
+        // politics/markets/entertainment (e.g. "Serbia vs Croatia World
+        // Cup"). When grounding fires we force domainId="sport" so the
+        // event is stored and displayed as sport. Picker results are
+        // mapped back to the existing typed SSE shapes; confirmed results
+        // arm footballConfirm / autoGolfMatch / resolverOverride exactly
+        // as the old inline branches did so downstream stays unchanged.
+        const golfSport = decision.sport === "golf";
         const racingSport = decision.sport === "horse_racing" ||
           decision.sport === "horse racing" ||
           decision.sport === "racing";
-        if (racingSport && !hasStructuredRacing) {
-          domainId = "sport";
-          try {
-            const { fetchRacePicker } = await import("../_shared/dataSources/racingApi.ts");
-            const u = Deno.env.get("RACING_API_USERNAME");
-            const p = Deno.env.get("RACING_API_PASSWORD");
-            if (u && p) {
-              const racingStartsAt = resolverOverride?.starts_at ?? new Date().toISOString();
-              const picker = await fetchRacePicker(u, p, {
-                title: decision.canonical_event,
-                question: decision.canonical_event,
-                starts_at: racingStartsAt,
-              });
-              console.log(`[submit-question] resolver-racing kind=${picker.kind}`);
-              if (picker.kind === "races" && picker.races.length >= 2) {
-                let dateWord: "today" | "tomorrow" | null = null;
-                if (picker.date && /^\d{4}-\d{2}-\d{2}$/.test(picker.date)) {
-                  const now = new Date();
-                  const todayISO = now.toISOString().slice(0, 10);
-                  const tmr = new Date(now.getTime() + 86400000).toISOString().slice(0, 10);
-                  if (picker.date === todayISO) dateWord = "today";
-                  else if (picker.date === tmr) dateWord = "tomorrow";
-                }
-                sse.send({
-                  stage: "clarification",
-                  status: "done",
-                  data: {
-                    type: "race_picker",
-                    pick_by: picker.pick_by,
-                    track_name: picker.track_name,
-                    date: picker.date,
-                    date_word: dateWord,
-                    message: picker.pick_by === "race_number"
-                      ? `${picker.track_name} is a US track. US races are picked by race number. Which race would you like a forecast for?`
-                      : `Which race at ${picker.track_name} would you like a forecast for?`,
-                    races: picker.races,
-                  },
-                });
-                sse.close(); return;
-              }
-              // dark_day / unmatched / single race: fall through to the
-              // normal forecast pipeline. The trust layer / placeholder
-              // gate downstream will surface research_grounded honestly
-              // if the feed cannot confirm - never a junk picker, never
-              // a hard error.
-            } else {
-              console.warn("[submit-question] resolver-racing skipped: RACING_API creds missing");
-            }
-          } catch (e) {
-            console.warn("[submit-question] resolver-racing confirm failed:", (e as Error).message);
-          }
-        }
-
-        // Football confirm. Mirrors golf/racing: resolver names the event;
-        // the confirm helper verifies it against football-data.org (match
-        // winner) or api-sports standings (league/title winner). On a clean
-        // single fixture or a known league, we arm `footballConfirm` so the
-        // event upserts feed_backed outcomes (Home/Draw/Away or live-table
-        // contenders), the structured-data source is registered via event
-        // metadata in sport.ts gatherStructuredSources, and starts_at /
-        // resolves_at reflect the real fixture / season end. Multiple
-        // fixture candidates emit a fixture_picker (structured resubmit
-        // pattern). No match found -> fall through to research_grounded.
         const footballSport = decision.sport === "football" ||
           decision.sport === "soccer" ||
           decision.sport === "association_football";
-        if (footballSport && !hasStructuredFootball) {
+        const hasStructuredRacing = !!structuredCourse && (!!structuredTime || structuredRaceNo !== null);
+        const skipForResubmit =
+          (golfSport && hasStructuredGolf) ||
+          (racingSport && hasStructuredRacing) ||
+          (footballSport && hasStructuredFootball);
+        const sportKindForGrounding: "football" | "golf" | "horse_racing" | null =
+          footballSport ? "football"
+          : golfSport ? "golf"
+          : racingSport ? "horse_racing"
+          : null;
+
+        if (sportKindForGrounding && !skipForResubmit) {
           domainId = "sport";
           try {
-            const {
-              confirmFootballMatch,
-              confirmFootballLeague,
-              classifyFootballEvent,
-            } = await import("../_shared/dataSources/footballConfirm.ts");
-            const shape = classifyFootballEvent(decision.canonical_event, decision.competitors);
-            console.log(`[submit-question] resolver-football shape=${shape}`);
-            if (shape === "match") {
-              const confirm = await confirmFootballMatch(
-                decision.canonical_event,
-                decision.approx_date,
-                decision.competitors,
-              );
-              console.log(`[submit-question] resolver-football match kind=${confirm.kind}`);
-              if (confirm.kind === "multiple") {
-                sse.send({
-                  stage: "clarification",
-                  status: "done",
-                  data: {
-                    type: "fixture_picker",
-                    message: `Those two teams have more than one upcoming fixture. Which match did you mean?`,
-                    fixtures: confirm.matches.map((m) => ({
-                      fixture_id: m.fixture_id,
-                      home_team: m.home_team,
-                      away_team: m.away_team,
-                      kickoff: m.kickoff,
-                      competition: m.competition,
-                      label: `${m.home_team} vs ${m.away_team} - ${m.competition} (${new Date(m.kickoff).toUTCString().slice(0, 16)})`,
-                    })),
-                  },
-                });
-                sse.close(); return;
+            const { groundSportEvent } = await import("../_shared/dataSources/sportGrounding.ts");
+            const grounded = await groundSportEvent({
+              sport: sportKindForGrounding,
+              canonicalEvent: decision.canonical_event,
+              approxDate: decision.approx_date ?? null,
+              competitors: decision.competitors ?? null,
+            });
+            console.log(`[submit-question] resolver-sport sport=${sportKindForGrounding} kind=${grounded.kind}`);
+
+            if (grounded.kind === "picker_football") {
+              sse.send({
+                stage: "clarification",
+                status: "done",
+                data: {
+                  type: "fixture_picker",
+                  message: `Those two teams have more than one upcoming fixture. Which match did you mean?`,
+                  fixtures: grounded.candidates.map((m) => ({
+                    fixture_id: m.fixture_id,
+                    home_team: m.home_team,
+                    away_team: m.away_team,
+                    kickoff: m.kickoff,
+                    competition: m.competition,
+                    label: `${m.home_team} vs ${m.away_team} - ${m.competition} (${new Date(m.kickoff).toUTCString().slice(0, 16)})`,
+                  })),
+                },
+              });
+              sse.close(); return;
+            } else if (grounded.kind === "confirmed_match") {
+              const m = grounded.metadata.football_confirm;
+              footballConfirm = {
+                kind: "match",
+                fixture_id: m.fixture_id,
+                home_team: m.home_team,
+                away_team: m.away_team,
+                kickoff: m.kickoff,
+                competition: m.competition,
+              };
+              resolverOverride = {
+                normalized_question: `${m.home_team} vs ${m.away_team}`,
+                starts_at: m.kickoff,
+              };
+            } else if (grounded.kind === "league") {
+              const l = grounded.metadata.football_confirm;
+              footballConfirm = {
+                kind: "league",
+                competition: l.competition,
+                league_id: l.league_id,
+                season: l.season,
+                contenders: l.contenders,
+                standings_summary: l.standings_summary,
+                resolves_at: l.resolves_at,
+              };
+              resolverOverride = {
+                normalized_question: `${l.competition} ${l.season}-${String((l.season ?? 0) + 1).slice(-2)} winner`,
+                starts_at: resolverOverride?.starts_at,
+              };
+            } else if (grounded.kind === "picker_golf") {
+              const fmtRange = (s: string | null, e: string | null): string => {
+                if (!s) return "";
+                try {
+                  const sd = new Date(s);
+                  const ed = e ? new Date(e) : null;
+                  const mo = sd.toLocaleString("en-US", { month: "short", timeZone: "UTC" });
+                  const d1 = sd.getUTCDate();
+                  if (ed && ed.getUTCMonth() === sd.getUTCMonth()) return `${mo} ${d1}-${ed.getUTCDate()}`;
+                  if (ed) {
+                    const mo2 = ed.toLocaleString("en-US", { month: "short", timeZone: "UTC" });
+                    return `${mo} ${d1} - ${mo2} ${ed.getUTCDate()}`;
+                  }
+                  return `${mo} ${d1}`;
+                } catch { return ""; }
+              };
+              const options = grounded.candidates.map((m) => {
+                const range = fmtRange(m.start_date, m.end_date);
+                const tail = range ? ` (${range})` : "";
+                return {
+                  tour_alias: m.tour,
+                  tour_name: m.tour_name,
+                  tournament_id: m.tournament_id,
+                  tournament_name: m.tournament_name,
+                  start_date: m.start_date,
+                  end_date: m.end_date,
+                  status: m.status,
+                  label: `${m.tournament_name} - ${m.tour_name}${tail}`,
+                };
+              });
+              sse.send({
+                stage: "clarification",
+                status: "done",
+                data: {
+                  type: "tournament_picker",
+                  message: "That name matches more than one golf tour. Which event did you mean?",
+                  options,
+                },
+              });
+              sse.close(); return;
+            } else if (grounded.kind === "golf_match") {
+              autoGolfMatch = grounded.match;
+            } else if (grounded.kind === "picker_racing") {
+              const picker = grounded.picker as Extract<typeof grounded.picker, { kind: "races" }>;
+              let dateWord: "today" | "tomorrow" | null = null;
+              if (picker.date && /^\d{4}-\d{2}-\d{2}$/.test(picker.date)) {
+                const now = new Date();
+                const todayISO = now.toISOString().slice(0, 10);
+                const tmr = new Date(now.getTime() + 86400000).toISOString().slice(0, 10);
+                if (picker.date === todayISO) dateWord = "today";
+                else if (picker.date === tmr) dateWord = "tomorrow";
               }
-              if (confirm.kind === "single") {
-                footballConfirm = {
-                  kind: "match",
-                  fixture_id: confirm.match.fixture_id,
-                  home_team: confirm.match.home_team,
-                  away_team: confirm.match.away_team,
-                  kickoff: confirm.match.kickoff,
-                  competition: confirm.match.competition || null,
-                };
-                resolverOverride = {
-                  normalized_question: `${confirm.match.home_team} vs ${confirm.match.away_team}`,
-                  starts_at: confirm.match.kickoff,
-                };
-              }
-              // kind === "none" -> fall through; research_grounded path.
-            } else if (shape === "league") {
-              const confirm = await confirmFootballLeague(decision.canonical_event);
-              console.log(`[submit-question] resolver-football league kind=${confirm.kind} contenders=${confirm.contenders?.length ?? 0}`);
-              if (confirm.kind === "league" && confirm.contenders && confirm.contenders.length > 0) {
-                const top = confirm.contenders.slice(0, 6);
-                const summary = (confirm.standings ?? [])
-                  .slice(0, 10)
-                  .map((s) => `${s.rank}. ${s.team_name} - ${s.points}pts (${s.played} pl, GD ${s.goal_diff >= 0 ? "+" : ""}${s.goal_diff}, form ${s.form ?? "-"})`)
-                  .join("\n");
-                footballConfirm = {
-                  kind: "league",
-                  competition: confirm.competition ?? decision.canonical_event,
-                  league_id: confirm.league_id!,
-                  season: confirm.season!,
-                  contenders: top,
-                  standings_summary: summary,
-                  resolves_at: confirm.resolves_at!,
-                };
-                resolverOverride = {
-                  normalized_question: `${confirm.competition} ${confirm.season}-${String((confirm.season ?? 0) + 1).slice(-2)} winner`,
-                  starts_at: resolverOverride?.starts_at,
-                };
-              }
-              // kind === "none" -> fall through; research_grounded path.
+              sse.send({
+                stage: "clarification",
+                status: "done",
+                data: {
+                  type: "race_picker",
+                  pick_by: picker.pick_by,
+                  track_name: picker.track_name,
+                  date: picker.date,
+                  date_word: dateWord,
+                  message: picker.pick_by === "race_number"
+                    ? `${picker.track_name} is a US track. US races are picked by race number. Which race would you like a forecast for?`
+                    : `Which race at ${picker.track_name} would you like a forecast for?`,
+                  races: picker.races,
+                },
+              });
+              sse.close(); return;
             }
+            // "racing_fallthrough" or "none" -> downstream research_grounded.
           } catch (e) {
-            console.warn("[submit-question] resolver-football confirm failed:", (e as Error).message);
+            console.warn("[submit-question] resolver-sport grounding failed:", (e as Error).message);
           }
         }
       }
