@@ -370,7 +370,7 @@ export async function runForecast(opts: RunForecastOpts): Promise<void> {
           await new Promise((r) => setTimeout(r, 450));
         }
         if (top) {
-          topLabel = top.outcome_label ?? "—";
+          topLabel = top.outcome_label ?? "-";
           const p = top.probability ?? 0;
           topPct = p > 1 ? p : p * 100;
           reasoningExcerpt = top.reasons?.[0] ?? "";
