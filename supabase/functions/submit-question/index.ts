@@ -331,6 +331,38 @@ Deno.serve(async (req) => {
       let autoGolfMatch:
         | { tour: string; tournament_id: string; tournament_name: string }
         | null = null;
+      // Football confirm result threaded through to event upsert (outcomes,
+      // metadata, starts_at, resolves_at). Populated either by the resolver
+      // football branch below or by the structured football resubmit shortcut.
+      type FootballConfirmThread =
+        | {
+            kind: "match";
+            fixture_id: string;
+            home_team: string;
+            away_team: string;
+            kickoff: string;
+            competition: string | null;
+          }
+        | {
+            kind: "league";
+            competition: string;
+            league_id: number;
+            season: number;
+            contenders: string[];
+            standings_summary: string;
+            resolves_at: string;
+          };
+      let footballConfirm: FootballConfirmThread | null = null;
+      if (hasStructuredFootball) {
+        footballConfirm = {
+          kind: "match",
+          fixture_id: structuredFbFixtureId,
+          home_team: structuredFbHome,
+          away_team: structuredFbAway,
+          kickoff: structuredFbKickoff || new Date().toISOString(),
+          competition: structuredFbCompetition || null,
+        };
+      }
 
       // ----- 3. MODERATION (CLASSIFY + POLICY) -----
       // Step-1 rebuild: the ONLY hard stop is a real policy breach
