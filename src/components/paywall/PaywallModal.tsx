@@ -59,11 +59,11 @@ export function PaywallModal({ open, onClose, quotaInfo }: PaywallModalProps) {
       : `You've used your ${tier === "standard" ? "Standard" : "Pro"} forecasts today`;
 
   const subhead = is_trialing
-    ? "You're on a Pro trial with 100 forecasts/day. Resets at midnight UTC."
+    ? "You're on a Pro trial with 40 forecasts/day. Resets at midnight UTC."
     : tier === "free"
       ? `That's your free tier of ${daily_cap}/day. Upgrade for more headroom.`
       : tier === "standard"
-        ? `That's your Standard tier of ${daily_cap}/day. Upgrade to Pro for 100/day.`
+        ? `That's your Standard tier of ${daily_cap}/day. Upgrade to Pro for 40/day.`
         : `That's your Pro tier of ${daily_cap}/day. Limit resets at midnight UTC.`;
 
   const showUpgradeCtas = tier !== "pro" && !is_trialing;
