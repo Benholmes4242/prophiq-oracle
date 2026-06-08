@@ -12,6 +12,7 @@ import {
   type ClarificationPayload,
   type RacePickerClarification,
   type ConversationalClarification,
+  type TournamentPickerClarification,
   type StructuredAsk,
 } from "@/lib/forecast";
 import { isPlaceholderOutcomeLabel } from "@/lib/placeholderOutcome";
