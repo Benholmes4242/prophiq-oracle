@@ -10,10 +10,12 @@ export interface PaywallQuotaInfo {
   trial_end: string | null;
 }
 
-// Hardcoded constants mirror prophiq_prices seeds (Brief BB).
-// Update alongside the price-table migration when we switch to live mode.
-const STANDARD_MONTHLY_PRICE_ID = "price_1TeFzHKWWtT9LrrZVqRHavG8";
-const PRO_MONTHLY_PRICE_ID = "price_1TeG2wKWWtT9LrrZcKsKIMLG";
+// Hardcoded constants mirror prophiq_prices seeds.
+// TODO(ben): replace with the NEW live-mode Stripe price IDs created for the
+// GBP 9.99 / 29.99 pricing update (Part A). Until swapped, paywall upgrade
+// CTAs will target the grandfathered GBP 6 / 24 prices.
+const STANDARD_MONTHLY_PRICE_ID = "price_NEW_STANDARD_MONTHLY_9_99";
+const PRO_MONTHLY_PRICE_ID = "price_NEW_PRO_MONTHLY_29_99";
 
 interface PaywallModalProps {
   open: boolean;
