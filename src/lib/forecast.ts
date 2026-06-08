@@ -71,6 +71,8 @@ export interface RacePickerClarification {
 export interface ConversationalSuggestion {
   label: string;
   reply: string;
+  /** Optional structured payload merged into the resubmit body (e.g. sport_hint). */
+  structured?: Partial<StructuredAsk>;
 }
 
 export interface ConversationalClarification {
@@ -112,6 +114,8 @@ export interface StructuredAsk {
   tour_alias?: string;
   tournament_id?: string;
   tournament_name?: string;
+  /** Conversational domain disambiguation (Stage 1) — e.g. "golf", "tennis". */
+  sport_hint?: string;
 }
 
 interface RunForecastOpts {
@@ -373,7 +377,10 @@ function normaliseClarification(data: Record<string, unknown>): ClarificationPay
         const rec = s as Record<string, unknown>;
         const label = typeof rec.label === "string" ? rec.label : "";
         const reply = typeof rec.reply === "string" ? rec.reply : "";
-        return { label, reply };
+        const structured = rec.structured && typeof rec.structured === "object"
+          ? (rec.structured as Partial<StructuredAsk>)
+          : undefined;
+        return { label, reply, structured };
       })
       .filter((s) => s.label && s.reply);
     return {

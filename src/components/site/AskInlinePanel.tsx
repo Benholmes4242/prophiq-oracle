@@ -162,8 +162,8 @@ export function AskInlinePanel({
       {clarification && clarification.type === "conversational" && (
         <ConversationalBody
           clarification={clarification}
-          onReply={(reply) => {
-            if (onResubmit) onResubmit(reply);
+          onReply={(reply, structured) => {
+            if (onResubmit) onResubmit(reply, structured);
             else onDismiss();
           }}
           onDismiss={onDismiss}
@@ -520,7 +520,7 @@ function ConversationalBody({
   onDismiss,
 }: {
   clarification: ConversationalClarification;
-  onReply: (reply: string) => void;
+  onReply: (reply: string, structured?: StructuredAsk) => void;
   onDismiss: () => void;
 }) {
   const [draft, setDraft] = useState("");
@@ -544,7 +544,7 @@ function ConversationalBody({
           {clarification.suggestions.map((s, i) => (
             <button
               key={`${s.reply}-${i}`}
-              onClick={() => onReply(s.reply)}
+              onClick={() => onReply(s.reply, s.structured as StructuredAsk | undefined)}
               className="transition-ios flex items-center justify-between rounded-xl px-4 py-3 text-left hover:scale-[1.005]"
               style={{ background: "var(--bg)", border: "1px solid var(--border-soft)" }}
             >

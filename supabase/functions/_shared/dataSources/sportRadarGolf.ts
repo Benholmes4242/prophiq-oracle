@@ -162,29 +162,58 @@ export async function fetchGolfContext(
   if (pickedTour && pickedId && isGolfTour(pickedTour)) {
     const now = hints.starts_at ? new Date(hints.starts_at) : new Date();
     const years = nearbyYears(now);
+    let lastStatus: string | null = null;
+    let lastName: string | null = null;
     for (const year of years) {
       const lb = await fetchLeaderboard(apiKey, pickedTour, year, pickedId);
       if (!lb) continue;
+      lastStatus = lb.status ?? null;
+      lastName = lb.name ?? null;
       const runners = mapLeaderboard(lb);
       const name = lb.name ?? readMetaString(meta, "golf_tournament_name") ?? "tournament";
-      if (runners.length === 0) {
-        return emptySnapshot(`${name} matched but no leaderboard yet (${lb.status ?? "unknown"})`);
+      if (runners.length > 0) {
+        return {
+          tournament: {
+            id: pickedId,
+            name,
+            tour: pickedTour,
+            status: lb.status ?? null,
+            start_date: null,
+            end_date: null,
+          },
+          runners,
+          matched: `${name} (${pickedTour})`,
+          note: `matched ${runners.length} players (structured pick, leaderboard)`,
+        };
       }
-      return {
-        tournament: {
-          id: pickedId,
-          name,
-          tour: pickedTour,
-          status: lb.status ?? null,
-          start_date: null,
-          end_date: null,
-        },
-        runners,
-        matched: `${name} (${pickedTour})`,
-        note: `matched ${runners.length} players (structured pick)`,
-      };
     }
-    return emptySnapshot(`leaderboard fetch failed for picked tournament ${pickedId}`);
+    // No live leaderboard yet — fall back to the pre-tournament entry list
+    // from summary.field so a scheduled tournament still comes back
+    // feed_backed with real player names.
+    for (const year of years) {
+      const summary = await fetchSummary(apiKey, pickedTour, year, pickedId);
+      if (!summary) continue;
+      const fieldPlayers = mapField(summary);
+      const name = summary.name ?? lastName ?? readMetaString(meta, "golf_tournament_name") ?? "tournament";
+      if (fieldPlayers.length > 0) {
+        return {
+          tournament: {
+            id: pickedId,
+            name,
+            tour: pickedTour,
+            status: summary.status ?? lastStatus,
+            start_date: null,
+            end_date: null,
+          },
+          runners: fieldPlayers,
+          matched: `${name} (${pickedTour})`,
+          note: `matched ${fieldPlayers.length} entrants (structured pick, summary.field)`,
+        };
+      }
+    }
+    return emptySnapshot(
+      `picked tournament ${pickedId} matched but has neither leaderboard nor field yet (${lastStatus ?? "unknown"})`,
+    );
   }
 
   // Single-match heuristic (legacy path): scan tours, fetch leaderboard for
@@ -211,26 +240,45 @@ export async function fetchGolfContext(
     const lb = await fetchLeaderboard(apiKey, m.tour, y, m.tournament_id);
     if (!lb) continue;
     const runners = mapLeaderboard(lb);
-    if (runners.length === 0) {
-      return emptySnapshot(
-        `tournament ${m.tournament_name} matched but no leaderboard yet (${m.status ?? "unknown"})`,
-      );
+    if (runners.length > 0) {
+      return {
+        tournament: {
+          id: m.tournament_id,
+          name: m.tournament_name,
+          tour: m.tour,
+          status: m.status,
+          start_date: m.start_date,
+          end_date: m.end_date,
+        },
+        runners,
+        matched: `${m.tournament_name} (${m.tour})`,
+        note: `matched ${runners.length} players (leaderboard)`,
+      };
     }
-    return {
-      tournament: {
-        id: m.tournament_id,
-        name: m.tournament_name,
-        tour: m.tour,
-        status: m.status,
-        start_date: m.start_date,
-        end_date: m.end_date,
-      },
-      runners,
-      matched: `${m.tournament_name} (${m.tour})`,
-      note: `matched ${runners.length} players`,
-    };
+    // No live leaderboard — try summary.field for the pre-tournament entry list.
+    const summary = await fetchSummary(apiKey, m.tour, y, m.tournament_id);
+    if (summary) {
+      const fieldPlayers = mapField(summary);
+      if (fieldPlayers.length > 0) {
+        return {
+          tournament: {
+            id: m.tournament_id,
+            name: m.tournament_name,
+            tour: m.tour,
+            status: summary.status ?? m.status,
+            start_date: m.start_date,
+            end_date: m.end_date,
+          },
+          runners: fieldPlayers,
+          matched: `${m.tournament_name} (${m.tour})`,
+          note: `matched ${fieldPlayers.length} entrants (summary.field)`,
+        };
+      }
+    }
   }
-  return emptySnapshot(`leaderboard fetch failed for ${m.tournament_name}`);
+  return emptySnapshot(
+    `tournament ${m.tournament_name} matched but no leaderboard or field yet (${m.status ?? "unknown"})`,
+  );
 }
 
 // ---------- hint parsing ----------
@@ -313,6 +361,20 @@ interface RawLeaderboardResp {
   leaderboard?: RawLeaderboardPlayer[];
 }
 
+interface RawSummaryFieldPlayer {
+  id?: string;
+  first_name?: string;
+  last_name?: string;
+  abbr_name?: string;
+  country?: string;
+}
+interface RawSummaryResp {
+  id?: string;
+  name?: string;
+  status?: string;
+  field?: RawSummaryFieldPlayer[];
+}
+
 async function fetchSchedule(
   apiKey: string,
   tour: GolfTour,
@@ -341,6 +403,24 @@ async function fetchLeaderboard(
   await sleep(RATE_LIMIT_GAP_MS);
   const url = `${GOLF_BASE}/${tour}/v3/en/${year}/tournaments/${tournamentId}/leaderboard.json?api_key=${encodeURIComponent(apiKey)}`;
   return await fetchJson<RawLeaderboardResp>(url);
+}
+
+/**
+ * Pre-tournament field. For a `scheduled`/`created` tournament, the
+ * `summary` endpoint exposes a `field` array of real entrants (verified
+ * 2026-06-08). The `field`/`entries` sub-paths 404. Use this to surface
+ * a real player list before the leaderboard exists, so we can still emit
+ * feed_backed predictions instead of "field still forming".
+ */
+async function fetchSummary(
+  apiKey: string,
+  tour: GolfTour,
+  year: number,
+  tournamentId: string,
+): Promise<RawSummaryResp | null> {
+  await sleep(RATE_LIMIT_GAP_MS);
+  const url = `${GOLF_BASE}/${tour}/v3/en/${year}/tournaments/${tournamentId}/summary.json?api_key=${encodeURIComponent(apiKey)}`;
+  return await fetchJson<RawSummaryResp>(url);
 }
 
 async function fetchJson<T>(url: string): Promise<T | null> {
@@ -438,6 +518,32 @@ function mapLeaderboard(lb: RawLeaderboardResp): GolfPlayer[] {
     const sb = b.score ?? 0;
     return sa - sb;
   });
+  return players;
+}
+
+/**
+ * Map summary.field entrants (pre-tournament) into the GolfPlayer shape.
+ * No leaderboard positions/scores exist yet, so positions are null and the
+ * ordering is whatever the API returned (the consensus models + research
+ * supply the form-based ranking). Empty if nothing usable.
+ */
+function mapField(s: RawSummaryResp): GolfPlayer[] {
+  const rows = Array.isArray(s.field) ? s.field : [];
+  const players: GolfPlayer[] = [];
+  for (const p of rows) {
+    const first = (p.first_name ?? "").trim();
+    const last = (p.last_name ?? "").trim();
+    const fallback = (p.abbr_name ?? "").trim();
+    const name = first || last ? `${first} ${last}`.trim() : fallback;
+    if (!name) continue;
+    players.push({
+      horse: name,
+      position: null,
+      score: null,
+      country: p.country ?? null,
+      odds: null,
+    });
+  }
   return players;
 }
 
