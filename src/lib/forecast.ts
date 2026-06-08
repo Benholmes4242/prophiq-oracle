@@ -384,6 +384,32 @@ function normaliseClarification(data: Record<string, unknown>): ClarificationPay
     };
   }
 
+  if (type === "tournament_picker") {
+    const rawOptions = Array.isArray(data.options) ? data.options : [];
+    const options: TournamentPickerOption[] = rawOptions
+      .map((o) => {
+        const rec = o as Record<string, unknown>;
+        return {
+          tour_alias: typeof rec.tour_alias === "string" ? rec.tour_alias : "",
+          tour_name: typeof rec.tour_name === "string" ? rec.tour_name : "",
+          tournament_id: typeof rec.tournament_id === "string" ? rec.tournament_id : "",
+          tournament_name: typeof rec.tournament_name === "string" ? rec.tournament_name : "",
+          start_date: typeof rec.start_date === "string" ? rec.start_date : null,
+          end_date: typeof rec.end_date === "string" ? rec.end_date : null,
+          status: typeof rec.status === "string" ? rec.status : null,
+          label: typeof rec.label === "string"
+            ? rec.label
+            : `${String(rec.tournament_name ?? "")} — ${String(rec.tour_name ?? "")}`,
+        };
+      })
+      .filter((o) => o.tour_alias && o.tournament_id && o.tournament_name);
+    return {
+      type: "tournament_picker",
+      message: (data.message as string) ?? "Which event did you mean?",
+      options,
+    };
+  }
+
   const pick_by: PickBy = (data.pick_by as PickBy) ?? "race_number";
   const rawRaces = Array.isArray(data.races) ? data.races : [];
   const races: PickerRace[] = rawRaces.map((r) => {
