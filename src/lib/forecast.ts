@@ -12,6 +12,7 @@ export type WireStage =
   | "rate_limit"
   | "pre_filter"
   | "moderation"
+  | "resolver"
   | "research"
   | "models"
   | "consensus";
@@ -20,6 +21,7 @@ const KNOWN_STAGES: WireStage[] = [
   "rate_limit",
   "pre_filter",
   "moderation",
+  "resolver",
   "research",
   "models",
   "consensus",
@@ -75,6 +77,11 @@ export interface ConversationalSuggestion {
   structured?: Partial<StructuredAsk>;
 }
 
+export interface TranscriptTurn {
+  role: "user" | "assistant";
+  text: string;
+}
+
 export interface ConversationalClarification {
   type: "conversational";
   message: string;
@@ -82,6 +89,8 @@ export interface ConversationalClarification {
   original_question: string;
   /** Loop counter echoed back on resubmit so the backend can cap clarifying turns. */
   clarify_turn?: number;
+  /** Authoritative user turns echoed back by the server (resolver transcript). */
+  user_turns?: string[];
 }
 
 export interface TournamentPickerOption {
@@ -130,6 +139,11 @@ export interface StructuredAsk {
   original_question?: string;
   /** Loop guard echoed back to the backend on each conversational resubmit. */
   clarify_turn?: number;
+  /** Step 2: accumulated USER turns sent to the resolver. Trusted by server. */
+  user_turns?: string[];
+  /** Step 2: accumulated ASSISTANT turns (client-only, for chat-bubble UI).
+   *  Server ignores this field - never use it for trust decisions. */
+  assistant_turns?: string[];
 }
 
 interface RunForecastOpts {
@@ -356,7 +370,7 @@ export async function runForecast(opts: RunForecastOpts): Promise<void> {
           await new Promise((r) => setTimeout(r, 450));
         }
         if (top) {
-          topLabel = top.outcome_label ?? "—";
+          topLabel = top.outcome_label ?? "-";
           const p = top.probability ?? 0;
           topPct = p > 1 ? p : p * 100;
           reasoningExcerpt = top.reasons?.[0] ?? "";
@@ -405,12 +419,17 @@ function normaliseClarification(data: Record<string, unknown>): ClarificationPay
         return { label, reply, structured };
       })
       .filter((s) => s.label && s.reply);
+    const rawUserTurns = Array.isArray(data.user_turns) ? data.user_turns : null;
+    const userTurns = rawUserTurns
+      ? rawUserTurns.filter((t): t is string => typeof t === "string")
+      : undefined;
     return {
       type: "conversational",
       message: (data.message as string) ?? "Could you tell me a bit more?",
       suggestions,
       original_question: (data.original_question as string) ?? "",
       clarify_turn: typeof data.clarify_turn === "number" ? data.clarify_turn : undefined,
+      user_turns: userTurns,
     };
   }
 
@@ -438,7 +457,7 @@ function normaliseClarification(data: Record<string, unknown>): ClarificationPay
           status: typeof rec.status === "string" ? rec.status : null,
           label: typeof rec.label === "string"
             ? rec.label
-            : `${String(rec.tournament_name ?? "")} — ${String(rec.tour_name ?? "")}`,
+            : `${String(rec.tournament_name ?? "")} - ${String(rec.tour_name ?? "")}`,
         };
       })
       .filter((o) => o.tour_alias && o.tournament_id && o.tournament_name);
