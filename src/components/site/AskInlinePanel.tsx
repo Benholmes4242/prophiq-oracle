@@ -598,11 +598,11 @@ function TournamentPickerBody({
               const mo = sd.toLocaleString("en-US", { month: "short", timeZone: "UTC" });
               const d1 = sd.getUTCDate();
               if (ed && ed.getUTCMonth() === sd.getUTCMonth()) {
-                return `${mo} ${d1}–${ed.getUTCDate()}`;
+                return `${mo} ${d1}-${ed.getUTCDate()}`;
               }
               if (ed) {
                 const mo2 = ed.toLocaleString("en-US", { month: "short", timeZone: "UTC" });
-                return `${mo} ${d1} – ${mo2} ${ed.getUTCDate()}`;
+                return `${mo} ${d1} - ${mo2} ${ed.getUTCDate()}`;
               }
               return `${mo} ${d1}`;
             } catch {
