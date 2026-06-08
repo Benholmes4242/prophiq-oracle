@@ -802,6 +802,10 @@ Deno.serve(async (req) => {
             golf_tournament_name: autoGolfMatch.tournament_name,
             sub_category: "golf",
           } : {}),
+          ...(footballConfirm ? {
+            sub_category: "football",
+            football_confirm: footballConfirm,
+          } : {}),
         },
       }, { onConflict: "domain,external_id" }).select("*").single();
       if (evErr || !event) {
