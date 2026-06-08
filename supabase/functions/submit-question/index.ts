@@ -51,6 +51,15 @@ interface Body {
   tournament_name?: string;
   // Conversational domain disambiguation (Stage 1 sport clarification).
   sport_hint?: string;
+  // When the user replies free-text to a Stage-1 conversational clarification,
+  // the frontend echoes back the prior question so the backend can re-run
+  // sport/signal detection against the COMBINED context
+  // (original_question + " " + reply). This is the conversational principle:
+  // the user defines the answer space; we just keep listening.
+  original_question?: string;
+  // Loop guard for Stage-1 ambiguity. Frontend echoes whatever the backend
+  // emitted; backend caps to 2 open clarifying turns before falling through.
+  clarify_turn?: number;
 }
 
 Deno.serve(async (req) => {
@@ -63,6 +72,22 @@ Deno.serve(async (req) => {
   let question = (body.question ?? "").trim();
   const fingerprint = getFingerprint(body, req) ?? null;
   if (!question) return errorResponse("question required");
+
+  // Conversational resubmit: merge the user's prior question with this reply
+  // so every downstream stage (sport detection, moderation, golf picker name
+  // parsing, the forecast itself) operates on the combined context. The
+  // user's reply may be a sport word ("golf"), a tour name ("LPGA"), a full
+  // restatement, or anything else — we never assume the answer space.
+  const priorQuestion = typeof body.original_question === "string"
+    ? body.original_question.trim()
+    : "";
+  if (priorQuestion && priorQuestion.toLowerCase() !== question.toLowerCase()) {
+    question = `${priorQuestion} ${question}`.replace(/\s+/g, " ").trim();
+    console.log(`[submit-question] conversational-resubmit combined -> "${question}"`);
+  }
+  const clarifyTurn = typeof body.clarify_turn === "number" && body.clarify_turn > 0
+    ? Math.min(body.clarify_turn, 5)
+    : 0;
 
   // Structured racing override: rebuild the question text canonically so the
   // racing parser (and event title) sees a clean string regardless of what
