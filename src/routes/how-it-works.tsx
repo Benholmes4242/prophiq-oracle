@@ -9,7 +9,7 @@ export const Route = createFileRoute("/how-it-works")({
       {
         name: "description",
         content:
-          "Multi-model AI consensus, grounded in live data and our own forecasting database, calibrated against reality.",
+          "Prophiq has a conversation with you to understand exactly what you are forecasting, then grounds the answer in live data and the agreement of multiple AI models, calibrated against reality.",
       },
       {
         property: "og:title",
@@ -18,7 +18,7 @@ export const Route = createFileRoute("/how-it-works")({
       {
         property: "og:description",
         content:
-          "Multi-model AI consensus, grounded in live data and our own forecasting database, calibrated against reality.",
+          "Prophiq has a conversation with you to understand exactly what you are forecasting, then grounds the answer in live data and the agreement of multiple AI models, calibrated against reality.",
       },
     ],
   }),
@@ -42,6 +42,10 @@ const LAYERS = [
     title: "Multi-model AI reasoning",
     body: "Multiple frontier AI reasoning models analyze the assembled evidence independently. Their outputs are combined via a consensus algorithm so no single model's quirks dominate the answer.",
   },
+  {
+    title: "Honest data grounding",
+    body: "Every forecast shows how it is grounded. When live feed data covers an event - real runners, real tournament fields, real prices - the forecast is built on it directly. When no feed exists, live research grounds it instead. Prophiq never invents a favourite or fakes a number, and when a field is not yet set, it says so.",
+  },
 ];
 
 const DOMAINS = [
@@ -52,7 +56,7 @@ const DOMAINS = [
     examples:
       "Match outcomes, championship winners, player milestones, tournament progression.",
     sources:
-      "Live data from official sports data providers covering top European football leagues, Golf, NFL, F1, NBA, NHL, cricket, MMA, tennis, and more.",
+      "Live data covering horse racing across the UK, Ireland and North America, golf across all the major professional tours, football, and more - real runners, real fields, real competitors as the outcomes.",
   },
   {
     id: "politics",
@@ -86,13 +90,13 @@ const DOMAINS = [
 const STEPS = [
   {
     n: "01",
-    title: "Question or event",
-    body: "A user submits a question, or Prophiq's discovery system surfaces an upcoming event automatically. The event gets classified into one of the four domains before any analysis begins.",
+    title: "Understanding what you mean",
+    body: "You ask in plain language. If your question is clear, Prophiq forecasts straight away. If it could mean more than one thing - \"who wins the US Open\" could be tennis or golf, across several tours - Prophiq asks, in natural conversation, until it knows exactly which event you mean. It never guesses, and it never dead-ends. Only once it is sure does it move on.",
   },
   {
     n: "02",
     title: "Live research and structured data",
-    body: "Real-time AI research pulls the latest context from the moment your forecast is requested. In parallel, the relevant domain-specific data sources are queried, so a forecast about a central bank rate decision sees the actual current interest rate from authoritative macro sources, and a forecast about a Premier League match sees the latest standings from established sports data feeds. All evidence is assembled and combined with Prophiq's own historical forecasting data before reasoning begins.",
+    body: "Real-time AI research pulls the latest context from the moment your forecast is requested. In parallel, the relevant domain-specific data sources are queried, so a forecast about a central bank rate decision sees the actual current interest rate from authoritative macro sources, and a forecast about a match or tournament sees the latest real runners, real fields, real competitors and prices from established sports data feeds. All evidence is assembled and combined with Prophiq's own historical forecasting data before reasoning begins.",
   },
   {
     n: "03",
@@ -107,6 +111,10 @@ const STEPS = [
 ];
 
 const WHY = [
+  {
+    title: "It understands before it answers",
+    body: "Most tools take your words literally and guess at the rest. Prophiq talks it through with you - like a sharp analyst would - so the forecast answers the question you actually meant, not a near-miss of it.",
+  },
   {
     title: "Live data, not just training data",
     body: "Foundation models know what they learned during training, which can be months or years stale. Prophiq queries live data sources at forecast time: real-time prediction market prices, the most recent economic data prints, current sports standings, latest entertainment industry signals. Your forecast reflects the world as it is now, not as it was when the model was trained.",
@@ -193,8 +201,9 @@ function Hero() {
           maxWidth: "52ch",
         }}
       >
-        Multi-model AI consensus, grounded in live data and our own forecasting
-        database, calibrated against reality.
+        Prophiq has a conversation with you to understand exactly what you are
+        forecasting, then grounds the answer in live data and the agreement of
+        multiple AI models, calibrated against reality.
       </p>
     </header>
   );
