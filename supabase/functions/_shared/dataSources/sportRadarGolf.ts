@@ -473,6 +473,32 @@ function mapLeaderboard(lb: RawLeaderboardResp): GolfPlayer[] {
   return players;
 }
 
+/**
+ * Map summary.field entrants (pre-tournament) into the GolfPlayer shape.
+ * No leaderboard positions/scores exist yet, so positions are null and the
+ * ordering is whatever the API returned (the consensus models + research
+ * supply the form-based ranking). Empty if nothing usable.
+ */
+function mapField(s: RawSummaryResp): GolfPlayer[] {
+  const rows = Array.isArray(s.field) ? s.field : [];
+  const players: GolfPlayer[] = [];
+  for (const p of rows) {
+    const first = (p.first_name ?? "").trim();
+    const last = (p.last_name ?? "").trim();
+    const fallback = (p.abbr_name ?? "").trim();
+    const name = first || last ? `${first} ${last}`.trim() : fallback;
+    if (!name) continue;
+    players.push({
+      horse: name,
+      position: null,
+      score: null,
+      country: p.country ?? null,
+      odds: null,
+    });
+  }
+  return players;
+}
+
 function numOrNull(v: unknown): number | null {
   if (v === null || v === undefined || v === "") return null;
   const n = typeof v === "number" ? v : Number(v);
