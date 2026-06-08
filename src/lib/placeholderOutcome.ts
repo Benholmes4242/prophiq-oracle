@@ -43,7 +43,11 @@ const SUBSTRING_PATTERNS = [
 ];
 
 // "Horse 2 wins", "Player A wins", "Horse a", "Player 1"
-const POSITIONAL_RE = /^(horse|player)\s+[a-z0-9]+(\s+wins)?$/i;
+// Also: short throwaway team/side placeholders like "Team A", "Side 1",
+// "Pair B wins". Tightened to a single letter or 1-2 digit number to
+// avoid catching real names like "Team Penske" or "Red Bull Racing".
+const POSITIONAL_RE =
+  /^((horse|player)\s+[a-z0-9]+|(team|side|pair|group|duo)\s+([a-z]|[0-9]{1,2}))(\s+wins)?$/i;
 
 // Generic competitor buckets: <indefinite/quantifier> ... <generic noun>
 const GENERIC_BUCKET_RE =

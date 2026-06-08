@@ -32,6 +32,10 @@ export const PLACEHOLDER_FIXTURE: readonly PlaceholderFixtureRow[] = [
   { label: "multiple players", displayPlaceholder: true, persistencePlaceholder: true },
   { label: "Player A wins", displayPlaceholder: true, persistencePlaceholder: true },
   { label: "Horse 2 wins", displayPlaceholder: true, persistencePlaceholder: true },
+  { label: "Team A wins", displayPlaceholder: true, persistencePlaceholder: true },
+  { label: "Team B", displayPlaceholder: true, persistencePlaceholder: true },
+  { label: "Side 1", displayPlaceholder: true, persistencePlaceholder: true },
+  { label: "Pair A", displayPlaceholder: true, persistencePlaceholder: true },
 
   // --- real names: MUST NOT trip either gate ------------------------------
   { label: "Sam Burns", displayPlaceholder: false, persistencePlaceholder: false },
@@ -42,6 +46,8 @@ export const PLACEHOLDER_FIXTURE: readonly PlaceholderFixtureRow[] = [
   { label: "Tommy Fleetwood", displayPlaceholder: false, persistencePlaceholder: false },
   { label: "Manchester United", displayPlaceholder: false, persistencePlaceholder: false },
   { label: "Team Penske", displayPlaceholder: false, persistencePlaceholder: false },
+  { label: "Team Sky", displayPlaceholder: false, persistencePlaceholder: false },
+  { label: "Arsenal", displayPlaceholder: false, persistencePlaceholder: false },
   { label: "Red Bull Racing", displayPlaceholder: false, persistencePlaceholder: false },
   { label: "J.T. Poston", displayPlaceholder: false, persistencePlaceholder: false },
   { label: "Liverpool win", displayPlaceholder: false, persistencePlaceholder: false },
