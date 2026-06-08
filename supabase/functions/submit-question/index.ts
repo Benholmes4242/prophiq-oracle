@@ -431,6 +431,9 @@ Deno.serve(async (req) => {
       // explicit golf signal in the question or sport_hint=golf coming back
       // from Stage 1, so we never silently assume golf for cross-sport names.
       const stage2GolfAllowed = hasExplicitGolfSignal || sportHint === "golf";
+      let autoGolfMatch:
+        | { tour: string; tournament_id: string; tournament_name: string }
+        | null = null;
       if (!hasStructuredGolf && stage2GolfAllowed) {
         try {
           const { isGolfEvent } = await import("../_shared/domains/sport.ts");
