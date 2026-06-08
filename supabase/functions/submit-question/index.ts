@@ -381,6 +381,88 @@ Deno.serve(async (req) => {
 
 
 
+      // ----- 2.7 GOLF TOURNAMENT PICKER -----
+      // Detect ambiguous golf questions (e.g. "who wins the US Open" matches
+      // PGA Tour + DP World Tour) and emit a tournament picker BEFORE
+      // moderation. Skipped entirely when the user already came back through
+      // structured resubmit (hasStructuredGolf).
+      if (!hasStructuredGolf) {
+        try {
+          const { isGolfEvent } = await import("../_shared/domains/sport.ts");
+          const { findGolfMatches, parseTournamentName } =
+            await import("../_shared/dataSources/sportRadarGolf.ts");
+          const stubEvent = {
+            id: "stub", domain: "sport", title: question, question,
+            starts_at: new Date().toISOString(),
+            resolves_at: new Date().toISOString(),
+            status: "scheduled", mode: "prediction", metadata: null,
+          } as unknown as DomainEvent;
+          // Run the picker check when the question (a) looks like golf OR
+          // (b) mentions a phrase that commonly collides with golf majors.
+          // The actual gate is whether findGolfMatches returns >= 2 hits.
+          const golfMaybe = isGolfEvent(stubEvent) ||
+            /\b(open|championship|masters|invitational|classic|cup)\b/i.test(question);
+          if (golfMaybe && parseTournamentName(question)) {
+            const gk = Deno.env.get("SPORTRADAR_GOLF_API_KEY");
+            if (gk) {
+              const { matches } = await findGolfMatches(gk, {
+                title: question, question, starts_at: new Date().toISOString(),
+              });
+              console.log(
+                `[submit-question] golf-picker matches=${matches.length} ${matches.map((m) => `${m.tour}:${m.tournament_name}`).join(" | ")}`,
+              );
+              if (matches.length >= 2) {
+                const fmtRange = (s: string | null, e: string | null): string => {
+                  if (!s) return "";
+                  try {
+                    const sd = new Date(s);
+                    const ed = e ? new Date(e) : null;
+                    const mo = sd.toLocaleString("en-US", { month: "short", timeZone: "UTC" });
+                    const d1 = sd.getUTCDate();
+                    if (ed && ed.getUTCMonth() === sd.getUTCMonth()) {
+                      return `${mo} ${d1}–${ed.getUTCDate()}`;
+                    }
+                    if (ed) {
+                      const mo2 = ed.toLocaleString("en-US", { month: "short", timeZone: "UTC" });
+                      return `${mo} ${d1} – ${mo2} ${ed.getUTCDate()}`;
+                    }
+                    return `${mo} ${d1}`;
+                  } catch { return ""; }
+                };
+                const options = matches.map((m) => {
+                  const range = fmtRange(m.start_date, m.end_date);
+                  const tail = range ? ` (${range})` : "";
+                  return {
+                    tour_alias: m.tour,
+                    tour_name: m.tour_name,
+                    tournament_id: m.tournament_id,
+                    tournament_name: m.tournament_name,
+                    start_date: m.start_date,
+                    end_date: m.end_date,
+                    status: m.status,
+                    label: `${m.tournament_name} — ${m.tour_name}${tail}`,
+                  };
+                });
+                sse.send({
+                  stage: "clarification",
+                  status: "done",
+                  data: {
+                    type: "tournament_picker",
+                    message: `That name matches more than one golf tour. Which event did you mean?`,
+                    options,
+                  },
+                });
+                sse.close();
+                return;
+              }
+            } else {
+              console.warn("[submit-question] golf picker skipped: SPORTRADAR_GOLF_API_KEY missing");
+            }
+          }
+        } catch (e) {
+          console.warn("[submit-question] golf clarification failed:", (e as Error).message);
+        }
+      }
 
       // ----- 3. MODERATION -----
       sse.send({ stage: "moderation", status: "start" });
