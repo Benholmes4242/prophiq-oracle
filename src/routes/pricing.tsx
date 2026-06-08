@@ -126,7 +126,7 @@ function PricingPage() {
                 displayName={row.display_name.replace(/ (Monthly|Annual)$/, "")}
                 priceCopy={`GBP ${(row.amount_minor_units / 100).toFixed(0)}`}
                 cadenceCopy={cadence === "monthly" ? "per month" : "per year"}
-                savingsCopy={cadence === "annual" ? "About 2 months free" : undefined}
+                savingsCopy={cadence === "annual" ? "1 month free" : undefined}
                 features={getTierFeatures(tier, row.daily_forecast_cap)}
                 ctaLabel={currentTier === tier ? "Current plan" : "Start 7-day free trial"}
                 ctaDisabled={currentTier === tier}
