@@ -86,13 +86,13 @@ const DOMAINS = [
 const STEPS = [
   {
     n: "01",
-    title: "Question or event",
-    body: "A user submits a question, or Prophiq's discovery system surfaces an upcoming event automatically. The event gets classified into one of the four domains before any analysis begins.",
+    title: "Understanding what you mean",
+    body: "You ask in plain language. If your question is clear, Prophiq forecasts straight away. If it could mean more than one thing - \"who wins the US Open\" could be tennis or golf, across several tours - Prophiq asks, in natural conversation, until it knows exactly which event you mean. It never guesses, and it never dead-ends. Only once it is sure does it move on.",
   },
   {
     n: "02",
     title: "Live research and structured data",
-    body: "Real-time AI research pulls the latest context from the moment your forecast is requested. In parallel, the relevant domain-specific data sources are queried, so a forecast about a central bank rate decision sees the actual current interest rate from authoritative macro sources, and a forecast about a Premier League match sees the latest standings from established sports data feeds. All evidence is assembled and combined with Prophiq's own historical forecasting data before reasoning begins.",
+    body: "Real-time AI research pulls the latest context from the moment your forecast is requested. In parallel, the relevant domain-specific data sources are queried, so a forecast about a central bank rate decision sees the actual current interest rate from authoritative macro sources, and a forecast about a match or tournament sees the latest real runners, real fields, real competitors and prices from established sports data feeds. All evidence is assembled and combined with Prophiq's own historical forecasting data before reasoning begins.",
   },
   {
     n: "03",
