@@ -71,6 +71,12 @@ export function AskInlinePanel({
             eventDomain: res.eventDomain,
           });
         }
+        // Skip the inline summary card entirely: route straight to the full
+        // forecast page. The full view is the single source of truth.
+        navigate({
+          to: "/$domain/events/$slug",
+          params: { domain: res.eventDomain, slug: res.eventSlug },
+        });
       },
       onClarification: (c) => setClarification(c),
       onError: (msg) => setError(msg),
@@ -219,20 +225,6 @@ export function AskInlinePanel({
         />
       )}
 
-      {result && (
-        <ResultBody
-          result={result}
-          onOpenFull={() =>
-            navigate({
-              to: "/$domain/events/$slug",
-              params: {
-                domain: result.eventDomain,
-                slug: result.eventSlug,
-              },
-            })
-          }
-        />
-      )}
       {error && <ErrorBody message={error} onDismiss={onDismiss} />}
 
 
