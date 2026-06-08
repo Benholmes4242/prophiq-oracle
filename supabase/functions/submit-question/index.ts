@@ -42,6 +42,13 @@ interface Body {
   race_time?: string;
   race_number?: number;
   date_word?: "today" | "tomorrow";
+  // Structured golf follow-up (from the tournament picker / clarification).
+  // When present, the backend canonicalizes the question text AND threads
+  // the exact (tour, tournament_id) onto event.metadata so sportRadarGolf
+  // fetches the picked leaderboard directly without name matching.
+  tour_alias?: string;
+  tournament_id?: string;
+  tournament_name?: string;
 }
 
 Deno.serve(async (req) => {
@@ -72,6 +79,26 @@ Deno.serve(async (req) => {
       question = `who wins race ${structuredRaceNo} at ${structuredCourse}${dateBit}`;
     }
     console.log(`[submit-question] structured-resubmit course=${structuredCourse} time=${structuredTime || "-"} race=${structuredRaceNo ?? "-"} date=${structuredDateWord ?? "-"} -> "${question}"`);
+  }
+
+  // Structured golf override: rebuild canonical text from the picker payload.
+  // The exact (tour, id) is threaded onto event.metadata further down so
+  // sportRadarGolf skips name matching entirely.
+  const structuredTourAlias = typeof body.tour_alias === "string" ? body.tour_alias.trim() : "";
+  const structuredTournamentId = typeof body.tournament_id === "string" ? body.tournament_id.trim() : "";
+  const structuredTournamentName = typeof body.tournament_name === "string" ? body.tournament_name.trim() : "";
+  const VALID_GOLF_TOURS = new Set(["pga", "euro", "lpga", "champ", "pgad", "liv"]);
+  const TOUR_DISPLAY: Record<string, string> = {
+    pga: "PGA Tour", euro: "DP World Tour", lpga: "LPGA Tour",
+    champ: "Champions Tour", pgad: "Korn Ferry Tour", liv: "LIV Golf League",
+  };
+  const hasStructuredGolf =
+    VALID_GOLF_TOURS.has(structuredTourAlias) &&
+    !!structuredTournamentId &&
+    !!structuredTournamentName;
+  if (hasStructuredGolf) {
+    question = `who wins the ${structuredTournamentName} on the ${TOUR_DISPLAY[structuredTourAlias]}`;
+    console.log(`[submit-question] structured-resubmit golf tour=${structuredTourAlias} id=${structuredTournamentId} name="${structuredTournamentName}" -> "${question}"`);
   }
 
   const supabase = getServiceClient();
