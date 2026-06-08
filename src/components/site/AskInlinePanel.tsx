@@ -35,7 +35,7 @@ export function AskInlinePanel({
   onResubmit,
 }: AskInlinePanelProps) {
   const [currentStage, setCurrentStage] = useState<WireStage | null>(null);
-  const [result, setResult] = useState<AskResult | null>(null);
+  const [navigating, setNavigating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [clarification, setClarification] = useState<ClarificationPayload | null>(null);
   const abortRef = useRef<AbortController | null>(null);
