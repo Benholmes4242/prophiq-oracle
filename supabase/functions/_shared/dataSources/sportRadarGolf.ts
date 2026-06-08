@@ -162,29 +162,58 @@ export async function fetchGolfContext(
   if (pickedTour && pickedId && isGolfTour(pickedTour)) {
     const now = hints.starts_at ? new Date(hints.starts_at) : new Date();
     const years = nearbyYears(now);
+    let lastStatus: string | null = null;
+    let lastName: string | null = null;
     for (const year of years) {
       const lb = await fetchLeaderboard(apiKey, pickedTour, year, pickedId);
       if (!lb) continue;
+      lastStatus = lb.status ?? null;
+      lastName = lb.name ?? null;
       const runners = mapLeaderboard(lb);
       const name = lb.name ?? readMetaString(meta, "golf_tournament_name") ?? "tournament";
-      if (runners.length === 0) {
-        return emptySnapshot(`${name} matched but no leaderboard yet (${lb.status ?? "unknown"})`);
+      if (runners.length > 0) {
+        return {
+          tournament: {
+            id: pickedId,
+            name,
+            tour: pickedTour,
+            status: lb.status ?? null,
+            start_date: null,
+            end_date: null,
+          },
+          runners,
+          matched: `${name} (${pickedTour})`,
+          note: `matched ${runners.length} players (structured pick, leaderboard)`,
+        };
       }
-      return {
-        tournament: {
-          id: pickedId,
-          name,
-          tour: pickedTour,
-          status: lb.status ?? null,
-          start_date: null,
-          end_date: null,
-        },
-        runners,
-        matched: `${name} (${pickedTour})`,
-        note: `matched ${runners.length} players (structured pick)`,
-      };
     }
-    return emptySnapshot(`leaderboard fetch failed for picked tournament ${pickedId}`);
+    // No live leaderboard yet — fall back to the pre-tournament entry list
+    // from summary.field so a scheduled tournament still comes back
+    // feed_backed with real player names.
+    for (const year of years) {
+      const summary = await fetchSummary(apiKey, pickedTour, year, pickedId);
+      if (!summary) continue;
+      const fieldPlayers = mapField(summary);
+      const name = summary.name ?? lastName ?? readMetaString(meta, "golf_tournament_name") ?? "tournament";
+      if (fieldPlayers.length > 0) {
+        return {
+          tournament: {
+            id: pickedId,
+            name,
+            tour: pickedTour,
+            status: summary.status ?? lastStatus,
+            start_date: null,
+            end_date: null,
+          },
+          runners: fieldPlayers,
+          matched: `${name} (${pickedTour})`,
+          note: `matched ${fieldPlayers.length} entrants (structured pick, summary.field)`,
+        };
+      }
+    }
+    return emptySnapshot(
+      `picked tournament ${pickedId} matched but has neither leaderboard nor field yet (${lastStatus ?? "unknown"})`,
+    );
   }
 
   // Single-match heuristic (legacy path): scan tours, fetch leaderboard for
