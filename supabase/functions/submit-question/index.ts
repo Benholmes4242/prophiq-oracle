@@ -610,6 +610,99 @@ Deno.serve(async (req) => {
             console.warn("[submit-question] resolver-racing confirm failed:", (e as Error).message);
           }
         }
+
+        // Football confirm. Mirrors golf/racing: resolver names the event;
+        // the confirm helper verifies it against football-data.org (match
+        // winner) or api-sports standings (league/title winner). On a clean
+        // single fixture or a known league, we arm `footballConfirm` so the
+        // event upserts feed_backed outcomes (Home/Draw/Away or live-table
+        // contenders), the structured-data source is registered via event
+        // metadata in sport.ts gatherStructuredSources, and starts_at /
+        // resolves_at reflect the real fixture / season end. Multiple
+        // fixture candidates emit a fixture_picker (structured resubmit
+        // pattern). No match found -> fall through to research_grounded.
+        const footballSport = decision.sport === "football" ||
+          decision.sport === "soccer" ||
+          decision.sport === "association_football";
+        if (domainId === "sport" && footballSport && !hasStructuredFootball) {
+          try {
+            const {
+              confirmFootballMatch,
+              confirmFootballLeague,
+              classifyFootballEvent,
+            } = await import("../_shared/dataSources/footballConfirm.ts");
+            const shape = classifyFootballEvent(decision.canonical_event, decision.competitors);
+            console.log(`[submit-question] resolver-football shape=${shape}`);
+            if (shape === "match") {
+              const confirm = await confirmFootballMatch(
+                decision.canonical_event,
+                decision.approx_date,
+                decision.competitors,
+              );
+              console.log(`[submit-question] resolver-football match kind=${confirm.kind}`);
+              if (confirm.kind === "multiple") {
+                sse.send({
+                  stage: "clarification",
+                  status: "done",
+                  data: {
+                    type: "fixture_picker",
+                    message: `Those two teams have more than one upcoming fixture. Which match did you mean?`,
+                    fixtures: confirm.matches.map((m) => ({
+                      fixture_id: m.fixture_id,
+                      home_team: m.home_team,
+                      away_team: m.away_team,
+                      kickoff: m.kickoff,
+                      competition: m.competition,
+                      label: `${m.home_team} vs ${m.away_team} - ${m.competition} (${new Date(m.kickoff).toUTCString().slice(0, 16)})`,
+                    })),
+                  },
+                });
+                sse.close(); return;
+              }
+              if (confirm.kind === "single") {
+                footballConfirm = {
+                  kind: "match",
+                  fixture_id: confirm.match.fixture_id,
+                  home_team: confirm.match.home_team,
+                  away_team: confirm.match.away_team,
+                  kickoff: confirm.match.kickoff,
+                  competition: confirm.match.competition || null,
+                };
+                resolverOverride = {
+                  normalized_question: `${confirm.match.home_team} vs ${confirm.match.away_team}`,
+                  starts_at: confirm.match.kickoff,
+                };
+              }
+              // kind === "none" -> fall through; research_grounded path.
+            } else if (shape === "league") {
+              const confirm = await confirmFootballLeague(decision.canonical_event);
+              console.log(`[submit-question] resolver-football league kind=${confirm.kind} contenders=${confirm.contenders?.length ?? 0}`);
+              if (confirm.kind === "league" && confirm.contenders && confirm.contenders.length > 0) {
+                const top = confirm.contenders.slice(0, 6);
+                const summary = (confirm.standings ?? [])
+                  .slice(0, 10)
+                  .map((s) => `${s.rank}. ${s.team_name} - ${s.points}pts (${s.played} pl, GD ${s.goal_diff >= 0 ? "+" : ""}${s.goal_diff}, form ${s.form ?? "-"})`)
+                  .join("\n");
+                footballConfirm = {
+                  kind: "league",
+                  competition: confirm.competition ?? decision.canonical_event,
+                  league_id: confirm.league_id!,
+                  season: confirm.season!,
+                  contenders: top,
+                  standings_summary: summary,
+                  resolves_at: confirm.resolves_at!,
+                };
+                resolverOverride = {
+                  normalized_question: `${confirm.competition} ${confirm.season}-${String((confirm.season ?? 0) + 1).slice(-2)} winner`,
+                  starts_at: resolverOverride?.starts_at,
+                };
+              }
+              // kind === "none" -> fall through; research_grounded path.
+            }
+          } catch (e) {
+            console.warn("[submit-question] resolver-football confirm failed:", (e as Error).message);
+          }
+        }
       }
 
       // CLASSIFY/RESOLVE done -> proceed to the forecast pipeline. Low
