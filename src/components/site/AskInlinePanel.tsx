@@ -162,8 +162,8 @@ export function AskInlinePanel({
       {clarification && clarification.type === "conversational" && (
         <ConversationalBody
           clarification={clarification}
-          onReply={(reply) => {
-            if (onResubmit) onResubmit(reply);
+          onReply={(reply, structured) => {
+            if (onResubmit) onResubmit(reply, structured);
             else onDismiss();
           }}
           onDismiss={onDismiss}
