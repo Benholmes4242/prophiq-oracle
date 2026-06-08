@@ -15,7 +15,7 @@ function computeCap(
   subscription: { status: string; tier: string; daily_forecast_cap: number } | null,
 ): { cap: number; tier: string; is_trialing: boolean } {
   const FREE_CAP = 3;
-  const TRIAL_CAP = 100;
+  const TRIAL_CAP = 40;
 
   if (!subscription) {
     return { cap: FREE_CAP, tier: 'free', is_trialing: false };
@@ -53,12 +53,12 @@ assert(
 );
 
 assert(
-  computeCap({ status: 'trialing', tier: 'standard', daily_forecast_cap: 25 }).cap === 100,
-  "trialing standard -> 100/day (Pro experience during trial)",
+  computeCap({ status: 'trialing', tier: 'standard', daily_forecast_cap: 25 }).cap === 40,
+  "trialing standard -> 40/day (Pro experience during trial)",
 );
 assert(
-  computeCap({ status: 'trialing', tier: 'pro', daily_forecast_cap: 100 }).cap === 100,
-  "trialing pro -> 100/day",
+  computeCap({ status: 'trialing', tier: 'pro', daily_forecast_cap: 100 }).cap === 40,
+  "trialing pro -> 40/day",
 );
 assert(
   computeCap({ status: 'trialing', tier: 'standard', daily_forecast_cap: 25 }).is_trialing === true,
@@ -103,7 +103,7 @@ assert(computeRemaining(0, 3) === 3, "0 used of 3 -> 3 remaining");
 assert(computeRemaining(2, 3) === 1, "2 used of 3 -> 1 remaining");
 assert(computeRemaining(3, 3) === 0, "3 used of 3 -> 0 remaining (capped)");
 assert(computeRemaining(5, 3) === 0, "5 used of 3 -> 0 remaining (floored, never negative)");
-assert(computeRemaining(50, 100) === 50, "50 used of 100 -> 50 remaining");
+assert(computeRemaining(20, 40) === 20, "20 used of 40 -> 20 remaining");
 
 console.log(`\n${passed} passed, ${failed} failed`);
 const proc = (globalThis as { Deno?: { exit(c: number): never } }).Deno;
