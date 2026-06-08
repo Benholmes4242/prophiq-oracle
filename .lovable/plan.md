@@ -1,68 +1,72 @@
+# Feed-path unification: one sport grounding module
 
-# Prophiq conversational rebuild — Step 1
+Goal: a discovered (cron) event and a typed (submit-question) event get the **same** feed-backed structured grounding from **one** module. Today the cron uses the old context fetchers; submit-question uses the new confirm functions. Unify on the confirm functions.
 
-You uploaded a 4-step rebuild brief. The brief itself says *do NOT big-bang it* and that **Step 1 alone kills the "couldn't categorise" / Scottish Open error** and most fallbacks. This plan ships Step 1 only. Steps 2–4 are queued and will follow once Step 1 is verified.
+## Files
 
-## Goal of Step 1
+**New**
+- `supabase/functions/_shared/dataSources/sportGrounding.ts`
 
-Eliminate every "we couldn't answer that / couldn't categorise / try a more specific public-event question" error for in-policy, future-resolvable questions. Uncertainty must always be routed to either:
-- a research-grounded forecast (the floor), or
-- an open conversational clarifying question.
+**Edit**
+- `supabase/functions/submit-question/index.ts` (sport branches call `groundSportEvent`)
+- `supabase/functions/_shared/domains/sport.ts` (`gatherStructuredSources` calls `groundSportEvent` for football/golf/racing; theSportsDB stays as fallback for non-confirm sports / props)
+- `supabase/functions/generate-prediction/index.ts` (drop the `extractRacingRunners` outcome-rewrite block; outcomes now come from grounding)
 
-Policy declines (unsafe / sexual / fraud / private individual / already resolved) remain the **only** hard stop.
+**Untouched**
+- `resolver.ts` (submit-question only)
+- `runConsensus`, calibration, trust tiers, placeholder gate
+- Golf/racing confirm internals (`findGolfMatches`, `fetchRacePicker`)
+- `theSportsDB` for non-confirm sports
 
-## Changes
+## Shape
 
-### 1. `supabase/functions/_shared/moderation.ts`
+```ts
+// sportGrounding.ts
+export type SportKind = "football" | "golf" | "horse_racing" | "other";
 
-Split the moderation contract into **CLASSIFY + POLICY**:
+export interface SportGroundingResult {
+  feed_backed: boolean;
+  outcomes?: string[];                 // when the confirm produced a real field
+  sources: StructuredDataSource[];     // 0..N items shaped like sport.ts's existing sources
+  metadata?: Record<string, unknown>;  // e.g. { football_confirm: {...} }
+  picker?: unknown;                    // optional multi-candidate payload (typed flow only)
+}
 
-- Extend `ModerationDecision` with:
-  - `policy_breach: boolean` — the only field that can hard-stop.
-  - `policy_reason: string | null` — kind, conversational decline text.
-  - `confidence: "high" | "low"` — classifier's self-reported confidence.
-- Rewrite `MODERATION_SYSTEM` + `buildModerationPrompt` so the model:
-  - Returns `policy_breach=true` **only** for: unsafe/harmful, sexual, fraudulent/illegal, private (non-public) individual, or already-resolved.
-  - Treats niche/specialist/regional/minor-tour real public events as **valid** (never reject for niche-ness).
-  - Returns `confidence: "low"` when it cannot identify the event/intent — never reject for uncertainty.
-  - Still returns best-guess `domain`, `normalized_question`, `outcomes`, dates.
-- `coerceModerationResult` **fails open**: unparseable / empty model output → `decision: "accept"`, `confidence: "low"`, `policy_breach: false`. (Today it defaults to reject — this is the single biggest source of the Scottish Open–style errors.)
-- `runModeration` catch block: on network/service failure, return a low-confidence accept with `policy_breach: false` instead of a reject.
-- Keep `decision` field for back-compat but route on `policy_breach` + `confidence` going forward.
+export async function groundSportEvent(input: {
+  sport: SportKind;
+  canonicalEvent: string;
+  approxDate: string | null;
+  competitors: string[] | null;
+}): Promise<SportGroundingResult>;
+```
 
-### 2. `supabase/functions/submit-question/index.ts` — MODERATION stage
+Routing inside:
+- `football` → `classifyFootballEvent` → `confirmFootballMatch` | `confirmFootballLeague`
+- `golf` → `findGolfMatches`
+- `horse_racing` → `fetchRacePicker`
+- else → `{ feed_backed: false, sources: [] }`
 
-Replace the current hard-reject branch:
+## Migration order (each step verified before the next)
 
-- **If `mod.policy_breach`** → emit a single conversational SSE `clarification` of `type: "policy_decline"` (kind, plain-English message from `mod.policy_reason`), record `rejected_moderation`, close. This is the only terminal that is not a forecast or a clarification.
-- **If `!policy_breach` and unknown `domainId`** → already emits a conversational clarification today; keep that path but no longer record it as `rejected_moderation` (use a neutral "clarification" outcome / search-log entry).
-- **If `!policy_breach` and `confidence === "low"` and `domainId` known** → still proceed to the research-grounded forecast (the floor). Do not hard-stop.
-- **Remove** the `mod.decision === "reject"` hard exit entirely (it now only fires on policy breach, handled above).
-- Pre-filter regex stays as-is (it's already pure policy/safety).
+1. **Add** `sportGrounding.ts` wrapping the three existing confirm fns. No call sites change.
+2. **submit-question**: replace the three inline sport branches' confirm calls with `groundSportEvent`. Behaviour-preserving — same confirm fns underneath. Picker payloads still surface via `picker` for the existing UI flow.
+3. **cron / sport.ts**: in `gatherStructuredSources`, detect sport via existing `isFootballEvent` / `isHorseRacingEvent` / `isGolfEvent`, derive `canonicalEvent` from `event.title`, `approxDate` from `event.starts_at`, then call `groundSportEvent`. Emit the returned `sources` directly, merge `metadata` (e.g. `football_confirm`) onto the source payload as today, and stop calling `fetchFootballDataContext` / `fetchRacingContext` / `fetchGolfContext`. Keep `theSportsDB` for non-confirm sports / props.
+4. **generate-prediction**: when the cron's grounding returned `outcomes`, persist them to `event_outcomes` once (replacing the current `extractRacingRunners` block; same bucket-after-N logic moves into `sportGrounding.ts` or stays as a thin caller). Remove `extractRacingRunners` import + block.
 
-### 3. Frontend (`src/components/site/AskInlinePanel.tsx` + `src/lib/forecast.ts`)
+## Acceptance
 
-Minimal additions:
-- Add `policy_decline` as a clarification `type` in `ClarificationPayload` (renders the message, no reply input, no suggestion chips — terminal, conversational).
-- `forecast.ts` `normaliseClarification` handles the new type.
-- No other UI changes — existing conversational clarification rendering covers everything else.
+1. Same football match discovered vs typed → identical `[Home, Draw, Away]` outcomes and `feed_backed=true` (coverage permitting).
+2. Discovered golf tournament / racing card → real-field outcomes from the confirm path, same as typed.
+3. Out-of-coverage events → `research_grounded` on **both** paths consistently.
+4. Tennis / rugby / non-confirm sports → still served via theSportsDB + research, `domain=sport`.
+5. No regression on calibration, runConsensus, placeholder gate, or typed-question feed_backed.
+6. Only one place generates sport grounding. Old football/golf/racing context fetchers and the duplicate racing rewrite are gone.
+7. `tsc` clean.
 
-## Out of scope for Step 1 (queued for Steps 2–4)
+## Risks / call-outs
 
-- Generalised cross-domain clarification loop with structured hint bag (Step 2).
-- Formal confidence routing helper + removing remaining hard-exit strings (Step 3).
-- Folding the racing / golf / sport disambiguation into one unified loop (Step 4).
+- The cron currently *reads* `event.metadata.football_confirm` left by submit-question. After step 3 the cron *generates* its own confirm — but I will keep the read-path as a fast-skip when a fresh-enough confirm is already on metadata, to avoid double feed hits on the immediate post-submit cron pass.
+- `fetchFootballDataContext` / `fetchGolfContext` / `fetchRacingContext` modules stay on disk (still referenced by tests and possibly other places) but become unused by the sport adapter. I will leave the files; brief says "supersede", not delete.
+- Racing/golf outcome rewrite logic moves out of `generate-prediction` into the grounding module so both paths share it. Submit-question already writes outcomes from the confirm; the cron will now do the same via the grounding result instead of a post-hoc rewrite.
 
-## Acceptance for Step 1
-
-- "who wins the genesis scottish open" never returns a `Couldn't complete the forecast` error — it either forecasts or asks an open conversational question.
-- Any obscure real public event with no feed → research-grounded forecast, never an error.
-- Pre-existing flows untouched: racing picker, golf tour picker, conversational sport disambiguation, structured-resubmit canonicalisation all continue to work.
-- Only a true policy breach produces a non-forecast, non-clarification terminal.
-
-## Verification
-
-- Manual sanity: send "who wins the genesis scottish open", "who wins the Memorial", and an obscure niche event through the preview's ask box; confirm no `pre_filter`/`moderation` `error` SSE for any of them.
-- Confirm policy-breach phrasing (e.g. an unsafe prompt) still terminates conversationally.
-
-Reply with **go** to ship Step 1, or tell me what to adjust.
+Confirm and I'll implement in the migration order above.
