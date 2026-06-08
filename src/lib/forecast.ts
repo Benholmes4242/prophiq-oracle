@@ -377,7 +377,10 @@ function normaliseClarification(data: Record<string, unknown>): ClarificationPay
         const rec = s as Record<string, unknown>;
         const label = typeof rec.label === "string" ? rec.label : "";
         const reply = typeof rec.reply === "string" ? rec.reply : "";
-        return { label, reply };
+        const structured = rec.structured && typeof rec.structured === "object"
+          ? (rec.structured as Partial<StructuredAsk>)
+          : undefined;
+        return { label, reply, structured };
       })
       .filter((s) => s.label && s.reply);
     return {
