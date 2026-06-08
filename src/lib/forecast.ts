@@ -80,6 +80,8 @@ export interface ConversationalClarification {
   message: string;
   suggestions: ConversationalSuggestion[];
   original_question: string;
+  /** Loop counter echoed back on resubmit so the backend can cap clarifying turns. */
+  clarify_turn?: number;
 }
 
 export interface TournamentPickerOption {
@@ -116,6 +118,11 @@ export interface StructuredAsk {
   tournament_name?: string;
   /** Conversational domain disambiguation (Stage 1) — e.g. "golf", "tennis". */
   sport_hint?: string;
+  /** Prior question text, sent on conversational free-text resubmits so the
+   *  backend re-runs sport/signal detection on the combined context. */
+  original_question?: string;
+  /** Loop guard echoed back to the backend on each conversational resubmit. */
+  clarify_turn?: number;
 }
 
 interface RunForecastOpts {
@@ -388,6 +395,7 @@ function normaliseClarification(data: Record<string, unknown>): ClarificationPay
       message: (data.message as string) ?? "Could you tell me a bit more?",
       suggestions,
       original_question: (data.original_question as string) ?? "",
+      clarify_turn: typeof data.clarify_turn === "number" ? data.clarify_turn : undefined,
     };
   }
 
