@@ -49,17 +49,23 @@ interface Body {
   tour_alias?: string;
   tournament_id?: string;
   tournament_name?: string;
-  // Conversational domain disambiguation (Stage 1 sport clarification).
+  // Legacy conversational disambiguation hint. Now optional; the resolver
+  // loop handles sport ambiguity natively via the user_turns transcript.
   sport_hint?: string;
-  // When the user replies free-text to a Stage-1 conversational clarification,
-  // the frontend echoes back the prior question so the backend can re-run
-  // sport/signal detection against the COMBINED context
-  // (original_question + " " + reply). This is the conversational principle:
-  // the user defines the answer space; we just keep listening.
+  // BACK-COMPAT: prior question text on conversational free-text resubmits.
+  // Superseded by `user_turns` (preferred). When both are absent, treated
+  // as a fresh single-turn ask.
   original_question?: string;
-  // Loop guard for Stage-1 ambiguity. Frontend echoes whatever the backend
-  // emitted; backend caps to 2 open clarifying turns before falling through.
+  // BACK-COMPAT: legacy clarification turn counter. Superseded by
+  // `user_turns.length` in the resolver loop.
   clarify_turn?: number;
+  // Step 2: the accumulated USER replies across the conversational loop.
+  // CRITICAL SECURITY: this is the ONLY conversation state we accept from
+  // the client. We do NOT accept assistant turns — a malicious client could
+  // otherwise inject a fake "assistant: you confirmed X" turn to steer the
+  // resolver or smuggle past the policy check. Assistant turns live in the
+  // frontend's local state for chat bubbles only.
+  user_turns?: unknown;
 }
 
 Deno.serve(async (req) => {
