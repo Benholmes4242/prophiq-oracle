@@ -410,38 +410,48 @@ Deno.serve(async (req) => {
 
       // ----- 2.65 SPORT/DOMAIN DISAMBIGUATION (Stage 1, conversational) -----
       // For event names that span multiple sports (e.g. "US Open" = tennis OR
-      // golf), do NOT silently assume one sport. Emit a conversational
-      // clarification with suggestion chips that include a structured
-      // `sport_hint`, so the next turn routes deterministically into the
-      // right pipeline (Stage 2 = tour picker, or tennis flow, etc.).
+      // golf OR something else), do NOT silently assume. Ask an OPEN
+      // conversational question and let the USER tell us which sport / event
+      // they mean — no preset chips, no enumerated answer space. The reply
+      // arrives as free text; we re-run sport/signal detection on the
+      // COMBINED context (handled above via `original_question`) and route on
+      // whatever they actually said. If the combined context now carries an
+      // explicit sport signal, this block is skipped and we proceed.
       const sportHint = typeof body.sport_hint === "string" ? body.sport_hint.trim().toLowerCase() : "";
       const lowerQ = question.toLowerCase();
       const hasExplicitGolfSignal = /\b(golf|pga|dp\s*world|european\s+tour|lpga|korn\s+ferry|liv|ryder cup|presidents cup|champions\s+tour|senior\s+(pga\s+)?tour|masters)\b/i.test(question);
       const hasExplicitTennisSignal = /\b(tennis|atp|wta|grand\s*slam|wimbledon|roland\s*garros)\b/i.test(question);
       const hasExplicitSportSignal = hasExplicitGolfSignal || hasExplicitTennisSignal;
-      // Minimal cross-sport ambiguous catalogue. Extend over time.
-      // Each entry: regex that matches the event phrase + array of plausible sports.
-      const CROSS_SPORT_EVENTS: Array<{ re: RegExp; sports: Array<"golf" | "tennis"> }> = [
-        { re: /\b(the\s+)?us\s*open\b/i, sports: ["tennis", "golf"] },
+      // Lightweight ambiguity signal: these names are known to collide across
+      // sports, so we should ASK rather than guess. We do NOT use this list
+      // to populate the answer space — the message stays open, and we route
+      // on whatever sport the user names in their free-text reply.
+      const CROSS_SPORT_PATTERNS: RegExp[] = [
+        /\b(the\s+)?us\s*open\b/i,
       ];
-      const ambiguous = CROSS_SPORT_EVENTS.find((e) => e.re.test(lowerQ));
+      const ambiguous = CROSS_SPORT_PATTERNS.some((re) => re.test(lowerQ));
+      // Cap the back-and-forth: after 2 unproductive open turns, fall through
+      // to the normal forecast pipeline (honest research-grounded answer
+      // beats endless clarifying).
       const skipStage1 =
-        hasStructuredGolf || !!sportHint || hasExplicitSportSignal;
+        hasStructuredGolf ||
+        !!sportHint ||
+        hasExplicitSportSignal ||
+        clarifyTurn >= 2;
       if (!skipStage1 && ambiguous) {
-        const sportLabel: Record<"golf" | "tennis", string> = { golf: "Golf", tennis: "Tennis" };
-        const suggestions = ambiguous.sports.map((sp) => ({
-          label: sportLabel[sp],
-          reply: question,
-          structured: { sport_hint: sp },
-        }));
+        const message = clarifyTurn === 0
+          ? "A few different competitions go by that name across different sports. Could you tell me which sport — or which exact event — you mean?"
+          : "Got it — still a bit ambiguous. Which sport (or specific tournament) is this? A single word like \"golf\" or \"tennis\" is enough.";
         sse.send({
           stage: "clarification",
           status: "done",
           data: {
             type: "conversational",
-            message: `There are a few different events called that — ${ambiguous.sports.map((s) => sportLabel[s].toLowerCase()).join(" and ")}. Which did you mean?`,
-            suggestions,
+            message,
+            // No chips. The reply input below is the answer space.
+            suggestions: [],
             original_question: question,
+            clarify_turn: clarifyTurn + 1,
           },
         });
         sse.close();
