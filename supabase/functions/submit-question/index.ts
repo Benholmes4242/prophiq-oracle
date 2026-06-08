@@ -738,7 +738,27 @@ Deno.serve(async (req) => {
       // ----- Upsert event + outcomes -----
       const externalId = await stableEventId(normalized, startsAt);
       const slug = `${domainId}-${externalId.slice(0, 12)}`;
-      const outcomes = (mod.outcomes && mod.outcomes.length >= 2) ? mod.outcomes : ["Yes", "No"];
+      // Football match winner: outcomes are exactly [Home, Draw, Away] using
+      // the REAL team names from the confirmed fixture. All three names pass
+      // the placeholder gate. Never collapse to a 2-outcome set - the draw
+      // is a real, often-leading outcome.
+      // Football league winner: outcomes are the top contenders from the
+      // live table (real team names). For a binary "will <team> win the
+      // league" question, mod.outcomes (Yes/No) is preserved; the live
+      // standings still ground the forecast via the structured-source path.
+      let outcomes: string[];
+      if (footballConfirm?.kind === "match") {
+        outcomes = [footballConfirm.home_team, "Draw", footballConfirm.away_team];
+      } else if (
+        footballConfirm?.kind === "league" &&
+        footballConfirm.contenders.length >= 2 &&
+        !(mod.outcomes && mod.outcomes.length === 2 &&
+          mod.outcomes.every((o) => /^(yes|no)$/i.test(o.trim())))
+      ) {
+        outcomes = footballConfirm.contenders;
+      } else {
+        outcomes = (mod.outcomes && mod.outcomes.length >= 2) ? mod.outcomes : ["Yes", "No"];
+      }
 
       // Pre-upsert existence check: did the event already exist? Drives the
       // matched-vs-generated distinction for search analytics. Cheap indexed
