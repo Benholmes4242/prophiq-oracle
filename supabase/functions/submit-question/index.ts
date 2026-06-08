@@ -383,12 +383,55 @@ Deno.serve(async (req) => {
 
 
 
+      // ----- 2.65 SPORT/DOMAIN DISAMBIGUATION (Stage 1, conversational) -----
+      // For event names that span multiple sports (e.g. "US Open" = tennis OR
+      // golf), do NOT silently assume one sport. Emit a conversational
+      // clarification with suggestion chips that include a structured
+      // `sport_hint`, so the next turn routes deterministically into the
+      // right pipeline (Stage 2 = tour picker, or tennis flow, etc.).
+      const sportHint = typeof body.sport_hint === "string" ? body.sport_hint.trim().toLowerCase() : "";
+      const lowerQ = question.toLowerCase();
+      const hasExplicitGolfSignal = /\b(golf|pga|dp\s*world|european\s+tour|lpga|korn\s+ferry|liv|ryder cup|presidents cup|champions\s+tour|senior\s+(pga\s+)?tour|masters)\b/i.test(question);
+      const hasExplicitTennisSignal = /\b(tennis|atp|wta|grand\s*slam|wimbledon|roland\s*garros)\b/i.test(question);
+      const hasExplicitSportSignal = hasExplicitGolfSignal || hasExplicitTennisSignal;
+      // Minimal cross-sport ambiguous catalogue. Extend over time.
+      // Each entry: regex that matches the event phrase + array of plausible sports.
+      const CROSS_SPORT_EVENTS: Array<{ re: RegExp; sports: Array<"golf" | "tennis"> }> = [
+        { re: /\b(the\s+)?us\s*open\b/i, sports: ["tennis", "golf"] },
+      ];
+      const ambiguous = CROSS_SPORT_EVENTS.find((e) => e.re.test(lowerQ));
+      const skipStage1 =
+        hasStructuredGolf || !!sportHint || hasExplicitSportSignal;
+      if (!skipStage1 && ambiguous) {
+        const sportLabel: Record<"golf" | "tennis", string> = { golf: "Golf", tennis: "Tennis" };
+        const suggestions = ambiguous.sports.map((sp) => ({
+          label: sportLabel[sp],
+          reply: question,
+          structured: { sport_hint: sp },
+        }));
+        sse.send({
+          stage: "clarification",
+          status: "done",
+          data: {
+            type: "conversational",
+            message: `There are a few different events called that — ${ambiguous.sports.map((s) => sportLabel[s].toLowerCase()).join(" and ")}. Which did you mean?`,
+            suggestions,
+            original_question: question,
+          },
+        });
+        sse.close();
+        return;
+      }
+
       // ----- 2.7 GOLF TOURNAMENT PICKER -----
       // Detect ambiguous golf questions (e.g. "who wins the US Open" matches
       // PGA Tour + DP World Tour) and emit a tournament picker BEFORE
       // moderation. Skipped entirely when the user already came back through
-      // structured resubmit (hasStructuredGolf).
-      if (!hasStructuredGolf) {
+      // structured resubmit (hasStructuredGolf). Also gated on either an
+      // explicit golf signal in the question or sport_hint=golf coming back
+      // from Stage 1, so we never silently assume golf for cross-sport names.
+      const stage2GolfAllowed = hasExplicitGolfSignal || sportHint === "golf";
+      if (!hasStructuredGolf && stage2GolfAllowed) {
         try {
           const { isGolfEvent } = await import("../_shared/domains/sport.ts");
           const { findGolfMatches, parseTournamentName } =
