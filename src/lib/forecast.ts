@@ -101,10 +101,17 @@ export interface TournamentPickerClarification {
   options: TournamentPickerOption[];
 }
 
+export interface PolicyDeclineClarification {
+  type: "policy_decline";
+  message: string;
+  original_question: string;
+}
+
 export type ClarificationPayload =
   | RacePickerClarification
   | ConversationalClarification
-  | TournamentPickerClarification;
+  | TournamentPickerClarification
+  | PolicyDeclineClarification;
 
 
 export interface StructuredAsk {
