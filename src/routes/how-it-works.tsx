@@ -42,6 +42,10 @@ const LAYERS = [
     title: "Multi-model AI reasoning",
     body: "Multiple frontier AI reasoning models analyze the assembled evidence independently. Their outputs are combined via a consensus algorithm so no single model's quirks dominate the answer.",
   },
+  {
+    title: "Honest data grounding",
+    body: "Every forecast shows how it is grounded. When live feed data covers an event - real runners, real tournament fields, real prices - the forecast is built on it directly. When no feed exists, live research grounds it instead. Prophiq never invents a favourite or fakes a number, and when a field is not yet set, it says so.",
+  },
 ];
 
 const DOMAINS = [
