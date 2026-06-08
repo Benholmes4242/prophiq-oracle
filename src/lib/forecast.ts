@@ -80,9 +80,27 @@ export interface ConversationalClarification {
   original_question: string;
 }
 
+export interface TournamentPickerOption {
+  tour_alias: string;
+  tour_name: string;
+  tournament_id: string;
+  tournament_name: string;
+  start_date: string | null;
+  end_date: string | null;
+  status: string | null;
+  label: string;
+}
+
+export interface TournamentPickerClarification {
+  type: "tournament_picker";
+  message: string;
+  options: TournamentPickerOption[];
+}
+
 export type ClarificationPayload =
   | RacePickerClarification
-  | ConversationalClarification;
+  | ConversationalClarification
+  | TournamentPickerClarification;
 
 
 export interface StructuredAsk {
@@ -90,6 +108,10 @@ export interface StructuredAsk {
   race_time?: string;
   race_number?: number;
   date_word?: "today" | "tomorrow";
+  // Golf tournament picker resubmit fields.
+  tour_alias?: string;
+  tournament_id?: string;
+  tournament_name?: string;
 }
 
 interface RunForecastOpts {
