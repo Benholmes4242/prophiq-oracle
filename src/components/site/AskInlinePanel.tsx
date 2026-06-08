@@ -169,7 +169,25 @@ export function AskInlinePanel({
           onDismiss={onDismiss}
         />
       )}
-      {clarification && clarification.type !== "conversational" && (
+      {clarification && clarification.type === "tournament_picker" && (
+        <TournamentPickerBody
+          clarification={clarification}
+          onPick={(opt) => {
+            const next = `who wins the ${opt.tournament_name} on the ${opt.tour_name}`;
+            const struct: StructuredAsk = {
+              tour_alias: opt.tour_alias,
+              tournament_id: opt.tournament_id,
+              tournament_name: opt.tournament_name,
+            };
+            if (onResubmit) onResubmit(next, struct);
+            else onDismiss();
+          }}
+          onDismiss={onDismiss}
+        />
+      )}
+      {clarification &&
+        clarification.type !== "conversational" &&
+        clarification.type !== "tournament_picker" && (
         <ClarificationBody
           clarification={clarification}
           onPick={(value: string) => {
