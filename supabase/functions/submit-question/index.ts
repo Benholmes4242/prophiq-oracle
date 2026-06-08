@@ -486,6 +486,75 @@ Deno.serve(async (req) => {
             console.warn("[submit-question] resolver-golf disambig failed:", (e as Error).message);
           }
         }
+
+        // Racing confirm. Mirrors the golf path: the resolver names the
+        // event (canonical_event should be a clean "<Course> HH:MM <today|
+        // tomorrow|date>" string for racing); fetchRacePicker verifies it
+        // against the live feed and either emits a race_picker for the
+        // user to disambiguate, or falls through to a feed-backed forecast.
+        // Skipped when the user is already coming back via a structured
+        // racing resubmit (course + time / race_number canonicalised above).
+        //
+        // EXTENSION POINT: future sports (football, tennis, f1, ...) plug
+        // a per-sport confirm function in here using the same pattern -
+        // resolver names the event, confirm function verifies via feed,
+        // emit picker on ambiguity OR fall through to forecast. NO sport
+        // ever gets a pre-moderation rule-based clarification block again.
+        const hasStructuredRacing = !!structuredCourse && (!!structuredTime || structuredRaceNo !== null);
+        const racingSport = decision.sport === "horse_racing" ||
+          decision.sport === "horse racing" ||
+          decision.sport === "racing";
+        if (domainId === "sport" && racingSport && !hasStructuredRacing) {
+          try {
+            const { fetchRacePicker } = await import("../_shared/dataSources/racingApi.ts");
+            const u = Deno.env.get("RACING_API_USERNAME");
+            const p = Deno.env.get("RACING_API_PASSWORD");
+            if (u && p) {
+              const racingStartsAt = resolverOverride?.starts_at ?? new Date().toISOString();
+              const picker = await fetchRacePicker(u, p, {
+                title: decision.canonical_event,
+                question: decision.canonical_event,
+                starts_at: racingStartsAt,
+              });
+              console.log(`[submit-question] resolver-racing kind=${picker.kind}`);
+              if (picker.kind === "races" && picker.races.length >= 2) {
+                let dateWord: "today" | "tomorrow" | null = null;
+                if (picker.date && /^\d{4}-\d{2}-\d{2}$/.test(picker.date)) {
+                  const now = new Date();
+                  const todayISO = now.toISOString().slice(0, 10);
+                  const tmr = new Date(now.getTime() + 86400000).toISOString().slice(0, 10);
+                  if (picker.date === todayISO) dateWord = "today";
+                  else if (picker.date === tmr) dateWord = "tomorrow";
+                }
+                sse.send({
+                  stage: "clarification",
+                  status: "done",
+                  data: {
+                    type: "race_picker",
+                    pick_by: picker.pick_by,
+                    track_name: picker.track_name,
+                    date: picker.date,
+                    date_word: dateWord,
+                    message: picker.pick_by === "race_number"
+                      ? `${picker.track_name} is a US track. US races are picked by race number. Which race would you like a forecast for?`
+                      : `Which race at ${picker.track_name} would you like a forecast for?`,
+                    races: picker.races,
+                  },
+                });
+                sse.close(); return;
+              }
+              // dark_day / unmatched / single race: fall through to the
+              // normal forecast pipeline. The trust layer / placeholder
+              // gate downstream will surface research_grounded honestly
+              // if the feed cannot confirm - never a junk picker, never
+              // a hard error.
+            } else {
+              console.warn("[submit-question] resolver-racing skipped: RACING_API creds missing");
+            }
+          } catch (e) {
+            console.warn("[submit-question] resolver-racing confirm failed:", (e as Error).message);
+          }
+        }
       }
 
       // CLASSIFY/RESOLVE done -> proceed to the forecast pipeline. Low
