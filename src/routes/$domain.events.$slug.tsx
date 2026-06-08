@@ -282,7 +282,8 @@ function EventDetailPage() {
   // "Any other runner") from the headline + call section so a pre-event
   // forecast with no real field never shows a manufactured 47% favourite.
   const ranked = rankedRaw.filter(
-    (r) => !isPlaceholderOutcomeLabel(r.outcome_label ?? r.outcome_id ?? ""),
+    (r: RankedOutcome) =>
+      !isPlaceholderOutcomeLabel(r.outcome_label ?? r.outcome_id ?? ""),
   );
   const allPlaceholder = rankedRaw.length > 0 && ranked.length === 0;
   const top = ranked[0] ?? null;
