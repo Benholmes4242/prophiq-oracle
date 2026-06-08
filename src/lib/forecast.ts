@@ -419,12 +419,17 @@ function normaliseClarification(data: Record<string, unknown>): ClarificationPay
         return { label, reply, structured };
       })
       .filter((s) => s.label && s.reply);
+    const rawUserTurns = Array.isArray(data.user_turns) ? data.user_turns : null;
+    const userTurns = rawUserTurns
+      ? rawUserTurns.filter((t): t is string => typeof t === "string")
+      : undefined;
     return {
       type: "conversational",
       message: (data.message as string) ?? "Could you tell me a bit more?",
       suggestions,
       original_question: (data.original_question as string) ?? "",
       clarify_turn: typeof data.clarify_turn === "number" ? data.clarify_turn : undefined,
+      user_turns: userTurns,
     };
   }
 
