@@ -50,6 +50,15 @@ interface Body {
   tour_alias?: string;
   tournament_id?: string;
   tournament_name?: string;
+  // Structured football follow-up (from the fixture picker). When all four
+  // are present, the backend skips the resolver and treats the question as
+  // a confirmed match: outcomes = [home, "Draw", away], starts_at = kickoff,
+  // feed_backed via the football_confirm metadata source.
+  football_fixture_id?: string;
+  football_home_team?: string;
+  football_away_team?: string;
+  football_kickoff?: string;
+  football_competition?: string;
   // Legacy conversational disambiguation hint. Now optional; the resolver
   // loop handles sport ambiguity natively via the user_turns transcript.
   sport_hint?: string;
@@ -149,6 +158,20 @@ Deno.serve(async (req) => {
   if (hasStructuredGolf) {
     question = `who wins the ${structuredTournamentName} on the ${TOUR_DISPLAY[structuredTourAlias]}`;
     console.log(`[submit-question] structured-resubmit golf tour=${structuredTourAlias} id=${structuredTournamentId} name="${structuredTournamentName}" -> "${question}"`);
+  }
+
+  // Structured football override (fixture picker resubmit). Canonicalises
+  // the question text and arms a footballConfirm payload below so the event
+  // is feed_backed against the picked fixture without a second resolver hop.
+  const structuredFbFixtureId = typeof body.football_fixture_id === "string" ? body.football_fixture_id.trim() : "";
+  const structuredFbHome = typeof body.football_home_team === "string" ? body.football_home_team.trim() : "";
+  const structuredFbAway = typeof body.football_away_team === "string" ? body.football_away_team.trim() : "";
+  const structuredFbKickoff = typeof body.football_kickoff === "string" ? body.football_kickoff.trim() : "";
+  const structuredFbCompetition = typeof body.football_competition === "string" ? body.football_competition.trim() : "";
+  const hasStructuredFootball = !!structuredFbFixtureId && !!structuredFbHome && !!structuredFbAway;
+  if (hasStructuredFootball) {
+    question = `who wins ${structuredFbHome} vs ${structuredFbAway}`;
+    console.log(`[submit-question] structured-resubmit football fixture=${structuredFbFixtureId} ${structuredFbHome} vs ${structuredFbAway}`);
   }
 
   const supabase = getServiceClient();
@@ -308,6 +331,38 @@ Deno.serve(async (req) => {
       let autoGolfMatch:
         | { tour: string; tournament_id: string; tournament_name: string }
         | null = null;
+      // Football confirm result threaded through to event upsert (outcomes,
+      // metadata, starts_at, resolves_at). Populated either by the resolver
+      // football branch below or by the structured football resubmit shortcut.
+      type FootballConfirmThread =
+        | {
+            kind: "match";
+            fixture_id: string;
+            home_team: string;
+            away_team: string;
+            kickoff: string;
+            competition: string | null;
+          }
+        | {
+            kind: "league";
+            competition: string;
+            league_id: number;
+            season: number;
+            contenders: string[];
+            standings_summary: string;
+            resolves_at: string;
+          };
+      let footballConfirm: FootballConfirmThread | null = null;
+      if (hasStructuredFootball) {
+        footballConfirm = {
+          kind: "match",
+          fixture_id: structuredFbFixtureId,
+          home_team: structuredFbHome,
+          away_team: structuredFbAway,
+          kickoff: structuredFbKickoff || new Date().toISOString(),
+          competition: structuredFbCompetition || null,
+        };
+      }
 
       // ----- 3. MODERATION (CLASSIFY + POLICY) -----
       // Step-1 rebuild: the ONLY hard stop is a real policy breach
@@ -555,6 +610,99 @@ Deno.serve(async (req) => {
             console.warn("[submit-question] resolver-racing confirm failed:", (e as Error).message);
           }
         }
+
+        // Football confirm. Mirrors golf/racing: resolver names the event;
+        // the confirm helper verifies it against football-data.org (match
+        // winner) or api-sports standings (league/title winner). On a clean
+        // single fixture or a known league, we arm `footballConfirm` so the
+        // event upserts feed_backed outcomes (Home/Draw/Away or live-table
+        // contenders), the structured-data source is registered via event
+        // metadata in sport.ts gatherStructuredSources, and starts_at /
+        // resolves_at reflect the real fixture / season end. Multiple
+        // fixture candidates emit a fixture_picker (structured resubmit
+        // pattern). No match found -> fall through to research_grounded.
+        const footballSport = decision.sport === "football" ||
+          decision.sport === "soccer" ||
+          decision.sport === "association_football";
+        if (domainId === "sport" && footballSport && !hasStructuredFootball) {
+          try {
+            const {
+              confirmFootballMatch,
+              confirmFootballLeague,
+              classifyFootballEvent,
+            } = await import("../_shared/dataSources/footballConfirm.ts");
+            const shape = classifyFootballEvent(decision.canonical_event, decision.competitors);
+            console.log(`[submit-question] resolver-football shape=${shape}`);
+            if (shape === "match") {
+              const confirm = await confirmFootballMatch(
+                decision.canonical_event,
+                decision.approx_date,
+                decision.competitors,
+              );
+              console.log(`[submit-question] resolver-football match kind=${confirm.kind}`);
+              if (confirm.kind === "multiple") {
+                sse.send({
+                  stage: "clarification",
+                  status: "done",
+                  data: {
+                    type: "fixture_picker",
+                    message: `Those two teams have more than one upcoming fixture. Which match did you mean?`,
+                    fixtures: confirm.matches.map((m) => ({
+                      fixture_id: m.fixture_id,
+                      home_team: m.home_team,
+                      away_team: m.away_team,
+                      kickoff: m.kickoff,
+                      competition: m.competition,
+                      label: `${m.home_team} vs ${m.away_team} - ${m.competition} (${new Date(m.kickoff).toUTCString().slice(0, 16)})`,
+                    })),
+                  },
+                });
+                sse.close(); return;
+              }
+              if (confirm.kind === "single") {
+                footballConfirm = {
+                  kind: "match",
+                  fixture_id: confirm.match.fixture_id,
+                  home_team: confirm.match.home_team,
+                  away_team: confirm.match.away_team,
+                  kickoff: confirm.match.kickoff,
+                  competition: confirm.match.competition || null,
+                };
+                resolverOverride = {
+                  normalized_question: `${confirm.match.home_team} vs ${confirm.match.away_team}`,
+                  starts_at: confirm.match.kickoff,
+                };
+              }
+              // kind === "none" -> fall through; research_grounded path.
+            } else if (shape === "league") {
+              const confirm = await confirmFootballLeague(decision.canonical_event);
+              console.log(`[submit-question] resolver-football league kind=${confirm.kind} contenders=${confirm.contenders?.length ?? 0}`);
+              if (confirm.kind === "league" && confirm.contenders && confirm.contenders.length > 0) {
+                const top = confirm.contenders.slice(0, 6);
+                const summary = (confirm.standings ?? [])
+                  .slice(0, 10)
+                  .map((s) => `${s.rank}. ${s.team_name} - ${s.points}pts (${s.played} pl, GD ${s.goal_diff >= 0 ? "+" : ""}${s.goal_diff}, form ${s.form ?? "-"})`)
+                  .join("\n");
+                footballConfirm = {
+                  kind: "league",
+                  competition: confirm.competition ?? decision.canonical_event,
+                  league_id: confirm.league_id!,
+                  season: confirm.season!,
+                  contenders: top,
+                  standings_summary: summary,
+                  resolves_at: confirm.resolves_at!,
+                };
+                resolverOverride = {
+                  normalized_question: `${confirm.competition} ${confirm.season}-${String((confirm.season ?? 0) + 1).slice(-2)} winner`,
+                  starts_at: resolverOverride?.starts_at,
+                };
+              }
+              // kind === "none" -> fall through; research_grounded path.
+            }
+          } catch (e) {
+            console.warn("[submit-question] resolver-football confirm failed:", (e as Error).message);
+          }
+        }
       }
 
       // CLASSIFY/RESOLVE done -> proceed to the forecast pipeline. Low
@@ -563,7 +711,9 @@ Deno.serve(async (req) => {
       // tiering, placeholder-gate behaviour, and never-fabricate rules.
       const normalized = resolverOverride?.normalized_question ?? mod.normalized_question ?? question;
       const startsAt = resolverOverride?.starts_at ?? mod.starts_at ?? today.toISOString();
-      const resolvesAt = defaultResolvesAt(mod, today);
+      const resolvesAt = (footballConfirm?.kind === "league" && footballConfirm.resolves_at)
+        ? footballConfirm.resolves_at
+        : defaultResolvesAt(mod, today);
       sse.send({
         stage: "moderation",
         status: "done",
@@ -588,7 +738,27 @@ Deno.serve(async (req) => {
       // ----- Upsert event + outcomes -----
       const externalId = await stableEventId(normalized, startsAt);
       const slug = `${domainId}-${externalId.slice(0, 12)}`;
-      const outcomes = (mod.outcomes && mod.outcomes.length >= 2) ? mod.outcomes : ["Yes", "No"];
+      // Football match winner: outcomes are exactly [Home, Draw, Away] using
+      // the REAL team names from the confirmed fixture. All three names pass
+      // the placeholder gate. Never collapse to a 2-outcome set - the draw
+      // is a real, often-leading outcome.
+      // Football league winner: outcomes are the top contenders from the
+      // live table (real team names). For a binary "will <team> win the
+      // league" question, mod.outcomes (Yes/No) is preserved; the live
+      // standings still ground the forecast via the structured-source path.
+      let outcomes: string[];
+      if (footballConfirm?.kind === "match") {
+        outcomes = [footballConfirm.home_team, "Draw", footballConfirm.away_team];
+      } else if (
+        footballConfirm?.kind === "league" &&
+        footballConfirm.contenders.length >= 2 &&
+        !(mod.outcomes && mod.outcomes.length === 2 &&
+          mod.outcomes.every((o) => /^(yes|no)$/i.test(o.trim())))
+      ) {
+        outcomes = footballConfirm.contenders;
+      } else {
+        outcomes = (mod.outcomes && mod.outcomes.length >= 2) ? mod.outcomes : ["Yes", "No"];
+      }
 
       // Pre-upsert existence check: did the event already exist? Drives the
       // matched-vs-generated distinction for search analytics. Cheap indexed
@@ -631,6 +801,10 @@ Deno.serve(async (req) => {
             golf_tournament_id: autoGolfMatch.tournament_id,
             golf_tournament_name: autoGolfMatch.tournament_name,
             sub_category: "golf",
+          } : {}),
+          ...(footballConfirm ? {
+            sub_category: "football",
+            football_confirm: footballConfirm,
           } : {}),
         },
       }, { onConflict: "domain,external_id" }).select("*").single();
