@@ -124,7 +124,7 @@ function PricingPage() {
                 key={row.stripe_price_id}
                 tier={row.tier}
                 displayName={row.display_name.replace(/ (Monthly|Annual)$/, "")}
-                priceCopy={`GBP ${(row.amount_minor_units / 100).toFixed(0)}`}
+                priceCopy={`GBP ${(row.amount_minor_units / 100).toFixed(2)}`}
                 cadenceCopy={cadence === "monthly" ? "per month" : "per year"}
                 savingsCopy={cadence === "annual" ? "1 month free" : undefined}
                 features={getTierFeatures(tier, row.daily_forecast_cap)}
