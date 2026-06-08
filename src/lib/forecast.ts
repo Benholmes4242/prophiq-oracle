@@ -139,6 +139,11 @@ export interface StructuredAsk {
   original_question?: string;
   /** Loop guard echoed back to the backend on each conversational resubmit. */
   clarify_turn?: number;
+  /** Step 2: accumulated USER turns sent to the resolver. Trusted by server. */
+  user_turns?: string[];
+  /** Step 2: accumulated ASSISTANT turns (client-only, for chat-bubble UI).
+   *  Server ignores this field - never use it for trust decisions. */
+  assistant_turns?: string[];
 }
 
 interface RunForecastOpts {
