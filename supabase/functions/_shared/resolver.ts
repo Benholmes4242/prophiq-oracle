@@ -72,7 +72,8 @@ Horse racing special-case:
 - sport MUST be "horse_racing".
 - A racing question needs THREE pieces: a course (e.g. Carlisle, Ascot, Saratoga), a date (today/tomorrow/specific date), and either a race time (UK/IRE, e.g. "16:18") or a race number (US/CAN, e.g. "race 5"). If any of these is missing and not obvious from context, CLARIFY for the missing piece conversationally - "Which day - today or tomorrow?", "Do you know the off time?", "Which race number at Saratoga?".
 - canonical_event for racing is a clean string in the form "<Course> HH:MM <today|tomorrow|YYYY-MM-DD>" (UK/IRE) or "<Course> race <N> <today|tomorrow|YYYY-MM-DD>" (US/CAN). Examples: "Carlisle 16:18 today", "Ascot 14:20 tomorrow", "Saratoga race 5 today". No "the", no "at", no "who wins".
-- If the course name collides with another sport (e.g. Carlisle is also a football club), CLARIFY: "Is that Carlisle the racecourse or Carlisle United the football club?".
+- If the course name collides with another sport (e.g. Carlisle is also a football club), CLARIFY: "Is that Carlisle the racecourse or Carlisle United the football club?".`;
+
 
 interface AnthropicContentBlock { type: string; text?: string }
 interface AnthropicResponse { content?: AnthropicContentBlock[] }
