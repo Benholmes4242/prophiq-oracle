@@ -10,10 +10,12 @@ export interface PaywallQuotaInfo {
   trial_end: string | null;
 }
 
-// Hardcoded constants mirror prophiq_prices seeds (Brief BB).
-// Update alongside the price-table migration when we switch to live mode.
-const STANDARD_MONTHLY_PRICE_ID = "price_1TeFzHKWWtT9LrrZVqRHavG8";
-const PRO_MONTHLY_PRICE_ID = "price_1TeG2wKWWtT9LrrZcKsKIMLG";
+// Hardcoded constants mirror prophiq_prices seeds.
+// TODO(ben): replace with the NEW live-mode Stripe price IDs created for the
+// GBP 9.99 / 29.99 pricing update (Part A). Until swapped, paywall upgrade
+// CTAs will target the grandfathered GBP 6 / 24 prices.
+const STANDARD_MONTHLY_PRICE_ID = "price_NEW_STANDARD_MONTHLY_9_99";
+const PRO_MONTHLY_PRICE_ID = "price_NEW_PRO_MONTHLY_29_99";
 
 interface PaywallModalProps {
   open: boolean;
@@ -57,11 +59,11 @@ export function PaywallModal({ open, onClose, quotaInfo }: PaywallModalProps) {
       : `You've used your ${tier === "standard" ? "Standard" : "Pro"} forecasts today`;
 
   const subhead = is_trialing
-    ? "You're on a Pro trial with 100 forecasts/day. Resets at midnight UTC."
+    ? "You're on a Pro trial with 40 forecasts/day. Resets at midnight UTC."
     : tier === "free"
       ? `That's your free tier of ${daily_cap}/day. Upgrade for more headroom.`
       : tier === "standard"
-        ? `That's your Standard tier of ${daily_cap}/day. Upgrade to Pro for 100/day.`
+        ? `That's your Standard tier of ${daily_cap}/day. Upgrade to Pro for 40/day.`
         : `That's your Pro tier of ${daily_cap}/day. Limit resets at midnight UTC.`;
 
   const showUpgradeCtas = tier !== "pro" && !is_trialing;
@@ -111,7 +113,7 @@ export function PaywallModal({ open, onClose, quotaInfo }: PaywallModalProps) {
               >
                 {loadingPriceId === STANDARD_MONTHLY_PRICE_ID
                   ? "Loading..."
-                  : "Start 7-day Pro trial, then Standard at GBP 6/mo"}
+                  : "Start 7-day Pro trial, then Standard at GBP 9.99/mo"}
               </button>
             )}
             <button
@@ -122,7 +124,7 @@ export function PaywallModal({ open, onClose, quotaInfo }: PaywallModalProps) {
             >
               {loadingPriceId === PRO_MONTHLY_PRICE_ID
                 ? "Loading..."
-                : "Start 7-day Pro trial, then Pro at GBP 24/mo"}
+                : "Start 7-day Pro trial, then Pro at GBP 29.99/mo"}
             </button>
             <Link
               to="/pricing"
