@@ -357,10 +357,6 @@ ${forecastDisciplineBlock()}`;
         } as SourceResult));
       }
     }
-      if (gk) {
-        tasks.push(runSource("sportRadarGolf", () => fetchGolfContext(gk, hints)));
-      }
-    }
 
     const settled = await Promise.allSettled(tasks);
 
