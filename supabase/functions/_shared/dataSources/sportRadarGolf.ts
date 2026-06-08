@@ -240,26 +240,45 @@ export async function fetchGolfContext(
     const lb = await fetchLeaderboard(apiKey, m.tour, y, m.tournament_id);
     if (!lb) continue;
     const runners = mapLeaderboard(lb);
-    if (runners.length === 0) {
-      return emptySnapshot(
-        `tournament ${m.tournament_name} matched but no leaderboard yet (${m.status ?? "unknown"})`,
-      );
+    if (runners.length > 0) {
+      return {
+        tournament: {
+          id: m.tournament_id,
+          name: m.tournament_name,
+          tour: m.tour,
+          status: m.status,
+          start_date: m.start_date,
+          end_date: m.end_date,
+        },
+        runners,
+        matched: `${m.tournament_name} (${m.tour})`,
+        note: `matched ${runners.length} players (leaderboard)`,
+      };
     }
-    return {
-      tournament: {
-        id: m.tournament_id,
-        name: m.tournament_name,
-        tour: m.tour,
-        status: m.status,
-        start_date: m.start_date,
-        end_date: m.end_date,
-      },
-      runners,
-      matched: `${m.tournament_name} (${m.tour})`,
-      note: `matched ${runners.length} players`,
-    };
+    // No live leaderboard — try summary.field for the pre-tournament entry list.
+    const summary = await fetchSummary(apiKey, m.tour, y, m.tournament_id);
+    if (summary) {
+      const fieldPlayers = mapField(summary);
+      if (fieldPlayers.length > 0) {
+        return {
+          tournament: {
+            id: m.tournament_id,
+            name: m.tournament_name,
+            tour: m.tour,
+            status: summary.status ?? m.status,
+            start_date: m.start_date,
+            end_date: m.end_date,
+          },
+          runners: fieldPlayers,
+          matched: `${m.tournament_name} (${m.tour})`,
+          note: `matched ${fieldPlayers.length} entrants (summary.field)`,
+        };
+      }
+    }
   }
-  return emptySnapshot(`leaderboard fetch failed for ${m.tournament_name}`);
+  return emptySnapshot(
+    `tournament ${m.tournament_name} matched but no leaderboard or field yet (${m.status ?? "unknown"})`,
+  );
 }
 
 // ---------- hint parsing ----------
