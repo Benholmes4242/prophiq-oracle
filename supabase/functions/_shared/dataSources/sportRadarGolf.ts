@@ -313,6 +313,20 @@ interface RawLeaderboardResp {
   leaderboard?: RawLeaderboardPlayer[];
 }
 
+interface RawSummaryFieldPlayer {
+  id?: string;
+  first_name?: string;
+  last_name?: string;
+  abbr_name?: string;
+  country?: string;
+}
+interface RawSummaryResp {
+  id?: string;
+  name?: string;
+  status?: string;
+  field?: RawSummaryFieldPlayer[];
+}
+
 async function fetchSchedule(
   apiKey: string,
   tour: GolfTour,
@@ -341,6 +355,24 @@ async function fetchLeaderboard(
   await sleep(RATE_LIMIT_GAP_MS);
   const url = `${GOLF_BASE}/${tour}/v3/en/${year}/tournaments/${tournamentId}/leaderboard.json?api_key=${encodeURIComponent(apiKey)}`;
   return await fetchJson<RawLeaderboardResp>(url);
+}
+
+/**
+ * Pre-tournament field. For a `scheduled`/`created` tournament, the
+ * `summary` endpoint exposes a `field` array of real entrants (verified
+ * 2026-06-08). The `field`/`entries` sub-paths 404. Use this to surface
+ * a real player list before the leaderboard exists, so we can still emit
+ * feed_backed predictions instead of "field still forming".
+ */
+async function fetchSummary(
+  apiKey: string,
+  tour: GolfTour,
+  year: number,
+  tournamentId: string,
+): Promise<RawSummaryResp | null> {
+  await sleep(RATE_LIMIT_GAP_MS);
+  const url = `${GOLF_BASE}/${tour}/v3/en/${year}/tournaments/${tournamentId}/summary.json?api_key=${encodeURIComponent(apiKey)}`;
+  return await fetchJson<RawSummaryResp>(url);
 }
 
 async function fetchJson<T>(url: string): Promise<T | null> {
