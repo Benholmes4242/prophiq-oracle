@@ -68,6 +68,11 @@ Rules:
 - Policy: DECLINE is rare and only for the five categories listed above.
 - Output ONLY JSON. No prose. No code fences.
 
+Domain rules (sport vs politics):
+- Any match, race, game, bout, heat, fixture, or tournament contested between teams, athletes, or nations is ALWAYS domain="sport" - regardless of whether nations compete. World Cup, Euros, Olympics (every event), Nations League, Davis Cup, Ryder Cup, international rugby / cricket / hockey / basketball / football - all domain="sport". Nations or politically-prominent entities competing in a SPORTING contest is SPORT, never politics.
+- domain="politics" is ONLY for elections, referendums, votes, leadership contests, legislation, appointments, and policy outcomes - never a sporting fixture.
+- Examples: "Serbia vs Croatia (World Cup)" -> domain="sport", sport="football"; "England vs New Zealand rugby" -> domain="sport", sport="rugby"; "USA vs Canada Olympic hockey" -> domain="sport", sport="hockey"; "2028 US presidential election" -> domain="politics".
+
 Horse racing special-case:
 - sport MUST be "horse_racing".
 - A racing question needs THREE pieces: a course (e.g. Carlisle, Ascot, Saratoga), a date (today/tomorrow/specific date), and either a race time (UK/IRE, e.g. "16:18") or a race number (US/CAN, e.g. "race 5"). If any of these is missing and not obvious from context, CLARIFY for the missing piece conversationally - "Which day - today or tomorrow?", "Do you know the off time?", "Which race number at Saratoga?".
