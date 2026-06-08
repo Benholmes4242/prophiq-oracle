@@ -97,7 +97,28 @@ async function run() {
   assert(accepted.outcomes.length === 3, "coerce: outcomes preserved");
 
   const garbageMod = coerceModerationResult("not an object");
-  assert(garbageMod.decision === "reject", "coerce: garbage -> reject");
+  // Step-1 rebuild: malformed input FAILS OPEN — low-confidence accept,
+  // never a hard reject. The caller decides between clarification and
+  // research-grounded forecast.
+  assert(garbageMod.decision === "accept", "coerce: garbage -> fail-open accept");
+  assert(garbageMod.policy_breach === false, "coerce: garbage -> no policy breach");
+  assert(garbageMod.confidence === "low", "coerce: garbage -> low confidence");
+
+  // Real policy breach: explicit policy_breach flag is the ONLY hard stop.
+  const breach = coerceModerationResult({
+    policy_breach: true, policy_reason: "asks about a private individual",
+    domain: "other", outcomes: [],
+  });
+  assert(breach.policy_breach === true, "coerce: policy_breach honoured");
+  assert(breach.decision === "reject", "coerce: policy_breach -> decision=reject (back-compat)");
+
+  // Legacy reject for a non-policy reason (e.g. niche-ness) → downgrade to
+  // low-confidence accept rather than hard reject.
+  const legacyNiche = coerceModerationResult({
+    decision: "reject", reason: "too niche to verify", domain: "sport", outcomes: [],
+  });
+  assert(legacyNiche.policy_breach === false, "coerce: legacy niche reject is not a policy breach");
+  assert(legacyNiche.decision === "accept", "coerce: legacy niche reject -> fail-open accept");
 
   const nullDate = coerceModerationResult({
     decision: "accept", domain: "politics", outcomes: ["A", "B"],
