@@ -467,7 +467,8 @@ export function isGolfEvent(event: DomainEvent): boolean {
 
   // Strong golf signals (tour names, well-known golf-only majors/events).
   if (/\bgolf\b/.test(text)) return true;
-  if (/\b(pga tour|pga championship|dp world|european tour|lpga|korn ferry|ryder cup|presidents cup|liv golf)\b/.test(text)) return true;
+  if (/\b(pga tour|pga championship|dp world|european tour|lpga|korn ferry|ryder cup|presidents cup|liv golf|champions tour|senior pga|senior tour)\b/.test(text)) return true;
+  if (/\bwomen'?s\s+(open|championship|major)\b/.test(text)) return true;
   if (/\b(the masters|masters tournament|the open championship|british open|memorial tournament|players championship|tour championship|fedex ?cup|arnold palmer invitational|wgc|wells fargo|wyndham championship|travelers championship|john deere classic|rocket mortgage|sentry tournament|farmers insurance|waste management|phoenix open|valspar|valero|zurich classic|charles schwab|rbc|genesis invitational|hero world challenge)\b/.test(text)) return true;
   // "US Open" alone is ambiguous (tennis). Require an explicit golf signal,
   // which the rules above already enforce — so do not match bare "us open".
