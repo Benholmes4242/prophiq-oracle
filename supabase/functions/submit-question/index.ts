@@ -585,12 +585,12 @@ Deno.serve(async (req) => {
 
       const domainId = mod.domain && tryGetDomain(mod.domain) ? mod.domain : null;
 
-      // CLASSIFY: no domain OR low confidence with no usable normalized
-      // question → open conversational clarification. Not an error. The user
-      // replies in the same ask box; backend re-runs on combined context.
-      const hasUsableNormalized = typeof mod.normalized_question === "string"
-        && mod.normalized_question.trim().length > 0;
-      if (!domainId || (mod.confidence === "low" && !hasUsableNormalized)) {
+      // CLASSIFY: no domain OR low confidence → open conversational
+      // clarification. Not an error. The user replies in the same ask box;
+      // backend re-runs on combined context. A null domain must NEVER reach
+      // the events upsert (events.domain is NOT NULL) — clarifying is the
+      // only safe option for ambiguous/multi-referent subjects.
+      if (!domainId || mod.confidence === "low") {
         console.log(
           `[submit-question] classify-uncertain domain=${mod.domain ?? "-"} confidence=${mod.confidence} → conversational clarification`,
         );
