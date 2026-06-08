@@ -406,6 +406,15 @@ function normaliseClarification(data: Record<string, unknown>): ClarificationPay
     };
   }
 
+  if (type === "policy_decline") {
+    return {
+      type: "policy_decline",
+      message: (data.message as string) ?? "I can't take that question.",
+      original_question: (data.original_question as string) ?? "",
+    };
+  }
+
+
   if (type === "tournament_picker") {
     const rawOptions = Array.isArray(data.options) ? data.options : [];
     const options: TournamentPickerOption[] = rawOptions
