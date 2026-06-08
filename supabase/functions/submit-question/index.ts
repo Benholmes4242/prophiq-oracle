@@ -687,7 +687,10 @@ Deno.serve(async (req) => {
         },
       }, { onConflict: "domain,external_id" }).select("*").single();
       if (evErr || !event) {
-        sse.send({ stage: "moderation", status: "error", message: `event upsert failed: ${evErr?.message}` });
+        // System/DB failure — emit a distinct stage so the frontend shows a
+        // generic "something went wrong" instead of blaming the user with the
+        // moderation "be more specific" copy.
+        sse.send({ stage: "system", status: "error", message: `event upsert failed: ${evErr?.message}` });
         await recordOutcome("failed"); await logSearchQuery({ result_type: "failed", domain: domainId }); sse.close(); return;
       }
 
@@ -696,7 +699,7 @@ Deno.serve(async (req) => {
       }));
       const { error: oErr } = await supabase.from("event_outcomes").upsert(outcomeRows, { onConflict: "event_id,external_id" });
       if (oErr) {
-        sse.send({ stage: "moderation", status: "error", message: `outcome upsert failed: ${oErr.message}` });
+        sse.send({ stage: "system", status: "error", message: `outcome upsert failed: ${oErr.message}` });
         await recordOutcome("failed"); await logSearchQuery({ result_type: "failed", domain: domainId, matched_event_id: event.id }); sse.close(); return;
       }
 
