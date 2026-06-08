@@ -553,39 +553,80 @@ Deno.serve(async (req) => {
         }
       }
 
-      // ----- 3. MODERATION -----
+      // ----- 3. MODERATION (CLASSIFY + POLICY) -----
+      // Step-1 rebuild: the ONLY hard stop is a real policy breach
+      // (unsafe/sexual/fraud/private-individual/already-resolved). Every
+      // other outcome routes to either an open conversational clarification
+      // or the research-grounded forecast floor — never a generic error.
       sse.send({ stage: "moderation", status: "start" });
       const today = new Date();
       const mod = await runModeration(question, today);
-      if (mod.decision === "reject") {
-        sse.send({ stage: "moderation", status: "error", message: mod.reason ?? "rejected", data: mod });
+
+      // POLICY (the only terminal that isn't a forecast or a clarification).
+      if (mod.policy_breach) {
+        const declineMessage = mod.policy_reason ??
+          "I can't take that question. Try a different public, future-resolvable event and I'll take another look.";
+        sse.send({
+          stage: "clarification",
+          status: "done",
+          data: {
+            type: "policy_decline",
+            message: declineMessage,
+            original_question: question,
+          },
+        });
         await recordOutcome("rejected_moderation");
-        await logSearchQuery({ result_type: "rejected", domain: (mod.domain && tryGetDomain(mod.domain)) ? mod.domain : null });
+        await logSearchQuery({
+          result_type: "rejected",
+          domain: (mod.domain && tryGetDomain(mod.domain)) ? mod.domain : null,
+        });
         sse.close(); return;
       }
+
       const domainId = mod.domain && tryGetDomain(mod.domain) ? mod.domain : null;
-      if (!domainId) {
-        // Conversational clarification instead of a flat error: Prophiq has
-        // multiple LLMs, so a near-miss should open a short dialogue rather
-        // than dead-ending. The user can reply in the same ask box.
+
+      // CLASSIFY: no domain OR low confidence with no usable normalized
+      // question → open conversational clarification. Not an error. The user
+      // replies in the same ask box; backend re-runs on combined context.
+      const hasUsableNormalized = typeof mod.normalized_question === "string"
+        && mod.normalized_question.trim().length > 0;
+      if (!domainId || (mod.confidence === "low" && !hasUsableNormalized)) {
+        console.log(
+          `[submit-question] classify-uncertain domain=${mod.domain ?? "-"} confidence=${mod.confidence} → conversational clarification`,
+        );
         sse.send({
           stage: "clarification",
           status: "done",
           data: {
             type: "conversational",
-            message: "I couldn't quite place that question. Tell me a bit more — which sport, market, election, or show did you mean? A specific event name, date, or competitor helps a lot.",
+            message: "Tell me a bit more about that — which specific event, competition, or contest did you mean? A name, date, or a couple of competitors helps me get it right.",
             suggestions: [],
             original_question: question,
+            clarify_turn: clarifyTurn + 1,
           },
         });
-        await recordOutcome("rejected_moderation");
+        // Neutral analytics outcome — this is a conversation, not a rejection.
         await logSearchQuery({ result_type: "rejected" });
         sse.close(); return;
       }
+
+      // CLASSIFY high-confidence (or low-confidence with a usable normalized
+      // question) → proceed. Low confidence simply means the consensus floor
+      // is research_grounded rather than feed_backed; the forecast still runs.
       const normalized = mod.normalized_question ?? question;
       const startsAt = mod.starts_at ?? today.toISOString();
       const resolvesAt = defaultResolvesAt(mod, today);
-      sse.send({ stage: "moderation", status: "done", data: { domain: domainId, normalized_question: normalized, starts_at: startsAt, resolves_at: resolvesAt } });
+      sse.send({
+        stage: "moderation",
+        status: "done",
+        data: {
+          domain: domainId,
+          normalized_question: normalized,
+          starts_at: startsAt,
+          resolves_at: resolvesAt,
+          confidence: mod.confidence,
+        },
+      });
 
       // ----- 4. RESEARCH (description preview from moderation metadata) -----
       sse.send({ stage: "research", status: "start" });

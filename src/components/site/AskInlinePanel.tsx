@@ -199,9 +199,16 @@ export function AskInlinePanel({
           onDismiss={onDismiss}
         />
       )}
+      {clarification && clarification.type === "policy_decline" && (
+        <PolicyDeclineBody
+          message={clarification.message}
+          onDismiss={onDismiss}
+        />
+      )}
       {clarification &&
         clarification.type !== "conversational" &&
-        clarification.type !== "tournament_picker" && (
+        clarification.type !== "tournament_picker" &&
+        clarification.type !== "policy_decline" && (
         <ClarificationBody
           clarification={clarification}
           onPick={(value: string) => {
@@ -470,6 +477,38 @@ function ConversationalBody({
         style={{ color: "var(--amber-strong)" }}
       >
         Cancel
+      </button>
+    </div>
+  );
+}
+
+function PolicyDeclineBody({
+  message,
+  onDismiss,
+}: {
+  message: string;
+  onDismiss: () => void;
+}) {
+  return (
+    <div className="pt-5">
+      <div
+        className="font-mono text-[10px] tracking-[0.22em] mb-2"
+        style={{ color: "var(--ink-faint)", fontWeight: 600 }}
+      >
+        I CAN'T TAKE THAT ONE
+      </div>
+      <div
+        className="font-body text-[15px] leading-snug mb-4"
+        style={{ color: "var(--ink)" }}
+      >
+        {message}
+      </div>
+      <button
+        onClick={onDismiss}
+        className="transition-ios rounded-full px-4 py-2.5 font-body text-[14px] font-semibold"
+        style={{ background: "var(--amber)", color: "white" }}
+      >
+        OK
       </button>
     </div>
   );

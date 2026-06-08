@@ -101,10 +101,17 @@ export interface TournamentPickerClarification {
   options: TournamentPickerOption[];
 }
 
+export interface PolicyDeclineClarification {
+  type: "policy_decline";
+  message: string;
+  original_question: string;
+}
+
 export type ClarificationPayload =
   | RacePickerClarification
   | ConversationalClarification
-  | TournamentPickerClarification;
+  | TournamentPickerClarification
+  | PolicyDeclineClarification;
 
 
 export interface StructuredAsk {
@@ -398,6 +405,15 @@ function normaliseClarification(data: Record<string, unknown>): ClarificationPay
       clarify_turn: typeof data.clarify_turn === "number" ? data.clarify_turn : undefined,
     };
   }
+
+  if (type === "policy_decline") {
+    return {
+      type: "policy_decline",
+      message: (data.message as string) ?? "I can't take that question.",
+      original_question: (data.original_question as string) ?? "",
+    };
+  }
+
 
   if (type === "tournament_picker") {
     const rawOptions = Array.isArray(data.options) ? data.options : [];
