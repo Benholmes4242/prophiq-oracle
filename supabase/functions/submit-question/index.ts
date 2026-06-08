@@ -405,80 +405,14 @@ Deno.serve(async (req) => {
         console.warn("[submit-question] race clarification failed:", (e as Error).message);
       }
 
-      // ----- 2.6 RACING CONVERSATIONAL FALLBACK -----
-      // We recognised a racing course but couldn't produce a confident
-      // picker. Don't fall through to the generic forecast (it tends to
-      // emit placeholder outcomes like "multiple race winners"). Ask the
-      // user to clarify instead.
-      if (!racingClarified && racingLooked && racingCourse) {
-        const dateBit = racingDateWord ? ` ${racingDateWord}` : "";
-        sse.send({
-          stage: "clarification",
-          status: "done",
-          data: {
-            type: "conversational",
-            message: `I think you're asking about horse racing at ${racingCourse}${dateBit}. Tell me a race time (e.g. "16:18") or a race number, and I'll forecast it — or tap below to see the card.`,
-            suggestions: [
-              { label: `Show the card at ${racingCourse}`, reply: `show the card at ${racingCourse}${dateBit}` },
-            ],
-            original_question: question,
-          },
-        });
-        sse.close();
-        return;
-      }
-
-
-
-      // ----- 2.65 SPORT/DOMAIN DISAMBIGUATION (Stage 1, conversational) -----
-      // For event names that span multiple sports (e.g. "US Open" = tennis OR
-      // golf OR something else), do NOT silently assume. Ask an OPEN
-      // conversational question and let the USER tell us which sport / event
-      // they mean — no preset chips, no enumerated answer space. The reply
-      // arrives as free text; we re-run sport/signal detection on the
-      // COMBINED context (handled above via `original_question`) and route on
-      // whatever they actually said. If the combined context now carries an
-      // explicit sport signal, this block is skipped and we proceed.
+      // Step 2: sections 2.6 (racing conversational fallback) and 2.65
+      // (rule-based Stage-1 sport disambiguation) have been REPLACED by the
+      // LLM-driven resolver loop that runs after moderation. Section 2.7
+      // (golf tournament picker) is retained as a confident-resolution tool.
       const sportHint = typeof body.sport_hint === "string" ? body.sport_hint.trim().toLowerCase() : "";
-      const lowerQ = question.toLowerCase();
       const hasExplicitGolfSignal = /\b(golf|pga|dp\s*world|european\s+tour|lpga|korn\s+ferry|liv|ryder cup|presidents cup|champions\s+tour|senior\s+(pga\s+)?tour|masters)\b/i.test(question);
-      const hasExplicitTennisSignal = /\b(tennis|atp|wta|grand\s*slam|wimbledon|roland\s*garros)\b/i.test(question);
-      const hasExplicitSportSignal = hasExplicitGolfSignal || hasExplicitTennisSignal;
-      // Lightweight ambiguity signal: these names are known to collide across
-      // sports, so we should ASK rather than guess. We do NOT use this list
-      // to populate the answer space — the message stays open, and we route
-      // on whatever sport the user names in their free-text reply.
-      const CROSS_SPORT_PATTERNS: RegExp[] = [
-        /\b(the\s+)?us\s*open\b/i,
-      ];
-      const ambiguous = CROSS_SPORT_PATTERNS.some((re) => re.test(lowerQ));
-      // Cap the back-and-forth: after 2 unproductive open turns, fall through
-      // to the normal forecast pipeline (honest research-grounded answer
-      // beats endless clarifying).
-      const skipStage1 =
-        hasStructuredGolf ||
-        !!sportHint ||
-        hasExplicitSportSignal ||
-        clarifyTurn >= 2;
-      if (!skipStage1 && ambiguous) {
-        const message = clarifyTurn === 0
-          ? "A few different competitions go by that name across different sports. Could you tell me which sport — or which exact event — you mean?"
-          : "Got it — still a bit ambiguous. Which sport (or specific tournament) is this? A single word like \"golf\" or \"tennis\" is enough.";
-        sse.send({
-          stage: "clarification",
-          status: "done",
-          data: {
-            type: "conversational",
-            message,
-            // No chips. The reply input below is the answer space.
-            suggestions: [],
-            original_question: question,
-            clarify_turn: clarifyTurn + 1,
-          },
-        });
-        sse.close();
-        return;
-      }
+
+
 
       // ----- 2.7 GOLF TOURNAMENT PICKER -----
       // Detect ambiguous golf questions (e.g. "who wins the US Open" matches
