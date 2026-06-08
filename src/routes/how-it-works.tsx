@@ -56,7 +56,7 @@ const DOMAINS = [
     examples:
       "Match outcomes, championship winners, player milestones, tournament progression.",
     sources:
-      "Live data from official sports data providers covering top European football leagues, Golf, NFL, F1, NBA, NHL, cricket, MMA, tennis, and more.",
+      "Live data covering horse racing across the UK, Ireland and North America, golf across all the major professional tours, football, and more - real runners, real fields, real competitors as the outcomes.",
   },
   {
     id: "politics",
