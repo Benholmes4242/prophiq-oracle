@@ -1,13 +1,24 @@
 /**
- * Frontend mirror of public.is_placeholder_outcome_label (SQL) and
- * supabase/functions/_shared/outcomeQuality.ts (backend). Returns true when
- * the label is a generic bucket / placeholder ("Any other player",
- * "Another PGA Tour player", "the field", "various drivers", ...) rather
- * than a real named outcome. Such labels must never headline an event or
- * be presented as a top pick with a percentage.
+ * Frontend DISPLAY-gate mirror of:
+ *   - SQL: public.is_placeholder_outcome_label
+ *   - Edge (canonical TS): supabase/functions/_shared/placeholderPatterns.ts
+ *                          (isDisplayPlaceholder + the shared pattern pieces)
  *
- * Keep these three implementations in sync.
+ * The frontend bundle cannot import from supabase/functions/_shared, so this
+ * file is a HAND-MIRRORED copy of the canonical edge module above. When you
+ * change a pattern here, change it in placeholderPatterns.ts AND in the SQL
+ * migration too. The drift guard is the conformance test at
+ *   supabase/functions/_shared/__tests__/placeholderConformance.test.ts
+ * plus the SQL parity query at db/tests/placeholder_gate_parity.sql — run
+ * both after any change.
+ *
+ * Scope: narrow. Returns true only for generic buckets / placeholders that
+ * must never headline a card ("Any other player", "Another PGA Tour
+ * player", "the field", "various drivers", ...). The broader persistence
+ * gate lives in supabase/functions/_shared/outcomeQuality.ts and is not
+ * mirrored here.
  */
+
 
 const EXACT_PLACEHOLDERS = new Set([
   "field",
