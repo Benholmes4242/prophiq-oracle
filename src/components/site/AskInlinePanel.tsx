@@ -199,9 +199,16 @@ export function AskInlinePanel({
           onDismiss={onDismiss}
         />
       )}
+      {clarification && clarification.type === "policy_decline" && (
+        <PolicyDeclineBody
+          message={clarification.message}
+          onDismiss={onDismiss}
+        />
+      )}
       {clarification &&
         clarification.type !== "conversational" &&
-        clarification.type !== "tournament_picker" && (
+        clarification.type !== "tournament_picker" &&
+        clarification.type !== "policy_decline" && (
         <ClarificationBody
           clarification={clarification}
           onPick={(value: string) => {
