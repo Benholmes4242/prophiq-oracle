@@ -160,6 +160,20 @@ Deno.serve(async (req) => {
     console.log(`[submit-question] structured-resubmit golf tour=${structuredTourAlias} id=${structuredTournamentId} name="${structuredTournamentName}" -> "${question}"`);
   }
 
+  // Structured football override (fixture picker resubmit). Canonicalises
+  // the question text and arms a footballConfirm payload below so the event
+  // is feed_backed against the picked fixture without a second resolver hop.
+  const structuredFbFixtureId = typeof body.football_fixture_id === "string" ? body.football_fixture_id.trim() : "";
+  const structuredFbHome = typeof body.football_home_team === "string" ? body.football_home_team.trim() : "";
+  const structuredFbAway = typeof body.football_away_team === "string" ? body.football_away_team.trim() : "";
+  const structuredFbKickoff = typeof body.football_kickoff === "string" ? body.football_kickoff.trim() : "";
+  const structuredFbCompetition = typeof body.football_competition === "string" ? body.football_competition.trim() : "";
+  const hasStructuredFootball = !!structuredFbFixtureId && !!structuredFbHome && !!structuredFbAway;
+  if (hasStructuredFootball) {
+    question = `who wins ${structuredFbHome} vs ${structuredFbAway}`;
+    console.log(`[submit-question] structured-resubmit football fixture=${structuredFbFixtureId} ${structuredFbHome} vs ${structuredFbAway}`);
+  }
+
   const supabase = getServiceClient();
 
   // ----- AUTH (anonymous JWTs pass; missing/invalid -> 401) -----
