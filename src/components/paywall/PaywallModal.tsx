@@ -113,7 +113,7 @@ export function PaywallModal({ open, onClose, quotaInfo }: PaywallModalProps) {
               >
                 {loadingPriceId === STANDARD_MONTHLY_PRICE_ID
                   ? "Loading..."
-                  : "Start 7-day Pro trial, then Standard at GBP 6/mo"}
+                  : "Start 7-day Pro trial, then Standard at GBP 9.99/mo"}
               </button>
             )}
             <button
