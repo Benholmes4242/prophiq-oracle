@@ -166,16 +166,28 @@ export function AskInlinePanel({
       {clarification && clarification.type === "conversational" && (
         <ConversationalBody
           clarification={clarification}
-          onReply={(reply, structured) => {
-            // Free-text replies must carry the prior question + turn counter
-            // so the backend re-runs sport detection on the combined context
-            // and can cap the conversational loop. Chip replies (if any)
-            // already supply their own structured payload — merge, don't
-            // overwrite.
+          priorUserTurns={structured?.user_turns}
+          priorAssistantTurns={structured?.assistant_turns}
+          currentQuestion={question}
+          onReply={(reply, extraStructured) => {
+            // Build the new transcript state and forward to the parent.
+            // - user_turns: authoritative server-side transcript (the server
+            //   re-runs policy on this combined text every turn).
+            // - assistant_turns: client-only display history for chat bubbles.
+            const priorUser = clarification.user_turns
+              ?? structured?.user_turns
+              ?? (clarification.original_question ? [clarification.original_question] : [question]);
+            const nextUserTurns = [...priorUser, reply].slice(-5);
+            const nextAssistantTurns = [
+              ...(structured?.assistant_turns ?? []),
+              clarification.message,
+            ].slice(-5);
             const merged: StructuredAsk = {
               original_question: clarification.original_question,
               clarify_turn: clarification.clarify_turn,
-              ...(structured ?? {}),
+              user_turns: nextUserTurns,
+              assistant_turns: nextAssistantTurns,
+              ...(extraStructured ?? {}),
             };
             if (onResubmit) onResubmit(reply, merged);
             else onDismiss();
