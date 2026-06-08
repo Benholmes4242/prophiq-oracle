@@ -12,6 +12,7 @@ import {
   type ClarificationPayload,
   type RacePickerClarification,
   type ConversationalClarification,
+  type TournamentPickerClarification,
   type StructuredAsk,
 } from "@/lib/forecast";
 import { isPlaceholderOutcomeLabel } from "@/lib/placeholderOutcome";
@@ -168,7 +169,25 @@ export function AskInlinePanel({
           onDismiss={onDismiss}
         />
       )}
-      {clarification && clarification.type !== "conversational" && (
+      {clarification && clarification.type === "tournament_picker" && (
+        <TournamentPickerBody
+          clarification={clarification}
+          onPick={(opt) => {
+            const next = `who wins the ${opt.tournament_name} on the ${opt.tour_name}`;
+            const struct: StructuredAsk = {
+              tour_alias: opt.tour_alias,
+              tournament_id: opt.tournament_id,
+              tournament_name: opt.tournament_name,
+            };
+            if (onResubmit) onResubmit(next, struct);
+            else onDismiss();
+          }}
+          onDismiss={onDismiss}
+        />
+      )}
+      {clarification &&
+        clarification.type !== "conversational" &&
+        clarification.type !== "tournament_picker" && (
         <ClarificationBody
           clarification={clarification}
           onPick={(value: string) => {
@@ -563,6 +582,98 @@ function ConversationalBody({
         </button>
       </form>
 
+      <button
+        onClick={onDismiss}
+        className="mt-4 font-body text-[13px] font-semibold underline"
+        style={{ color: "var(--amber-strong)" }}
+      >
+        Cancel
+      </button>
+    </div>
+  );
+}
+
+function TournamentPickerBody({
+  clarification,
+  onPick,
+  onDismiss,
+}: {
+  clarification: TournamentPickerClarification;
+  onPick: (opt: TournamentPickerClarification["options"][number]) => void;
+  onDismiss: () => void;
+}) {
+  return (
+    <div className="pt-5">
+      <div
+        className="font-mono text-[10px] tracking-[0.22em] mb-2"
+        style={{ color: "var(--ink-faint)", fontWeight: 600 }}
+      >
+        PICK A TOURNAMENT
+      </div>
+      <div
+        className="font-body text-[14px] leading-snug mb-3"
+        style={{ color: "var(--ink-soft)" }}
+      >
+        {clarification.message}
+      </div>
+      <div className="flex flex-col gap-2">
+        {clarification.options.map((o) => {
+          const fmtRange = (s: string | null, e: string | null) => {
+            if (!s) return "";
+            try {
+              const sd = new Date(s);
+              const ed = e ? new Date(e) : null;
+              const mo = sd.toLocaleString("en-US", { month: "short", timeZone: "UTC" });
+              const d1 = sd.getUTCDate();
+              if (ed && ed.getUTCMonth() === sd.getUTCMonth()) {
+                return `${mo} ${d1}–${ed.getUTCDate()}`;
+              }
+              if (ed) {
+                const mo2 = ed.toLocaleString("en-US", { month: "short", timeZone: "UTC" });
+                return `${mo} ${d1} – ${mo2} ${ed.getUTCDate()}`;
+              }
+              return `${mo} ${d1}`;
+            } catch {
+              return "";
+            }
+          };
+          const range = fmtRange(o.start_date, o.end_date);
+          const subParts: string[] = [];
+          if (range) subParts.push(range);
+          if (o.status) subParts.push(o.status);
+          return (
+            <button
+              key={`${o.tour_alias}-${o.tournament_id}`}
+              onClick={() => onPick(o)}
+              className="transition-ios flex items-center justify-between rounded-xl px-4 py-3 text-left hover:scale-[1.005]"
+              style={{
+                background: "var(--bg)",
+                border: "1px solid var(--border-soft)",
+              }}
+            >
+              <div className="flex flex-col">
+                <span className="font-sans text-[15px] font-semibold">
+                  {o.tournament_name}
+                </span>
+                <span
+                  className="font-body text-[12px]"
+                  style={{ color: "var(--ink-soft)" }}
+                >
+                  {o.tour_name}
+                  {subParts.length > 0 ? ` · ${subParts.join(" · ")}` : ""}
+                </span>
+              </div>
+              <span
+                className="font-mono text-[18px]"
+                style={{ color: "var(--amber)" }}
+                aria-hidden
+              >
+                →
+              </span>
+            </button>
+          );
+        })}
+      </div>
       <button
         onClick={onDismiss}
         className="mt-4 font-body text-[13px] font-semibold underline"

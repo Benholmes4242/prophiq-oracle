@@ -80,9 +80,27 @@ export interface ConversationalClarification {
   original_question: string;
 }
 
+export interface TournamentPickerOption {
+  tour_alias: string;
+  tour_name: string;
+  tournament_id: string;
+  tournament_name: string;
+  start_date: string | null;
+  end_date: string | null;
+  status: string | null;
+  label: string;
+}
+
+export interface TournamentPickerClarification {
+  type: "tournament_picker";
+  message: string;
+  options: TournamentPickerOption[];
+}
+
 export type ClarificationPayload =
   | RacePickerClarification
-  | ConversationalClarification;
+  | ConversationalClarification
+  | TournamentPickerClarification;
 
 
 export interface StructuredAsk {
@@ -90,6 +108,10 @@ export interface StructuredAsk {
   race_time?: string;
   race_number?: number;
   date_word?: "today" | "tomorrow";
+  // Golf tournament picker resubmit fields.
+  tour_alias?: string;
+  tournament_id?: string;
+  tournament_name?: string;
 }
 
 interface RunForecastOpts {
@@ -359,6 +381,32 @@ function normaliseClarification(data: Record<string, unknown>): ClarificationPay
       message: (data.message as string) ?? "Could you tell me a bit more?",
       suggestions,
       original_question: (data.original_question as string) ?? "",
+    };
+  }
+
+  if (type === "tournament_picker") {
+    const rawOptions = Array.isArray(data.options) ? data.options : [];
+    const options: TournamentPickerOption[] = rawOptions
+      .map((o) => {
+        const rec = o as Record<string, unknown>;
+        return {
+          tour_alias: typeof rec.tour_alias === "string" ? rec.tour_alias : "",
+          tour_name: typeof rec.tour_name === "string" ? rec.tour_name : "",
+          tournament_id: typeof rec.tournament_id === "string" ? rec.tournament_id : "",
+          tournament_name: typeof rec.tournament_name === "string" ? rec.tournament_name : "",
+          start_date: typeof rec.start_date === "string" ? rec.start_date : null,
+          end_date: typeof rec.end_date === "string" ? rec.end_date : null,
+          status: typeof rec.status === "string" ? rec.status : null,
+          label: typeof rec.label === "string"
+            ? rec.label
+            : `${String(rec.tournament_name ?? "")} — ${String(rec.tour_name ?? "")}`,
+        };
+      })
+      .filter((o) => o.tour_alias && o.tournament_id && o.tournament_name);
+    return {
+      type: "tournament_picker",
+      message: (data.message as string) ?? "Which event did you mean?",
+      options,
     };
   }
 

@@ -42,6 +42,13 @@ interface Body {
   race_time?: string;
   race_number?: number;
   date_word?: "today" | "tomorrow";
+  // Structured golf follow-up (from the tournament picker / clarification).
+  // When present, the backend canonicalizes the question text AND threads
+  // the exact (tour, tournament_id) onto event.metadata so sportRadarGolf
+  // fetches the picked leaderboard directly without name matching.
+  tour_alias?: string;
+  tournament_id?: string;
+  tournament_name?: string;
 }
 
 Deno.serve(async (req) => {
@@ -72,6 +79,26 @@ Deno.serve(async (req) => {
       question = `who wins race ${structuredRaceNo} at ${structuredCourse}${dateBit}`;
     }
     console.log(`[submit-question] structured-resubmit course=${structuredCourse} time=${structuredTime || "-"} race=${structuredRaceNo ?? "-"} date=${structuredDateWord ?? "-"} -> "${question}"`);
+  }
+
+  // Structured golf override: rebuild canonical text from the picker payload.
+  // The exact (tour, id) is threaded onto event.metadata further down so
+  // sportRadarGolf skips name matching entirely.
+  const structuredTourAlias = typeof body.tour_alias === "string" ? body.tour_alias.trim() : "";
+  const structuredTournamentId = typeof body.tournament_id === "string" ? body.tournament_id.trim() : "";
+  const structuredTournamentName = typeof body.tournament_name === "string" ? body.tournament_name.trim() : "";
+  const VALID_GOLF_TOURS = new Set(["pga", "euro", "lpga", "champ", "pgad", "liv"]);
+  const TOUR_DISPLAY: Record<string, string> = {
+    pga: "PGA Tour", euro: "DP World Tour", lpga: "LPGA Tour",
+    champ: "Champions Tour", pgad: "Korn Ferry Tour", liv: "LIV Golf League",
+  };
+  const hasStructuredGolf =
+    VALID_GOLF_TOURS.has(structuredTourAlias) &&
+    !!structuredTournamentId &&
+    !!structuredTournamentName;
+  if (hasStructuredGolf) {
+    question = `who wins the ${structuredTournamentName} on the ${TOUR_DISPLAY[structuredTourAlias]}`;
+    console.log(`[submit-question] structured-resubmit golf tour=${structuredTourAlias} id=${structuredTournamentId} name="${structuredTournamentName}" -> "${question}"`);
   }
 
   const supabase = getServiceClient();
@@ -354,6 +381,88 @@ Deno.serve(async (req) => {
 
 
 
+      // ----- 2.7 GOLF TOURNAMENT PICKER -----
+      // Detect ambiguous golf questions (e.g. "who wins the US Open" matches
+      // PGA Tour + DP World Tour) and emit a tournament picker BEFORE
+      // moderation. Skipped entirely when the user already came back through
+      // structured resubmit (hasStructuredGolf).
+      if (!hasStructuredGolf) {
+        try {
+          const { isGolfEvent } = await import("../_shared/domains/sport.ts");
+          const { findGolfMatches, parseTournamentName } =
+            await import("../_shared/dataSources/sportRadarGolf.ts");
+          const stubEvent = {
+            id: "stub", domain: "sport", title: question, question,
+            starts_at: new Date().toISOString(),
+            resolves_at: new Date().toISOString(),
+            status: "scheduled", mode: "prediction", metadata: null,
+          } as unknown as DomainEvent;
+          // Run the picker check when the question (a) looks like golf OR
+          // (b) mentions a phrase that commonly collides with golf majors.
+          // The actual gate is whether findGolfMatches returns >= 2 hits.
+          const golfMaybe = isGolfEvent(stubEvent) ||
+            /\b(open|championship|masters|invitational|classic|cup)\b/i.test(question);
+          if (golfMaybe && parseTournamentName(question)) {
+            const gk = Deno.env.get("SPORTRADAR_GOLF_API_KEY");
+            if (gk) {
+              const { matches } = await findGolfMatches(gk, {
+                title: question, question, starts_at: new Date().toISOString(),
+              });
+              console.log(
+                `[submit-question] golf-picker matches=${matches.length} ${matches.map((m) => `${m.tour}:${m.tournament_name}`).join(" | ")}`,
+              );
+              if (matches.length >= 2) {
+                const fmtRange = (s: string | null, e: string | null): string => {
+                  if (!s) return "";
+                  try {
+                    const sd = new Date(s);
+                    const ed = e ? new Date(e) : null;
+                    const mo = sd.toLocaleString("en-US", { month: "short", timeZone: "UTC" });
+                    const d1 = sd.getUTCDate();
+                    if (ed && ed.getUTCMonth() === sd.getUTCMonth()) {
+                      return `${mo} ${d1}–${ed.getUTCDate()}`;
+                    }
+                    if (ed) {
+                      const mo2 = ed.toLocaleString("en-US", { month: "short", timeZone: "UTC" });
+                      return `${mo} ${d1} – ${mo2} ${ed.getUTCDate()}`;
+                    }
+                    return `${mo} ${d1}`;
+                  } catch { return ""; }
+                };
+                const options = matches.map((m) => {
+                  const range = fmtRange(m.start_date, m.end_date);
+                  const tail = range ? ` (${range})` : "";
+                  return {
+                    tour_alias: m.tour,
+                    tour_name: m.tour_name,
+                    tournament_id: m.tournament_id,
+                    tournament_name: m.tournament_name,
+                    start_date: m.start_date,
+                    end_date: m.end_date,
+                    status: m.status,
+                    label: `${m.tournament_name} — ${m.tour_name}${tail}`,
+                  };
+                });
+                sse.send({
+                  stage: "clarification",
+                  status: "done",
+                  data: {
+                    type: "tournament_picker",
+                    message: `That name matches more than one golf tour. Which event did you mean?`,
+                    options,
+                  },
+                });
+                sse.close();
+                return;
+              }
+            } else {
+              console.warn("[submit-question] golf picker skipped: SPORTRADAR_GOLF_API_KEY missing");
+            }
+          }
+        } catch (e) {
+          console.warn("[submit-question] golf clarification failed:", (e as Error).message);
+        }
+      }
 
       // ----- 3. MODERATION -----
       sse.send({ stage: "moderation", status: "start" });
@@ -432,7 +541,15 @@ Deno.serve(async (req) => {
         moderation_status: "approved",
         moderation_reason: null,
         moderation_metadata: mod.metadata ?? null,
-        metadata: { source: "submit-question" },
+        metadata: {
+          source: "submit-question",
+          ...(hasStructuredGolf ? {
+            golf_tour_alias: structuredTourAlias,
+            golf_tournament_id: structuredTournamentId,
+            golf_tournament_name: structuredTournamentName,
+            sub_category: "golf",
+          } : {}),
+        },
       }, { onConflict: "domain,external_id" }).select("*").single();
       if (evErr || !event) {
         sse.send({ stage: "moderation", status: "error", message: `event upsert failed: ${evErr?.message}` });
