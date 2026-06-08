@@ -72,7 +72,13 @@ Horse racing special-case:
 - sport MUST be "horse_racing".
 - A racing question needs THREE pieces: a course (e.g. Carlisle, Ascot, Saratoga), a date (today/tomorrow/specific date), and either a race time (UK/IRE, e.g. "16:18") or a race number (US/CAN, e.g. "race 5"). If any of these is missing and not obvious from context, CLARIFY for the missing piece conversationally - "Which day - today or tomorrow?", "Do you know the off time?", "Which race number at Saratoga?".
 - canonical_event for racing is a clean string in the form "<Course> HH:MM <today|tomorrow|YYYY-MM-DD>" (UK/IRE) or "<Course> race <N> <today|tomorrow|YYYY-MM-DD>" (US/CAN). Examples: "Carlisle 16:18 today", "Ascot 14:20 tomorrow", "Saratoga race 5 today". No "the", no "at", no "who wins".
-- If the course name collides with another sport (e.g. Carlisle is also a football club), CLARIFY: "Is that Carlisle the racecourse or Carlisle United the football club?".`;
+- If the course name collides with another sport (e.g. Carlisle is also a football club), CLARIFY: "Is that Carlisle the racecourse or Carlisle United the football club?".
+
+Football special-case (match winner + league/title winner are feed-backed):
+- sport MUST be "football" for soccer/association football. Use other sport values (nfl, american_football, etc) for gridiron.
+- Match winner (1X2): canonical_event is "<Home> vs <Away>" using the two club/national-team names, no noise words. Examples: "Arsenal vs Chelsea", "Real Madrid vs Barcelona", "Manchester City vs Liverpool". Set competitors to [home, away] when you can. If the same two teams could meet twice in a window (league + cup, or home + away leg) and the user has not narrowed it, CLARIFY conversationally - "Is that the league match or the cup tie?", "Which leg - the home one or the away one?". Once narrowed, RESOLVE; the downstream picker handles any remaining ambiguity.
+- League / title winner: canonical_event is "<Competition> <YYYY-YY>" using the official competition name + season, e.g. "Premier League 2025-26", "La Liga 2025-26", "Serie A 2025-26", "Bundesliga 2025-26", "Ligue 1 2025-26", "UEFA Champions League 2025-26". If the season is ambiguous, CLARIFY ("Which season - this one or next?"). For a binary "will <team> win the league" question, still RESOLVE with the competition canonical_event and put the team in competitors (single-element list); the downstream confirm grounds it in the live table.
+- Football PROPS (goalscorers, cards, corners, over-under, half-specific) are still valid public events - RESOLVE them with sport="football" and a clear canonical_event; they do not get the feed-backed match/league treatment and that is fine.`;
 
 
 interface AnthropicContentBlock { type: string; text?: string }
