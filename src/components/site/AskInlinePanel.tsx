@@ -6,7 +6,6 @@ import { useLoadingStages } from "@/hooks/useLoadingStages";
 import { addToHistory } from "@/lib/questionHistory";
 import {
   runForecast,
-  type AskResult,
   type AskTopic,
   type WireStage,
   type ClarificationPayload,
@@ -15,7 +14,6 @@ import {
   type TournamentPickerClarification,
   type StructuredAsk,
 } from "@/lib/forecast";
-import { isPlaceholderOutcomeLabel } from "@/lib/placeholderOutcome";
 
 export type AskPanelState = "loading" | "result" | "error" | "clarification";
 
@@ -37,7 +35,7 @@ export function AskInlinePanel({
   onResubmit,
 }: AskInlinePanelProps) {
   const [currentStage, setCurrentStage] = useState<WireStage | null>(null);
-  const [result, setResult] = useState<AskResult | null>(null);
+  const [navigating, setNavigating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [clarification, setClarification] = useState<ClarificationPayload | null>(null);
   const abortRef = useRef<AbortController | null>(null);
@@ -47,7 +45,7 @@ export function AskInlinePanel({
   useEffect(() => {
     if (!question) return;
     setCurrentStage(null);
-    setResult(null);
+    setNavigating(false);
     setError(null);
     setClarification(null);
     historyAddedForRef.current = null;
@@ -62,7 +60,7 @@ export function AskInlinePanel({
       signal: abort.signal,
       onStage: (stage) => setCurrentStage(stage),
       onResult: (res) => {
-        setResult(res);
+        setNavigating(true);
         if (historyAddedForRef.current !== question) {
           historyAddedForRef.current = question;
           addToHistory({
@@ -71,6 +69,12 @@ export function AskInlinePanel({
             eventDomain: res.eventDomain,
           });
         }
+        // Skip the inline summary card entirely: route straight to the full
+        // forecast page. The full view is the single source of truth.
+        navigate({
+          to: "/$domain/events/$slug",
+          params: { domain: res.eventDomain, slug: res.eventSlug },
+        });
       },
       onClarification: (c) => setClarification(c),
       onError: (msg) => setError(msg),
@@ -88,11 +92,11 @@ export function AskInlinePanel({
   }, [onDismiss]);
 
   useEffect(() => {
-    if (result) onStateChange?.("result");
+    if (navigating) onStateChange?.("result");
     else if (error) onStateChange?.("error");
     else if (clarification) onStateChange?.("clarification");
     else onStateChange?.("loading");
-  }, [result, error, clarification, onStateChange]);
+  }, [navigating, error, clarification, onStateChange]);
 
 
 
@@ -158,7 +162,7 @@ export function AskInlinePanel({
         style={{ borderColor: "var(--border-soft)" }}
       />
 
-      {!result && !error && !clarification && <LoadingBody currentStage={currentStage} />}
+      {!error && !clarification && <LoadingBody currentStage={currentStage} />}
       {clarification && clarification.type === "conversational" && (
         <ConversationalBody
           clarification={clarification}
@@ -219,20 +223,6 @@ export function AskInlinePanel({
         />
       )}
 
-      {result && (
-        <ResultBody
-          result={result}
-          onOpenFull={() =>
-            navigate({
-              to: "/$domain/events/$slug",
-              params: {
-                domain: result.eventDomain,
-                slug: result.eventSlug,
-              },
-            })
-          }
-        />
-      )}
       {error && <ErrorBody message={error} onDismiss={onDismiss} />}
 
 
@@ -263,124 +253,6 @@ function LoadingBody({ currentStage }: { currentStage: WireStage | null }) {
   );
 }
 
-function ResultBody({
-  result,
-  onOpenFull,
-}: {
-  result: AskResult;
-  onOpenFull: () => void;
-}) {
-  const isPlaceholder = isPlaceholderOutcomeLabel(result.topPickLabel);
-  const pct = Math.round(result.topPickPct);
-
-  if (isPlaceholder) {
-    return (
-      <div className="pt-5">
-        <div className="result-stagger mb-2" data-r-stagger="0">
-          <div
-            className="font-mono text-[10px] tracking-[0.22em]"
-            style={{ color: "var(--ink-faint)", fontWeight: 600 }}
-          >
-            EARLY READ
-          </div>
-        </div>
-        <div
-          className="result-stagger font-sans text-[22px] font-semibold leading-snug"
-          data-r-stagger="1"
-        >
-          Field still forming — no clear favourite yet.
-        </div>
-        <p
-          className="result-stagger mt-3 font-body text-[14px] leading-[1.5]"
-          data-r-stagger="2"
-          style={{ color: "var(--ink-soft)" }}
-        >
-          The lineup isn't locked in yet, so we won't manufacture a percentage on
-          a generic bucket. Check the full view for the research notes, or come
-          back closer to the event for a real forecast.
-        </p>
-        <button
-          onClick={onOpenFull}
-          className="result-stagger transition-ios mt-5 w-full rounded-full py-3.5 font-body text-[15px] font-semibold hover:scale-[1.01]"
-          data-r-stagger="3"
-          style={{ background: "var(--amber)", color: "white" }}
-        >
-          Open full view →
-        </button>
-      </div>
-    );
-  }
-
-  return (
-    <div className="pt-5">
-      <div className="result-stagger mb-2" data-r-stagger="0">
-        <div
-          className="font-mono text-[10px] tracking-[0.22em]"
-          style={{ color: "var(--ink-faint)", fontWeight: 600 }}
-        >
-          TOP PICK
-        </div>
-      </div>
-
-      <div
-        className="result-stagger flex items-end justify-between gap-3"
-        data-r-stagger="1"
-      >
-        <div className="font-sans text-[26px] font-bold leading-tight flex-1">
-          {result.topPickLabel}
-        </div>
-        <div
-          className="font-mono leading-none tracking-tight"
-          style={{ color: "var(--amber)", fontWeight: 600, fontSize: 56 }}
-        >
-          {pct}
-          <span style={{ fontSize: 24 }}>%</span>
-        </div>
-      </div>
-
-      <div
-        className="result-stagger mt-4 h-1.5 rounded-full overflow-hidden"
-        data-r-stagger="2"
-        style={{ background: "var(--line)" }}
-      >
-        <div
-          style={{
-            height: "100%",
-            width: `${pct}%`,
-            background: "linear-gradient(90deg, var(--amber), var(--amber-2))",
-            borderRadius: 999,
-            transition: "width 800ms var(--ease-ios)",
-          }}
-        />
-      </div>
-
-      {result.reasoningExcerpt && (
-        <p
-          className="result-stagger mt-5 font-body text-[14px] leading-[1.5]"
-          data-r-stagger="3"
-          style={{
-            color: "var(--ink-soft)",
-            display: "-webkit-box",
-            WebkitLineClamp: 10,
-            WebkitBoxOrient: "vertical",
-            overflow: "hidden",
-          }}
-        >
-          {result.reasoningExcerpt}
-        </p>
-      )}
-
-      <button
-        onClick={onOpenFull}
-        className="result-stagger transition-ios mt-5 w-full rounded-full py-3.5 font-body text-[15px] font-semibold hover:scale-[1.01]"
-        data-r-stagger="4"
-        style={{ background: "var(--amber)", color: "white" }}
-      >
-        Full forecast →
-      </button>
-    </div>
-  );
-}
 
 function ErrorBody({
   message,
