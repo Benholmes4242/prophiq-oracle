@@ -60,7 +60,7 @@ export function welcomeEmail(ctx: SubscriptionContext) {
     html: `${emailShellOpen()}
 ${wordmarkHtml()}
 <h1 style="font-size: 24px; font-weight: 700; margin: 0 0 16px; color: #0A1117;">Welcome to Prophiq.</h1>
-<p style="font-size: 15px; line-height: 1.6; margin: 0 0 16px;">Your 7-day Pro trial is now active. You have 100 forecasts per day until <strong>${trialEndStr}</strong>, at which point your <strong>${tierName}</strong> plan begins at <strong>${priceStr}/month</strong>.</p>
+<p style="font-size: 15px; line-height: 1.6; margin: 0 0 16px;">Your 7-day Pro trial is now active. You have 40 forecasts per day until <strong>${trialEndStr}</strong>, at which point your <strong>${tierName}</strong> plan begins at <strong>${priceStr}/month</strong>.</p>
 <p style="font-size: 15px; line-height: 1.6; margin: 0 0 16px;">A few places to start:</p>
 <ul style="font-size: 15px; line-height: 1.7; padding-left: 20px; margin: 0 0 24px;">
   <li>Ask a probabilistic question about any public event: elections, sports, markets, policy decisions.</li>
