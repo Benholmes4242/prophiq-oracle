@@ -540,38 +540,161 @@ Deno.serve(async (req) => {
         sse.close(); return;
       }
 
-      const domainId = mod.domain && tryGetDomain(mod.domain) ? mod.domain : null;
+      let domainId = mod.domain && tryGetDomain(mod.domain) ? mod.domain : null;
 
-      // CLASSIFY: no domain OR low confidence → open conversational
-      // clarification. Not an error. The user replies in the same ask box;
-      // backend re-runs on combined context. A null domain must NEVER reach
-      // the events upsert (events.domain is NOT NULL) — clarifying is the
-      // only safe option for ambiguous/multi-referent subjects.
+      // Step 2: when moderation is uncertain (no domain or low confidence),
+      // hand off to the LLM-driven resolver. The resolver returns one of:
+      //   - resolve  : we now know the canonical event; override domain /
+      //                normalized / starts_at and continue the pipeline.
+      //                The downstream trust layer / placeholder gate /
+      //                consensus tiering is UNCHANGED - RESOLVE only means
+      //                "I know which event", not "the forecast is confident".
+      //   - clarify  : emit a conversational clarification and stop.
+      //   - decline  : emit a policy decline and stop (secondary safety net;
+      //                the primary policy gate is the moderation POLICY check
+      //                above).
+      let resolverOverride: { normalized_question: string; starts_at?: string } | null = null;
       if (!domainId || mod.confidence === "low") {
+        sse.send({ stage: "resolver", status: "start" });
+        const decision = await runResolverTurn(userTurns, today);
+        sse.send({ stage: "resolver", status: "done", data: { action: decision.action } });
+
+        if (decision.action === "decline") {
+          sse.send({
+            stage: "clarification",
+            status: "done",
+            data: {
+              type: "policy_decline",
+              message: decision.reason,
+              original_question: question,
+            },
+          });
+          await recordOutcome("rejected_moderation");
+          await logSearchQuery({ result_type: "rejected" });
+          sse.close(); return;
+        }
+
+        if (decision.action === "clarify") {
+          console.log(
+            `[submit-question] resolver-clarify turn=${clarifyTurn} -> "${decision.message.slice(0, 80)}"`,
+          );
+          sse.send({
+            stage: "clarification",
+            status: "done",
+            data: {
+              type: "conversational",
+              message: decision.message,
+              suggestions: [],
+              original_question: question,
+              user_turns: userTurns,
+              clarify_turn: clarifyTurn + 1,
+            },
+          });
+          await logSearchQuery({ result_type: "rejected" });
+          sse.close(); return;
+        }
+
+        // RESOLVE
+        const resolved = tryGetDomain(decision.domain) ? decision.domain : null;
+        if (!resolved) {
+          sse.send({
+            stage: "clarification",
+            status: "done",
+            data: {
+              type: "conversational",
+              message: "I'm not sure which event you mean - a name, a date, or a couple of competitors all help me get it right.",
+              suggestions: [],
+              original_question: question,
+              user_turns: userTurns,
+              clarify_turn: clarifyTurn + 1,
+            },
+          });
+          sse.close(); return;
+        }
+        domainId = resolved;
+        resolverOverride = {
+          normalized_question: decision.canonical_event,
+          starts_at: decision.approx_date
+            ? new Date(`${decision.approx_date}T12:00:00Z`).toISOString()
+            : undefined,
+        };
         console.log(
-          `[submit-question] classify-uncertain domain=${mod.domain ?? "-"} confidence=${mod.confidence} → conversational clarification`,
+          `[submit-question] resolver-resolve domain=${domainId} sport=${decision.sport ?? "-"} event="${decision.canonical_event}"`,
         );
-        sse.send({
-          stage: "clarification",
-          status: "done",
-          data: {
-            type: "conversational",
-            message: "Tell me a bit more about that — which specific event, competition, or contest did you mean? A name, date, or a couple of competitors helps me get it right.",
-            suggestions: [],
-            original_question: question,
-            clarify_turn: clarifyTurn + 1,
-          },
-        });
-        // Neutral analytics outcome — this is a conversation, not a rejection.
-        await logSearchQuery({ result_type: "rejected" });
-        sse.close(); return;
+
+        // Golf two-tour disambiguation seeded with the resolver's clean
+        // canonical name. Skipped when the user is already coming back via
+        // structured golf resubmit.
+        if (domainId === "sport" && decision.sport === "golf" && !hasStructuredGolf) {
+          try {
+            const { findGolfMatches } = await import("../_shared/dataSources/sportRadarGolf.ts");
+            const gk = Deno.env.get("SPORTRADAR_GOLF_API_KEY");
+            if (gk) {
+              const { matches } = await findGolfMatches(gk, {
+                title: decision.canonical_event,
+                question: decision.canonical_event,
+                starts_at: new Date().toISOString(),
+              });
+              console.log(`[submit-question] resolver-golf matches=${matches.length}`);
+              if (matches.length >= 2) {
+                const fmtRange = (s: string | null, e: string | null): string => {
+                  if (!s) return "";
+                  try {
+                    const sd = new Date(s);
+                    const ed = e ? new Date(e) : null;
+                    const mo = sd.toLocaleString("en-US", { month: "short", timeZone: "UTC" });
+                    const d1 = sd.getUTCDate();
+                    if (ed && ed.getUTCMonth() === sd.getUTCMonth()) return `${mo} ${d1}-${ed.getUTCDate()}`;
+                    if (ed) {
+                      const mo2 = ed.toLocaleString("en-US", { month: "short", timeZone: "UTC" });
+                      return `${mo} ${d1} - ${mo2} ${ed.getUTCDate()}`;
+                    }
+                    return `${mo} ${d1}`;
+                  } catch { return ""; }
+                };
+                const options = matches.map((m) => {
+                  const range = fmtRange(m.start_date, m.end_date);
+                  const tail = range ? ` (${range})` : "";
+                  return {
+                    tour_alias: m.tour,
+                    tour_name: m.tour_name,
+                    tournament_id: m.tournament_id,
+                    tournament_name: m.tournament_name,
+                    start_date: m.start_date,
+                    end_date: m.end_date,
+                    status: m.status,
+                    label: `${m.tournament_name} - ${m.tour_name}${tail}`,
+                  };
+                });
+                sse.send({
+                  stage: "clarification",
+                  status: "done",
+                  data: {
+                    type: "tournament_picker",
+                    message: "That name matches more than one golf tour. Which event did you mean?",
+                    options,
+                  },
+                });
+                sse.close(); return;
+              }
+              if (matches.length === 1) {
+                autoGolfMatch = matches[0];
+              }
+            } else {
+              console.warn("[submit-question] resolver-golf skipped: SPORTRADAR_GOLF_API_KEY missing");
+            }
+          } catch (e) {
+            console.warn("[submit-question] resolver-golf disambig failed:", (e as Error).message);
+          }
+        }
       }
 
-      // CLASSIFY high-confidence (or low-confidence with a usable normalized
-      // question) → proceed. Low confidence simply means the consensus floor
-      // is research_grounded rather than feed_backed; the forecast still runs.
-      const normalized = mod.normalized_question ?? question;
-      const startsAt = mod.starts_at ?? today.toISOString();
+      // CLASSIFY/RESOLVE done -> proceed to the forecast pipeline. Low
+      // confidence simply means the consensus floor is research_grounded
+      // rather than feed_backed; the trust layer downstream still owns
+      // tiering, placeholder-gate behaviour, and never-fabricate rules.
+      const normalized = resolverOverride?.normalized_question ?? mod.normalized_question ?? question;
+      const startsAt = resolverOverride?.starts_at ?? mod.starts_at ?? today.toISOString();
       const resolvesAt = defaultResolvesAt(mod, today);
       sse.send({
         stage: "moderation",
