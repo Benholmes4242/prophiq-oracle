@@ -38,6 +38,12 @@ const PLACEHOLDER_PATTERNS: RegExp[] = [
   /^(field|other|the field|the rest|remaining|other outcomes?|other team)$/i,
   // Bare positional words
   /^(winner|runner[- ]up|champion|home|away|either|none|tbd|tba|n\/a)$/i,
+  // Generic competitor buckets anywhere in the label:
+  //   "Another PGA Tour player", "various drivers", "elite players",
+  //   "some other runner", "the other team", "unspecified golfer"
+  /\b(another|other|some|various|different|a different|the other|elite|unnamed|unspecified)\b[\s\S]*\b(player|players|runner|runners|driver|drivers|golfer|golfers|team|teams|competitor|competitors|contender|contenders|entrant|entrants)\b/i,
+  // Generic "any other ..." / "rest of the field" buckets
+  /\b(any\s+other|rest\s+of(\s+the)?)\s+(player|runner|driver|golfer|team|competitor|contender|entrant|field)/i,
 ];
 
 export function isPlaceholderLabel(label: string): boolean {
