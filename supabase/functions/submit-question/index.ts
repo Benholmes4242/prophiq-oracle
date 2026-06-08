@@ -500,6 +500,12 @@ Deno.serve(async (req) => {
                 sse.close();
                 return;
               }
+              // Single match: auto-promote so the downstream forecast threads
+              // the exact tournament IDs into event.metadata and skips name
+              // matching entirely (no extra picker round-trip).
+              if (matches.length === 1) {
+                autoGolfMatch = matches[0];
+              }
             } else {
               console.warn("[submit-question] golf picker skipped: SPORTRADAR_GOLF_API_KEY missing");
             }
