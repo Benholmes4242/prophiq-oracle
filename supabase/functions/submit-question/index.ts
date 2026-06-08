@@ -49,6 +49,8 @@ interface Body {
   tour_alias?: string;
   tournament_id?: string;
   tournament_name?: string;
+  // Conversational domain disambiguation (Stage 1 sport clarification).
+  sport_hint?: string;
 }
 
 Deno.serve(async (req) => {
