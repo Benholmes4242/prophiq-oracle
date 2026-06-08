@@ -298,6 +298,14 @@ export async function runForecast(opts: RunForecastOpts): Promise<void> {
               "We couldn't answer that. Try a more specific public-event question.",
             pre_filter:
               "We couldn't answer that. Try a more specific public-event question.",
+            system:
+              "Something went wrong on our side. Please try again in a moment.",
+            context:
+              "Something went wrong on our side. Please try again in a moment.",
+            models:
+              "Something went wrong on our side. Please try again in a moment.",
+            consensus:
+              "Something went wrong on our side. Please try again in a moment.",
             rate_limit:
               evt.message ?? "You've reached today's submission limit.",
           };
