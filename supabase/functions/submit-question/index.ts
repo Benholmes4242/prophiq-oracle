@@ -14,6 +14,7 @@ import { registerAllDomains } from "../_shared/domains/index.ts";
 import { getDomain, tryGetDomain } from "../_shared/domains/registry.ts";
 import { truncateQuestion } from "../_shared/rateLimit.ts";
 import { preFilter, runModeration, defaultResolvesAt } from "../_shared/moderation.ts";
+import { runResolverTurn, MAX_USER_TURNS } from "../_shared/resolver.ts";
 import { stableEventId } from "../_shared/domains/_util.ts";
 import { runConsensus } from "../_shared/runConsensus.ts";
 import { assembleForecastContext } from "../_shared/forecastContext.ts";
