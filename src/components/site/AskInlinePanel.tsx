@@ -14,6 +14,7 @@ import {
   type ConversationalClarification,
   type StructuredAsk,
 } from "@/lib/forecast";
+import { isPlaceholderOutcomeLabel } from "@/lib/placeholderOutcome";
 
 export type AskPanelState = "loading" | "result" | "error" | "clarification";
 
@@ -240,7 +241,47 @@ function ResultBody({
   result: AskResult;
   onOpenFull: () => void;
 }) {
+  const isPlaceholder = isPlaceholderOutcomeLabel(result.topPickLabel);
   const pct = Math.round(result.topPickPct);
+
+  if (isPlaceholder) {
+    return (
+      <div className="pt-5">
+        <div className="result-stagger mb-2" data-r-stagger="0">
+          <div
+            className="font-mono text-[10px] tracking-[0.22em]"
+            style={{ color: "var(--ink-faint)", fontWeight: 600 }}
+          >
+            EARLY READ
+          </div>
+        </div>
+        <div
+          className="result-stagger font-sans text-[22px] font-semibold leading-snug"
+          data-r-stagger="1"
+        >
+          Field still forming — no clear favourite yet.
+        </div>
+        <p
+          className="result-stagger mt-3 font-body text-[14px] leading-[1.5]"
+          data-r-stagger="2"
+          style={{ color: "var(--ink-soft)" }}
+        >
+          The lineup isn't locked in yet, so we won't manufacture a percentage on
+          a generic bucket. Check the full view for the research notes, or come
+          back closer to the event for a real forecast.
+        </p>
+        <button
+          onClick={onOpenFull}
+          className="result-stagger transition-ios mt-5 w-full rounded-full py-3.5 font-body text-[15px] font-semibold hover:scale-[1.01]"
+          data-r-stagger="3"
+          style={{ background: "var(--amber)", color: "white" }}
+        >
+          Open full view →
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className="pt-5">
       <div className="result-stagger mb-2" data-r-stagger="0">

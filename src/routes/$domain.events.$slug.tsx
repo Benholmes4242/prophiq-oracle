@@ -29,6 +29,7 @@ import { triggerOnDemandPrediction } from "@/lib/triggers";
 import { getPublicBaseUrl } from "@/lib/publicUrl";
 import { classifyEvent } from "@/lib/subcategory";
 import { DOMAINS, DOMAIN_LABEL } from "@/lib/types";
+import { isPlaceholderOutcomeLabel } from "@/lib/placeholderOutcome";
 import type { DomainId, EventRow, RankedOutcome } from "@/lib/types";
 
 export const Route = createFileRoute("/$domain/events/$slug")({
@@ -276,7 +277,15 @@ function EventDetailPage() {
     ? (event.domain as DomainId)
     : null;
 
-  const ranked = prediction?.ranked_outcomes ?? [];
+  const rankedRaw = prediction?.ranked_outcomes ?? [];
+  // Hide generic-bucket placeholders ("Another PGA Tour player", "the field",
+  // "Any other runner") from the headline + call section so a pre-event
+  // forecast with no real field never shows a manufactured 47% favourite.
+  const ranked = rankedRaw.filter(
+    (r: RankedOutcome) =>
+      !isPlaceholderOutcomeLabel(r.outcome_label ?? r.outcome_id ?? ""),
+  );
+  const allPlaceholder = rankedRaw.length > 0 && ranked.length === 0;
   const top = ranked[0] ?? null;
   const topPickLabel =
     top?.outcome_label ?? top?.outcome_id ?? "the most likely outcome";
@@ -318,6 +327,13 @@ function EventDetailPage() {
               generatedAt={prediction?.generated_at ?? null}
               showFrequentistFraming={ranked.length >= 3}
             />
+          ) : allPlaceholder ? (
+            <p
+              className="rounded-lg p-4 font-body text-sm mb-6"
+              style={{ border: "1px dashed var(--border-soft)", color: "var(--ink-soft)" }}
+            >
+              Field still forming — no clear favourite yet. Check back closer to the event for a real forecast.
+            </p>
           ) : (
             <p
               className="rounded-lg p-4 font-body text-sm mb-6"
