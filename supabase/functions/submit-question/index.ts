@@ -476,10 +476,21 @@ Deno.serve(async (req) => {
           `[submit-question] resolver-resolve domain=${domainId} sport=${decision.sport ?? "-"} event="${decision.canonical_event}"`,
         );
 
+        // Sport-identity gating (extension point): each per-sport confirm
+        // branch below fires whenever the resolver IDENTIFIES the sport,
+        // regardless of the domain it guessed. A contest between teams /
+        // athletes / nations is ALWAYS a sport event, even if the resolver
+        // tagged it politics/markets/entertainment (e.g. "Serbia vs Croatia
+        // World Cup"). When a branch fires we force domainId="sport" so the
+        // event is stored and displayed as sport. To add a new sport: add a
+        // new branch keyed off `decision.sport === "<kind>"` and force
+        // domainId="sport" at the top.
+
         // Golf two-tour disambiguation seeded with the resolver's clean
         // canonical name. Skipped when the user is already coming back via
         // structured golf resubmit.
-        if (domainId === "sport" && decision.sport === "golf" && !hasStructuredGolf) {
+        if (decision.sport === "golf" && !hasStructuredGolf) {
+          domainId = "sport";
           try {
             const { findGolfMatches } = await import("../_shared/dataSources/sportRadarGolf.ts");
             const gk = Deno.env.get("SPORTRADAR_GOLF_API_KEY");
@@ -559,7 +570,8 @@ Deno.serve(async (req) => {
         const racingSport = decision.sport === "horse_racing" ||
           decision.sport === "horse racing" ||
           decision.sport === "racing";
-        if (domainId === "sport" && racingSport && !hasStructuredRacing) {
+        if (racingSport && !hasStructuredRacing) {
+          domainId = "sport";
           try {
             const { fetchRacePicker } = await import("../_shared/dataSources/racingApi.ts");
             const u = Deno.env.get("RACING_API_USERNAME");
@@ -624,7 +636,8 @@ Deno.serve(async (req) => {
         const footballSport = decision.sport === "football" ||
           decision.sport === "soccer" ||
           decision.sport === "association_football";
-        if (domainId === "sport" && footballSport && !hasStructuredFootball) {
+        if (footballSport && !hasStructuredFootball) {
+          domainId = "sport";
           try {
             const {
               confirmFootballMatch,
