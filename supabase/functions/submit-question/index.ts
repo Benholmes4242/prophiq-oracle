@@ -14,6 +14,7 @@ import { registerAllDomains } from "../_shared/domains/index.ts";
 import { getDomain, tryGetDomain } from "../_shared/domains/registry.ts";
 import { truncateQuestion } from "../_shared/rateLimit.ts";
 import { preFilter, runModeration, defaultResolvesAt } from "../_shared/moderation.ts";
+import { runResolverTurn, MAX_USER_TURNS } from "../_shared/resolver.ts";
 import { stableEventId } from "../_shared/domains/_util.ts";
 import { runConsensus } from "../_shared/runConsensus.ts";
 import { assembleForecastContext } from "../_shared/forecastContext.ts";
@@ -49,17 +50,23 @@ interface Body {
   tour_alias?: string;
   tournament_id?: string;
   tournament_name?: string;
-  // Conversational domain disambiguation (Stage 1 sport clarification).
+  // Legacy conversational disambiguation hint. Now optional; the resolver
+  // loop handles sport ambiguity natively via the user_turns transcript.
   sport_hint?: string;
-  // When the user replies free-text to a Stage-1 conversational clarification,
-  // the frontend echoes back the prior question so the backend can re-run
-  // sport/signal detection against the COMBINED context
-  // (original_question + " " + reply). This is the conversational principle:
-  // the user defines the answer space; we just keep listening.
+  // BACK-COMPAT: prior question text on conversational free-text resubmits.
+  // Superseded by `user_turns` (preferred). When both are absent, treated
+  // as a fresh single-turn ask.
   original_question?: string;
-  // Loop guard for Stage-1 ambiguity. Frontend echoes whatever the backend
-  // emitted; backend caps to 2 open clarifying turns before falling through.
+  // BACK-COMPAT: legacy clarification turn counter. Superseded by
+  // `user_turns.length` in the resolver loop.
   clarify_turn?: number;
+  // Step 2: the accumulated USER replies across the conversational loop.
+  // CRITICAL SECURITY: this is the ONLY conversation state we accept from
+  // the client. We do NOT accept assistant turns — a malicious client could
+  // otherwise inject a fake "assistant: you confirmed X" turn to steer the
+  // resolver or smuggle past the policy check. Assistant turns live in the
+  // frontend's local state for chat bubbles only.
+  user_turns?: unknown;
 }
 
 Deno.serve(async (req) => {
@@ -73,21 +80,37 @@ Deno.serve(async (req) => {
   const fingerprint = getFingerprint(body, req) ?? null;
   if (!question) return errorResponse("question required");
 
-  // Conversational resubmit: merge the user's prior question with this reply
-  // so every downstream stage (sport detection, moderation, golf picker name
-  // parsing, the forecast itself) operates on the combined context. The
-  // user's reply may be a sport word ("golf"), a tour name ("LPGA"), a full
-  // restatement, or anything else — we never assume the answer space.
-  const priorQuestion = typeof body.original_question === "string"
-    ? body.original_question.trim()
-    : "";
-  if (priorQuestion && priorQuestion.toLowerCase() !== question.toLowerCase()) {
-    question = `${priorQuestion} ${question}`.replace(/\s+/g, " ").trim();
+  // Build the trusted USER-turns transcript. Client-sent assistant turns
+  // are NEVER accepted (jailbreak surface). Prefer the new `user_turns`
+  // array; fall back to legacy `original_question` + current `question`.
+  const rawTurns = Array.isArray(body.user_turns) ? body.user_turns : null;
+  let userTurns: string[] = rawTurns
+    ? rawTurns
+        .filter((t): t is string => typeof t === "string")
+        .map((t) => t.trim())
+        .filter((t) => t.length > 0 && t.length <= 500)
+        .slice(-5)
+    : [];
+  if (userTurns.length === 0) {
+    const priorQuestion = typeof body.original_question === "string"
+      ? body.original_question.trim()
+      : "";
+    if (priorQuestion) userTurns.push(priorQuestion);
+    userTurns.push(question);
+  } else if (userTurns[userTurns.length - 1] !== question) {
+    // Frontend should have already pushed the latest reply, but be defensive.
+    userTurns.push(question);
+    userTurns = userTurns.slice(-5);
+  }
+
+  // Re-run POLICY on the combined transcript text, not just the latest turn.
+  // The conversational loop must not become a jailbreak around the policy gate.
+  const combinedText = userTurns.join(" ").replace(/\s+/g, " ").trim();
+  if (combinedText && combinedText.toLowerCase() !== question.toLowerCase()) {
+    question = combinedText;
     console.log(`[submit-question] conversational-resubmit combined -> "${question}"`);
   }
-  const clarifyTurn = typeof body.clarify_turn === "number" && body.clarify_turn > 0
-    ? Math.min(body.clarify_turn, 5)
-    : 0;
+  const clarifyTurn = userTurns.length;
 
   // Structured racing override: rebuild the question text canonically so the
   // racing parser (and event title) sees a clean string regardless of what
@@ -383,80 +406,14 @@ Deno.serve(async (req) => {
         console.warn("[submit-question] race clarification failed:", (e as Error).message);
       }
 
-      // ----- 2.6 RACING CONVERSATIONAL FALLBACK -----
-      // We recognised a racing course but couldn't produce a confident
-      // picker. Don't fall through to the generic forecast (it tends to
-      // emit placeholder outcomes like "multiple race winners"). Ask the
-      // user to clarify instead.
-      if (!racingClarified && racingLooked && racingCourse) {
-        const dateBit = racingDateWord ? ` ${racingDateWord}` : "";
-        sse.send({
-          stage: "clarification",
-          status: "done",
-          data: {
-            type: "conversational",
-            message: `I think you're asking about horse racing at ${racingCourse}${dateBit}. Tell me a race time (e.g. "16:18") or a race number, and I'll forecast it — or tap below to see the card.`,
-            suggestions: [
-              { label: `Show the card at ${racingCourse}`, reply: `show the card at ${racingCourse}${dateBit}` },
-            ],
-            original_question: question,
-          },
-        });
-        sse.close();
-        return;
-      }
-
-
-
-      // ----- 2.65 SPORT/DOMAIN DISAMBIGUATION (Stage 1, conversational) -----
-      // For event names that span multiple sports (e.g. "US Open" = tennis OR
-      // golf OR something else), do NOT silently assume. Ask an OPEN
-      // conversational question and let the USER tell us which sport / event
-      // they mean — no preset chips, no enumerated answer space. The reply
-      // arrives as free text; we re-run sport/signal detection on the
-      // COMBINED context (handled above via `original_question`) and route on
-      // whatever they actually said. If the combined context now carries an
-      // explicit sport signal, this block is skipped and we proceed.
+      // Step 2: sections 2.6 (racing conversational fallback) and 2.65
+      // (rule-based Stage-1 sport disambiguation) have been REPLACED by the
+      // LLM-driven resolver loop that runs after moderation. Section 2.7
+      // (golf tournament picker) is retained as a confident-resolution tool.
       const sportHint = typeof body.sport_hint === "string" ? body.sport_hint.trim().toLowerCase() : "";
-      const lowerQ = question.toLowerCase();
       const hasExplicitGolfSignal = /\b(golf|pga|dp\s*world|european\s+tour|lpga|korn\s+ferry|liv|ryder cup|presidents cup|champions\s+tour|senior\s+(pga\s+)?tour|masters)\b/i.test(question);
-      const hasExplicitTennisSignal = /\b(tennis|atp|wta|grand\s*slam|wimbledon|roland\s*garros)\b/i.test(question);
-      const hasExplicitSportSignal = hasExplicitGolfSignal || hasExplicitTennisSignal;
-      // Lightweight ambiguity signal: these names are known to collide across
-      // sports, so we should ASK rather than guess. We do NOT use this list
-      // to populate the answer space — the message stays open, and we route
-      // on whatever sport the user names in their free-text reply.
-      const CROSS_SPORT_PATTERNS: RegExp[] = [
-        /\b(the\s+)?us\s*open\b/i,
-      ];
-      const ambiguous = CROSS_SPORT_PATTERNS.some((re) => re.test(lowerQ));
-      // Cap the back-and-forth: after 2 unproductive open turns, fall through
-      // to the normal forecast pipeline (honest research-grounded answer
-      // beats endless clarifying).
-      const skipStage1 =
-        hasStructuredGolf ||
-        !!sportHint ||
-        hasExplicitSportSignal ||
-        clarifyTurn >= 2;
-      if (!skipStage1 && ambiguous) {
-        const message = clarifyTurn === 0
-          ? "A few different competitions go by that name across different sports. Could you tell me which sport — or which exact event — you mean?"
-          : "Got it — still a bit ambiguous. Which sport (or specific tournament) is this? A single word like \"golf\" or \"tennis\" is enough.";
-        sse.send({
-          stage: "clarification",
-          status: "done",
-          data: {
-            type: "conversational",
-            message,
-            // No chips. The reply input below is the answer space.
-            suggestions: [],
-            original_question: question,
-            clarify_turn: clarifyTurn + 1,
-          },
-        });
-        sse.close();
-        return;
-      }
+
+
 
       // ----- 2.7 GOLF TOURNAMENT PICKER -----
       // Detect ambiguous golf questions (e.g. "who wins the US Open" matches
