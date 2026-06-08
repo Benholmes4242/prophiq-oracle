@@ -4,6 +4,7 @@ export type WireStage =
   | "rate_limit"
   | "pre_filter"
   | "moderation"
+  | "resolver"
   | "research"
   | "models"
   | "consensus";
@@ -17,6 +18,7 @@ const STAGE_MAP: Record<WireStage, StageConfig> = {
   rate_limit: { label: "Checking your question" },
   pre_filter: { label: "Reading your question" },
   moderation: { label: "Identifying the event" },
+  resolver: { label: "Understanding your question..." },
   research: { label: "Pulling real-time data" },
   models: {
     rotation: {
