@@ -45,7 +45,7 @@ export function AskInlinePanel({
   useEffect(() => {
     if (!question) return;
     setCurrentStage(null);
-    setResult(null);
+    setNavigating(false);
     setError(null);
     setClarification(null);
     historyAddedForRef.current = null;
@@ -60,7 +60,7 @@ export function AskInlinePanel({
       signal: abort.signal,
       onStage: (stage) => setCurrentStage(stage),
       onResult: (res) => {
-        setResult(res);
+        setNavigating(true);
         if (historyAddedForRef.current !== question) {
           historyAddedForRef.current = question;
           addToHistory({
@@ -92,11 +92,11 @@ export function AskInlinePanel({
   }, [onDismiss]);
 
   useEffect(() => {
-    if (result) onStateChange?.("result");
+    if (navigating) onStateChange?.("result");
     else if (error) onStateChange?.("error");
     else if (clarification) onStateChange?.("clarification");
     else onStateChange?.("loading");
-  }, [result, error, clarification, onStateChange]);
+  }, [navigating, error, clarification, onStateChange]);
 
 
 
@@ -162,7 +162,7 @@ export function AskInlinePanel({
         style={{ borderColor: "var(--border-soft)" }}
       />
 
-      {!result && !error && !clarification && <LoadingBody currentStage={currentStage} />}
+      {!error && !clarification && <LoadingBody currentStage={currentStage} />}
       {clarification && clarification.type === "conversational" && (
         <ConversationalBody
           clarification={clarification}
