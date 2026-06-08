@@ -50,6 +50,15 @@ interface Body {
   tour_alias?: string;
   tournament_id?: string;
   tournament_name?: string;
+  // Structured football follow-up (from the fixture picker). When all four
+  // are present, the backend skips the resolver and treats the question as
+  // a confirmed match: outcomes = [home, "Draw", away], starts_at = kickoff,
+  // feed_backed via the football_confirm metadata source.
+  football_fixture_id?: string;
+  football_home_team?: string;
+  football_away_team?: string;
+  football_kickoff?: string;
+  football_competition?: string;
   // Legacy conversational disambiguation hint. Now optional; the resolver
   // loop handles sport ambiguity natively via the user_turns transcript.
   sport_hint?: string;
