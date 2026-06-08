@@ -541,7 +541,15 @@ Deno.serve(async (req) => {
         moderation_status: "approved",
         moderation_reason: null,
         moderation_metadata: mod.metadata ?? null,
-        metadata: { source: "submit-question" },
+        metadata: {
+          source: "submit-question",
+          ...(hasStructuredGolf ? {
+            golf_tour_alias: structuredTourAlias,
+            golf_tournament_id: structuredTournamentId,
+            golf_tournament_name: structuredTournamentName,
+            sub_category: "golf",
+          } : {}),
+        },
       }, { onConflict: "domain,external_id" }).select("*").single();
       if (evErr || !event) {
         sse.send({ stage: "moderation", status: "error", message: `event upsert failed: ${evErr?.message}` });
