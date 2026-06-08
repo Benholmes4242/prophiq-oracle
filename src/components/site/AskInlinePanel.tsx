@@ -417,27 +417,66 @@ function buildResubmittedQuestion(
 
 function ConversationalBody({
   clarification,
+  priorUserTurns,
+  priorAssistantTurns,
+  currentQuestion,
   onReply,
   onDismiss,
 }: {
   clarification: ConversationalClarification;
+  priorUserTurns?: string[];
+  priorAssistantTurns?: string[];
+  currentQuestion: string;
   onReply: (reply: string, structured?: StructuredAsk) => void;
   onDismiss: () => void;
 }) {
   const [draft, setDraft] = useState("");
+
+  // Reconstruct the chat transcript for display. Source of truth for user
+  // turns is the server-echoed clarification.user_turns when present (it
+  // includes everything the resolver actually saw). Assistant turns are
+  // client-only display history; the current clarification message is
+  // appended last so the user sees the most recent assistant prompt.
+  const userTurns = clarification.user_turns
+    ?? priorUserTurns
+    ?? (clarification.original_question ? [clarification.original_question] : [currentQuestion]);
+  const assistantTurns = [...(priorAssistantTurns ?? []), clarification.message];
+
+  // Interleave: u, a, u, a, ... (assistant trailing).
+  const bubbles: Array<{ role: "user" | "assistant"; text: string }> = [];
+  const maxLen = Math.max(userTurns.length, assistantTurns.length);
+  for (let i = 0; i < maxLen; i++) {
+    if (i < userTurns.length) bubbles.push({ role: "user", text: userTurns[i] });
+    if (i < assistantTurns.length) bubbles.push({ role: "assistant", text: assistantTurns[i] });
+  }
+
   return (
     <div className="pt-5">
       <div
-        className="font-mono text-[10px] tracking-[0.22em] mb-2"
+        className="font-mono text-[10px] tracking-[0.22em] mb-3"
         style={{ color: "var(--ink-faint)", fontWeight: 600 }}
       >
-        I NEED A LITTLE MORE
+        LET'S NARROW IT DOWN
       </div>
-      <div
-        className="font-body text-[15px] leading-snug mb-4"
-        style={{ color: "var(--ink)" }}
-      >
-        {clarification.message}
+
+      <div className="flex flex-col gap-2 mb-4">
+        {bubbles.map((b, i) => (
+          <div
+            key={i}
+            className={`flex ${b.role === "user" ? "justify-end" : "justify-start"}`}
+          >
+            <div
+              className="font-body text-[14px] leading-snug rounded-2xl px-4 py-2.5 max-w-[85%]"
+              style={
+                b.role === "user"
+                  ? { background: "var(--amber)", color: "white" }
+                  : { background: "var(--bg)", border: "1px solid var(--border-soft)", color: "var(--ink)" }
+              }
+            >
+              {b.text}
+            </div>
+          </div>
+        ))}
       </div>
 
       {clarification.suggestions.length > 0 && (
@@ -450,7 +489,7 @@ function ConversationalBody({
               style={{ background: "var(--bg)", border: "1px solid var(--border-soft)" }}
             >
               <span className="font-sans text-[14px] font-semibold">{s.label}</span>
-              <span className="font-mono text-[18px]" style={{ color: "var(--amber)" }} aria-hidden>→</span>
+              <span className="font-mono text-[18px]" style={{ color: "var(--amber)" }} aria-hidden>-&gt;</span>
             </button>
           ))}
         </div>
@@ -460,7 +499,7 @@ function ConversationalBody({
         onSubmit={(e) => {
           e.preventDefault();
           const v = draft.trim();
-          if (v) onReply(v);
+          if (v) { setDraft(""); onReply(v); }
         }}
         className="flex items-center gap-2"
       >
@@ -468,7 +507,7 @@ function ConversationalBody({
           type="text"
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
-          placeholder="Reply with the missing detail…"
+          placeholder="Type your reply..."
           className="flex-1 rounded-full px-4 py-2.5 font-body text-[14px] outline-none"
           style={{ background: "var(--bg)", border: "1px solid var(--border-soft)", color: "var(--ink)" }}
           autoFocus
