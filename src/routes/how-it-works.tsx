@@ -112,6 +112,10 @@ const STEPS = [
 
 const WHY = [
   {
+    title: "It understands before it answers",
+    body: "Most tools take your words literally and guess at the rest. Prophiq talks it through with you - like a sharp analyst would - so the forecast answers the question you actually meant, not a near-miss of it.",
+  },
+  {
     title: "Live data, not just training data",
     body: "Foundation models know what they learned during training, which can be months or years stale. Prophiq queries live data sources at forecast time: real-time prediction market prices, the most recent economic data prints, current sports standings, latest entertainment industry signals. Your forecast reflects the world as it is now, not as it was when the model was trained.",
   },
@@ -197,8 +201,9 @@ function Hero() {
           maxWidth: "52ch",
         }}
       >
-        Multi-model AI consensus, grounded in live data and our own forecasting
-        database, calibrated against reality.
+        Prophiq has a conversation with you to understand exactly what you are
+        forecasting, then grounds the answer in live data and the agreement of
+        multiple AI models, calibrated against reality.
       </p>
     </header>
   );
