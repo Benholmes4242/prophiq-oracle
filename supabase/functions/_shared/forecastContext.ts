@@ -170,9 +170,24 @@ export async function assembleForecastContext(
     structuredData !== null || (structuredSources?.sources?.length ?? 0) > 0;
   const researchText = (research?.synthesised ?? "").trim();
   const hasSubstantiveResearch = research !== null && researchText.length >= 200;
+
+  // Horse-racing safety net (shared with generate-prediction): web
+  // research cannot reliably enumerate a specific race's runners, so
+  // research_grounded for a race without a feed-backed field is worse
+  // than honest uncertainty (it surfaces fabricated "Horse A" / "Any
+  // other runner wins" placeholders at #1). Force low_data when racing
+  // has no real feed; the rest of the tiering logic stays unchanged for
+  // every other sport / domain.
+  const eventMeta = (event as { metadata?: unknown }).metadata;
+  const subCategory = (eventMeta && typeof eventMeta === "object")
+    ? String((eventMeta as Record<string, unknown>).sub_category ?? "").toLowerCase()
+    : "";
+  const isHorseRacing = subCategory === "horse_racing" || subCategory === "horseracing";
+  const racingPlaceholderGuard = isHorseRacing && !hasFeed;
+
   const dataTier: DataTier = hasFeed
     ? "feed_backed"
-    : hasSubstantiveResearch
+    : (hasSubstantiveResearch && !racingPlaceholderGuard)
       ? "research_grounded"
       : "low_data";
 
