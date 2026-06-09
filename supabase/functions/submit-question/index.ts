@@ -788,6 +788,9 @@ Deno.serve(async (req) => {
           mod.outcomes.every((o) => /^(yes|no)$/i.test(o.trim())))
       ) {
         outcomes = footballConfirm.contenders;
+      } else if (tennisConfirm) {
+        // Tennis match winner: exactly two real player names. NO draw.
+        outcomes = [tennisConfirm.player_a, tennisConfirm.player_b];
       } else {
         outcomes = (mod.outcomes && mod.outcomes.length >= 2) ? mod.outcomes : ["Yes", "No"];
       }
