@@ -530,60 +530,31 @@ Deno.serve(async (req) => {
 
   // =============================================================
   // prediction_inputs lineage row (best-effort, do not fail forecast)
+  // Shared with submit-question via _shared/predictionLineage.ts.
   // =============================================================
-  try {
-    const signals = extractSignalsUsed(event.domain, consensusOut.model_results);
-    const researchTokens = research?.tokens_used ?? null;
-    const promptTokens = estimatePromptTokens(prompt);
-
-    const { error: lineageErr } = await supabase.from("prediction_inputs").insert({
-      prediction_id: inserted.id,
-      event_id: body.event_id,
-      prompt_resolved: prompt,
-      signals_used: signals,
-      time_of_call: new Date(timeOfCall).toISOString(),
-      research_tokens_used: researchTokens,
-      llm_input_tokens_est: promptTokens,
-      prompt_version: PROMPT_VERSION,
-      prior_predictions_used: priors.map((p) => ({
-        prediction_id: p.prediction_id,
-        event_id: p.event_id,
-        similarity: p.similarity,
-        top_pick_label: p.top_pick_label,
-        top_pick_prob: p.top_pick_prob,
-        was_correct: p.was_correct,
-      })),
-      top_pick_prob_raw: topPickProbRaw,
-      market_signals_used: marketSignals.map((s) => ({
-        venue: s.venue,
-        outcome_label: s.market_outcome_label,
-        implied_probability: s.implied_probability,
-        fetched_at: s.fetched_at,
-        age_minutes_at_call: s.age_minutes_at_call,
-      })),
-      structured_data_used: structuredData
-        ? {
-            source: structuredData.source,
-            source_version: structuredData.source_version,
-            fetched_at: structuredData.fetched_at,
-            age_minutes_at_call: Math.floor(
-              (Date.now() - new Date(structuredData.fetched_at).getTime()) / 60_000,
-            ),
-            line_count: structuredData.summary_lines.length,
-          }
-        : {},
-      structured_data_sources: structuredSources.sources.map((s) => ({
-        name: s.name,
-        fetched_at: s.fetched_at,
-        duration_ms: s.duration_ms,
-      })),
-    });
-    if (lineageErr) throw new Error(lineageErr.message);
-  } catch (e) {
-    console.warn(
-      `[generate-prediction] prediction_inputs insert failed for ${inserted.id}: ${(e as Error).message}`,
-    );
-  }
+  await writePredictionLineage({
+    supabase,
+    prediction_id: inserted.id,
+    event_id: body.event_id,
+    prompt_resolved: prompt,
+    domain: event.domain,
+    model_results: consensusOut.model_results,
+    prompt_version: PROMPT_VERSION,
+    time_of_call: timeOfCall,
+    research_tokens_used: research?.tokens_used ?? null,
+    priors: priors.map((p) => ({
+      prediction_id: p.prediction_id,
+      event_id: p.event_id,
+      similarity: p.similarity,
+      top_pick_label: p.top_pick_label,
+      top_pick_prob: p.top_pick_prob,
+      was_correct: p.was_correct,
+    })),
+    top_pick_prob_raw: topPickProbRaw,
+    market_signals: marketSignals,
+    structured_data: structuredData,
+    structured_sources: structuredSources.sources,
+  });
 
   // =============================================================
   // Entity extraction (cached per event, best-effort)
