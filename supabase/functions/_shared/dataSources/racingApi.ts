@@ -984,13 +984,53 @@ async function fetchUSRacePickerInner(
   if (races.length === 0) {
     return { kind: "dark_day", pick_by: "race_number", track_name: trackName, date };
   }
-  // Symmetric time-hint narrowing for NA cards: when the user gave a
-  // time and exactly one race on the card matches, collapse the picker.
-  if (parsed.time) {
-    const exact = races.filter((r) => r.local_time === parsed.time);
-    if (exact.length === 1) {
-      return { kind: "races", pick_by: "race_number", track_name: trackName, date, races: exact };
+  // Symmetric narrowing for NA cards: when the user gave a race_number
+  // or a time and exactly one race matches, return the dedicated
+  // single-race kind (with full runners) so groundRacing can emit
+  // racing_confirmed directly.
+  const buildSingleRace = (rawIdx: number): RacePickerResult => {
+    const rawList = entries.races ?? [];
+    const matchedRaw = rawList[rawIdx];
+    if (!matchedRaw) {
+      return { kind: "races", pick_by: "race_number", track_name: trackName, date, races: [races[0]] };
     }
+    const runnersN = (matchedRaw.runners ?? []).map(normaliseNARunner);
+    if (runnersN.length === 0) {
+      // No runners published yet — degrade to 1-entry picker so caller
+      // treats it as racing_fallthrough (low_data field-forming).
+      const pr = races.find((p) => p.race_number === extractNARaceNumber(matchedRaw));
+      return { kind: "races", pick_by: "race_number", track_name: trackName, date, races: pr ? [pr] : races.slice(0, 1) };
+    }
+    const offTime = derivedNALocalTime(matchedRaw) ?? normalisePostTime(matchedRaw.post_time);
+    const offDt = derivedNAIsoTime(matchedRaw);
+    const raceNum = extractNARaceNumber(matchedRaw);
+    const race: RacingRace = {
+      race_id: raceNum !== null ? String(raceNum) : null,
+      course: trackName,
+      region: entries.country ?? meet.country ?? null,
+      off_time: offTime,
+      off_dt: offDt,
+      race_name: matchedRaw.race_name ?? (raceNum !== null ? `Race ${raceNum}` : null),
+      race_class: matchedRaw.race_class ?? matchedRaw.grade ?? null,
+      field_size: String(runnersN.length),
+      distance: matchedRaw.distance_description ?? null,
+      going: matchedRaw.surface_description ?? null,
+      betting_forecast: null,
+      runners: runnersN,
+    };
+    return { kind: "race", pick_by: "race_number", track_name: trackName, date, race, runners: runnersN };
+  };
+  if (parsed.raceNumber !== null) {
+    const idx = (entries.races ?? []).findIndex((r) => extractNARaceNumber(r) === parsed.raceNumber);
+    if (idx >= 0) return buildSingleRace(idx);
+  }
+  if (parsed.time) {
+    const matches: number[] = [];
+    (entries.races ?? []).forEach((r, i) => {
+      const t = derivedNALocalTime(r) ?? normalisePostTime(r.post_time);
+      if (t === parsed.time) matches.push(i);
+    });
+    if (matches.length === 1) return buildSingleRace(matches[0]);
   }
   return { kind: "races", pick_by: "race_number", track_name: trackName, date, races };
 }
