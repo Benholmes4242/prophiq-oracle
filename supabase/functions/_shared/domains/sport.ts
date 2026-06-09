@@ -24,10 +24,8 @@ import {
   type StructuredDataSource,
   withTimeout,
 } from "../structuredData.ts";
-import { fetchFootballDataContext } from "../dataSources/footballData.ts";
 import { fetchTheSportsDBContext } from "../dataSources/theSportsDB.ts";
-import { fetchRacingContext } from "../dataSources/racingApi.ts";
-import { fetchGolfContext } from "../dataSources/sportRadarGolf.ts";
+import { groundSportEventForCron, type SportKind } from "../dataSources/sportGrounding.ts";
 import {
   apiSportsVersionTag,
   getHeadToHead,
