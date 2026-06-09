@@ -35,6 +35,19 @@ registerAllDomains();
 
 const PROMPT_VERSION = "v1.0.0";
 
+function readEnv(name: string): string | undefined {
+  try {
+    return (globalThis as { Deno?: { env: { get(k: string): string | undefined } } })
+      .Deno?.env.get(name);
+  } catch {
+    return undefined;
+  }
+}
+
+// Gated behind PROPHIQ_DEBUG_TRACE secret; off in production, set true to
+// diagnose sport grounding (decision_sport / grounded_kind etc.).
+const DEBUG_TRACE = (readEnv("PROPHIQ_DEBUG_TRACE") ?? "").toLowerCase() === "true";
+
 interface Body {
   question?: string;
   fingerprint?: string;
