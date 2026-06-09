@@ -900,6 +900,18 @@ async function fetchUKRacePickerInner(
   if (races.length === 0) {
     return { kind: "dark_day", pick_by: "time", track_name: trackName, date };
   }
+  // Time-hint narrowing: a fully-specified race ("19:21 at Brighton") must
+  // not be returned as an ambiguous multi-race picker. If the resolver
+  // supplied a time and exactly one race on the card matches it (HH:MM
+  // 24h), collapse the picker to that race. Downstream groundRacing then
+  // takes the racing_fallthrough path (length < 2) and fetchRacingContext
+  // locks in real runners for the matched race.
+  if (parsed.time) {
+    const exact = races.filter((r) => r.local_time === parsed.time);
+    if (exact.length === 1) {
+      return { kind: "races", pick_by: "time", track_name: trackName, date, races: exact };
+    }
+  }
   return { kind: "races", pick_by: "time", track_name: trackName, date, races };
 }
 
