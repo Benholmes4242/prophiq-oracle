@@ -771,6 +771,22 @@ Deno.serve(async (req) => {
                 },
               });
               sse.close(); return;
+            } else if (grounded.kind === "f1_race") {
+              const f = grounded.metadata.f1_race;
+              f1Race = {
+                kind: "race",
+                season: f.season,
+                round: f.round,
+                race_name: f.race_name,
+                circuit: f.circuit,
+                date: f.date,
+                starts_at: f.starts_at,
+                drivers: grounded.outcomes,
+              };
+              resolverOverride = {
+                normalized_question: `${f.race_name} ${f.season}`,
+                starts_at: f.starts_at,
+              };
             }
             // "racing_fallthrough" or "none" -> downstream low_data
             // (horse-racing safety net in forecastContext.ts) or
