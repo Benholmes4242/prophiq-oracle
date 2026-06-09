@@ -1085,6 +1085,31 @@ Deno.serve(async (req) => {
       }
       sse.send({ stage: "consensus", status: "done", data: { confidence: scoreToConfidence(consensusOut.consensus.agreement_score), data_tier: ctx.dataTier } });
 
+      // prediction_inputs lineage (best-effort; shared with cron path).
+      await writePredictionLineage({
+        supabase,
+        prediction_id: prediction.id,
+        event_id: event.id,
+        prompt_resolved: ctx.prompt,
+        domain: domainId,
+        model_results: consensusOut.model_results,
+        prompt_version: PROMPT_VERSION,
+        time_of_call: timeOfCall,
+        research_tokens_used: ctx.research?.tokens_used ?? null,
+        priors: ctx.priors.map((p) => ({
+          prediction_id: p.prediction_id,
+          event_id: p.event_id,
+          similarity: p.similarity,
+          top_pick_label: p.top_pick_label,
+          top_pick_prob: p.top_pick_prob,
+          was_correct: p.was_correct,
+        })),
+        top_pick_prob_raw: ranked[0]?.probability ?? null,
+        market_signals: ctx.marketSignals,
+        structured_data: ctx.structuredData,
+        structured_sources: ctx.structuredSources.sources,
+      });
+
       // ----- 7. DONE -----
       await recordOutcome("accepted");
       await logSearchQuery({
