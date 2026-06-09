@@ -393,10 +393,20 @@ Deno.serve(async (req) => {
   }
 
   const labelById = new Map((outcomes as EventOutcome[]).map((o) => [o.id, o.label]));
-  const ranked = consensusOut.consensus.ranked_outcomes.map((r) => ({
+  const rankedRaw = consensusOut.consensus.ranked_outcomes.map((r) => ({
     ...r,
     outcome_label: labelById.get(r.outcome_id) ?? r.outcome_id,
   }));
+  // Stable demotion: a generic bucket / placeholder label (e.g.
+  // "Any other player", "Rest of the field") must never be ranked_outcomes[0]
+  // in storage. The UI already demotes for display; mirror that on persistence
+  // so the headline / downstream consumers read a real outcome at index 0.
+  // Probability mass is preserved — only ordering changes.
+  const realOnly = rankedRaw.filter((r) => !isDisplayPlaceholder(r.outcome_label));
+  const placeholdersOnly = rankedRaw.filter((r) => isDisplayPlaceholder(r.outcome_label));
+  const ranked = realOnly.length > 0
+    ? [...realOnly, ...placeholdersOnly].map((r, i) => ({ ...r, rank: i + 1 }))
+    : rankedRaw;
   const top3 = ranked.slice(0, 3);
   const alternates = ranked.filter((r) => r.is_dark_horse);
 
