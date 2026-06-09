@@ -914,13 +914,20 @@ async function fetchUKRacePickerInner(
   }
   // Time-hint narrowing: a fully-specified race ("19:21 at Brighton") must
   // not be returned as an ambiguous multi-race picker. If the resolver
-  // supplied a time and exactly one race on the card matches it (HH:MM
-  // 24h), collapse the picker to that race. Downstream groundRacing then
-  // takes the racing_fallthrough path (length < 2) and fetchRacingContext
-  // locks in real runners for the matched race.
+  // supplied a time and exactly one race on the card matches it, return
+  // the dedicated single-race kind carrying the full RacingRace + runners
+  // so groundRacing can emit `racing_confirmed` directly (no second feed
+  // hit, no racing_fallthrough dead-end).
   if (parsed.time) {
     const exact = races.filter((r) => r.local_time === parsed.time);
     if (exact.length === 1) {
+      const race = matchRace(cards, course, parsed.time);
+      if (race && race.runners.length > 0) {
+        return { kind: "race", pick_by: "time", track_name: trackName, date, race, runners: race.runners };
+      }
+      // Race matched but runners not published yet → collapse to a 1-entry
+      // picker so the caller treats it as racing_fallthrough (low_data
+      // field-forming), not a confirmed field.
       return { kind: "races", pick_by: "time", track_name: trackName, date, races: exact };
     }
   }
