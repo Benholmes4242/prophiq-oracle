@@ -406,11 +406,16 @@ ${forecastDisciplineBlock()}`;
 // Truncate a long field to a named head + a single bucket tail
 // ("Any other player" / "Any other runner"). Pure helper; no I/O.
 // ============================================================
-function bucketGroundedOutcomes(outcomes: string[], isGolf: boolean): string[] {
+function bucketGroundedOutcomes(
+  outcomes: string[],
+  isGolf: boolean,
+  bucketLabel?: string,
+): string[] {
   const MAX_NAMED = 8;
   if (outcomes.length <= MAX_NAMED) return [...outcomes];
   const head = outcomes.slice(0, MAX_NAMED);
-  head.push(isGolf ? "Any other player" : "Any other runner");
+  const tail = bucketLabel ?? (isGolf ? "Any other player" : "Any other runner");
+  head.push(tail);
   return head;
 }
 
