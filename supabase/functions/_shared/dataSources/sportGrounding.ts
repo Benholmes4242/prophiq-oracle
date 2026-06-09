@@ -140,7 +140,28 @@ export type SportGroundingResult =
        * (low_data) — research_grounded must NOT surface placeholder horses. */
       picker: Awaited<ReturnType<typeof fetchRacePicker>>;
     }
+  | {
+      kind: "tennis_match";
+      sport: "tennis";
+      /** Exactly two real player names from the feed; NO draw, NO bucket. */
+      outcomes: [string, string];
+      starts_at: string;
+      metadata: { tennis_confirm: TennisMatchConfirmMeta };
+    }
+  | {
+      kind: "picker_tennis";
+      candidates: TennisMatchCandidate[];
+    }
   | { kind: "none"; reason: string };
+
+export interface TennisMatchConfirmMeta {
+  kind: "match";
+  event_id: string;
+  player_a: string;
+  player_b: string;
+  tournament: string | null;
+  starts_at: string;
+}
 
 export interface FootballMatchConfirmMeta {
   kind: "match";
