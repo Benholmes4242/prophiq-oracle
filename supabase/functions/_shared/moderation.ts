@@ -97,7 +97,26 @@ Your job is to surface the signal, not to gatekeep.
 
 Treat ambiguous time references ("next election", "this year's Masters",
 "upcoming Fed meeting") as the NEXT future occurrence — never reject for a
-missing date. Leave dates null if unknown.`;
+missing date. Leave dates null if unknown.
+
+OUTCOME RULES (apply to every classified question):
+- Outcomes MUST be REAL, NAMED contenders or concrete results. For a "who wins X"
+  question, list the actual most-likely competitors BY NAME (e.g. "Carlos Alcaraz",
+  "Jannik Sinner", "Novak Djokovic" — NOT "the men's singles champion"). For yes/no
+  or threshold questions, use the concrete outcomes ("Higher", "Lower"; "Rate cut",
+  "No change").
+- NEVER use hedge / non-answer / placeholder labels as outcomes. FORBIDDEN examples:
+  "cannot determine", "cannot be determined", "to be confirmed", "TBD", "unknown",
+  "too early to say", "no clear favourite", "a surprise underdog wins", "a surprise
+  winner", "the champion", "the winner", "men's/women's singles champion", or any
+  role/title label that is not a specific named entity.
+- If you genuinely cannot name contenders (e.g. a field months out with no public
+  favourites), still NAME the most likely real candidates from general knowledge
+  (top-ranked players / teams / drivers for that competition). Do NOT substitute a
+  hedge label. A best-effort named field is required; a hedge is a failure.
+- It is fine for the named outcomes to NOT cover the whole field — the downstream
+  forecast adds the remaining probability as "Rest of the field" automatically. So
+  list the real contenders and stop; never pad with a vague catch-all as outcome #1.`;
 
 export function buildModerationPrompt(question: string, today: Date): string {
   const todayIso = today.toISOString().slice(0, 10);
@@ -115,14 +134,19 @@ Return JSON:
   "starts_at": "ISO8601 UTC if the event has a known start, else null",
   "resolves_at": "ISO8601 UTC if the event has a known resolution time, else null",
   "normalized_question": "rewritten as a clear predictive question (e.g. 'Who will win X?')",
-  "outcomes": ["2-6 plausible outcome labels"],
+  "outcomes": ["2-6 REAL, NAMED, mutually-exclusive outcome labels (see OUTCOME RULES in system prompt)"],
   "metadata": { "...any structured extras..." }
 }
 
 Reminders:
 - policy_breach=true ONLY for unsafe/sexual/fraud/private-individual/already-resolved.
 - Niche or obscure real public events are VALID — set confidence="low" if unsure, never policy_breach.
-- Always provide normalized_question and outcomes even when confidence is low.`;
+- Always provide normalized_question and outcomes even when confidence is low.
+- Outcomes MUST be real NAMED contenders or concrete results. NEVER use hedge labels
+  like "cannot determine", "TBD", "the champion", "a surprise winner", "no clear
+  favourite", or any role/title that is not a specific named entity. If unsure,
+  name your best-guess top contenders from general knowledge — a hedge label is a
+  failure, a best-effort named field is required.`;
 }
 
 /**
