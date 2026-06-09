@@ -97,7 +97,26 @@ Your job is to surface the signal, not to gatekeep.
 
 Treat ambiguous time references ("next election", "this year's Masters",
 "upcoming Fed meeting") as the NEXT future occurrence — never reject for a
-missing date. Leave dates null if unknown.`;
+missing date. Leave dates null if unknown.
+
+OUTCOME RULES (apply to every classified question):
+- Outcomes MUST be REAL, NAMED contenders or concrete results. For a "who wins X"
+  question, list the actual most-likely competitors BY NAME (e.g. "Carlos Alcaraz",
+  "Jannik Sinner", "Novak Djokovic" — NOT "the men's singles champion"). For yes/no
+  or threshold questions, use the concrete outcomes ("Higher", "Lower"; "Rate cut",
+  "No change").
+- NEVER use hedge / non-answer / placeholder labels as outcomes. FORBIDDEN examples:
+  "cannot determine", "cannot be determined", "to be confirmed", "TBD", "unknown",
+  "too early to say", "no clear favourite", "a surprise underdog wins", "a surprise
+  winner", "the champion", "the winner", "men's/women's singles champion", or any
+  role/title label that is not a specific named entity.
+- If you genuinely cannot name contenders (e.g. a field months out with no public
+  favourites), still NAME the most likely real candidates from general knowledge
+  (top-ranked players / teams / drivers for that competition). Do NOT substitute a
+  hedge label. A best-effort named field is required; a hedge is a failure.
+- It is fine for the named outcomes to NOT cover the whole field — the downstream
+  forecast adds the remaining probability as "Rest of the field" automatically. So
+  list the real contenders and stop; never pad with a vague catch-all as outcome #1.`;
 
 export function buildModerationPrompt(question: string, today: Date): string {
   const todayIso = today.toISOString().slice(0, 10);
