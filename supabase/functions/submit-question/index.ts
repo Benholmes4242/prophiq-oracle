@@ -938,7 +938,7 @@ Deno.serve(async (req) => {
             sub_category: "f1",
             f1_race: f1Race,
           } : {}),
-          _debug_trace: debugTrace,
+          ...(DEBUG_TRACE ? { _debug_trace: debugTrace } : {}),
         },
       }, { onConflict: "domain,external_id" }).select("*").single();
       if (evErr || !event) {
