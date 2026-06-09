@@ -343,6 +343,39 @@ async function groundRacing(
   return { kind: "racing_fallthrough", picker };
 }
 
+async function groundTennis(
+  input: SportGroundingInput,
+): Promise<SportGroundingResult> {
+  // TheSportsDB free public key "3" works for tennis. No env-key gate.
+  const confirm = await confirmTennisMatch(input.canonicalEvent, input.approxDate);
+  if (confirm.kind === "none") {
+    return { kind: "none", reason: `tennis confirm: ${confirm.reason}` };
+  }
+  if (confirm.kind === "multiple") {
+    return { kind: "picker_tennis", candidates: confirm.matches };
+  }
+  const m = confirm.match;
+  if (!m.player_a || !m.player_b) {
+    return { kind: "none", reason: "tennis confirm returned an empty player" };
+  }
+  return {
+    kind: "tennis_match",
+    sport: "tennis",
+    outcomes: [m.player_a, m.player_b],
+    starts_at: m.starts_at,
+    metadata: {
+      tennis_confirm: {
+        kind: "match",
+        event_id: m.event_id,
+        player_a: m.player_a,
+        player_b: m.player_b,
+        tournament: m.tournament,
+        starts_at: m.starts_at,
+      },
+    },
+  };
+}
+
 /** Favourite-first runner labels (best decimal price first; unpriced last).
  * Bucketed tail "Any other runner" when field > 8. Mirrors the bucketing
  * used by sport.ts gatherStructuredSources for the cron grounding path. */
