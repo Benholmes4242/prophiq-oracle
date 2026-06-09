@@ -406,6 +406,25 @@ Deno.serve(async (req) => {
       };
       let tennisConfirm: TennisConfirmThread | null = null;
 
+      // TEMP debug trace — written into event.metadata._debug_trace so we
+      // can observe runtime values via SQL (function logs are not visible).
+      // Remove once tennis is confirmed working end-to-end.
+      const debugTrace: {
+        decision_sport: string | null;
+        sport_kind_for_grounding: string | null;
+        skip_for_resubmit: boolean | null;
+        grounded_kind: string;
+        reached_grounding_gate: boolean;
+        grounding_threw: string | null;
+      } = {
+        decision_sport: null,
+        sport_kind_for_grounding: null,
+        skip_for_resubmit: null,
+        grounded_kind: "GATE_NOT_REACHED",
+        reached_grounding_gate: false,
+        grounding_threw: null,
+      };
+
       // ----- 3. MODERATION (CLASSIFY + POLICY) -----
       // Step-1 rebuild: the ONLY hard stop is a real policy breach
       // (unsafe/sexual/fraud/private-individual/already-resolved). Every
@@ -549,8 +568,13 @@ Deno.serve(async (req) => {
           : null;
 
         console.log(`[tennis-trace] sportKind=${sportKindForGrounding} skip=${skipForResubmit}`);
+        debugTrace.decision_sport = decision.sport ?? null;
+        debugTrace.sport_kind_for_grounding = sportKindForGrounding;
+        debugTrace.skip_for_resubmit = skipForResubmit;
         if (sportKindForGrounding && !skipForResubmit) {
           domainId = "sport";
+          debugTrace.reached_grounding_gate = true;
+          debugTrace.grounded_kind = "GROUNDING_NOT_REACHED";
           try {
             console.log('[tennis-trace] entered grounding block');
             const grounded = await groundSportEvent({
@@ -561,6 +585,7 @@ Deno.serve(async (req) => {
             });
             console.log(`[tennis-trace] grounded kind=${grounded.kind}`);
             console.log(`[submit-question] resolver-sport sport=${sportKindForGrounding} kind=${grounded.kind}`);
+            debugTrace.grounded_kind = grounded.kind;
 
             if (grounded.kind === "picker_football") {
               sse.send({
@@ -735,6 +760,8 @@ Deno.serve(async (req) => {
             // (horse-racing safety net in forecastContext.ts) or
             // research_grounded (other sports).
           } catch (e) {
+            debugTrace.grounding_threw = (e as Error).message;
+            debugTrace.grounded_kind = "THREW";
             console.error('[tennis-trace] threw: ' + (e as Error).message);
             console.warn("[submit-question] resolver-sport grounding failed:", (e as Error).message);
           }
@@ -849,6 +876,7 @@ Deno.serve(async (req) => {
             sub_category: "tennis",
             tennis_confirm: tennisConfirm,
           } : {}),
+          _debug_trace: debugTrace,
         },
       }, { onConflict: "domain,external_id" }).select("*").single();
       if (evErr || !event) {
