@@ -902,7 +902,6 @@ Deno.serve(async (req) => {
       let outcomePairs2 = outcomePairs;
       let outcomeIdsFinal = outcomeIds ?? [];
       if (ctx.racingRunners && ctx.racingRunners.length > 0) {
-        const { isGolfRunnersSource } = await import("../_shared/forecastContext.ts");
         const isGolf = isGolfRunnersSource(ctx.structuredSources);
         const MAX_NAMED = 8;
         const runners = ctx.racingRunners;
