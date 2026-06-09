@@ -305,6 +305,7 @@ ${forecastDisciplineBlock()}`;
     const football = isFootballEvent(event);
     const horseRacing = isHorseRacingEvent(event);
     const golf = isGolfEvent(event);
+    const tennis = isTennisEvent(event);
 
     const sources: StructuredDataSource[] = [];
     const errors: StructuredDataError[] = [];
@@ -312,12 +313,12 @@ ${forecastDisciplineBlock()}`;
 
     // ====================================================================
     // Sport grounding (Step 3): one shared module produces feed-backed
-    // outcomes + grounding sources for football / golf / horse racing.
-    // Both submit-question and the cron route through groundSportEvent so
-    // a discovered event gets the SAME real runners / teams as the same
-    // question typed. Replaces the old fetchFootballDataContext /
-    // fetchRacingContext / fetchGolfContext call sites AND the
-    // event.metadata.football_confirm passthrough block.
+    // outcomes + grounding sources for football / golf / horse racing /
+    // tennis (match winner). Both submit-question and the cron route
+    // through groundSportEvent so a discovered event gets the SAME real
+    // runners / teams / players as the same question typed. Replaces the
+    // old fetchFootballDataContext / fetchRacingContext / fetchGolfContext
+    // call sites AND the event.metadata.football_confirm passthrough block.
     //
     // CLEAN RETURN: grounded outcomes are returned via the optional
     // `groundedOutcomes` field on StructuredDataContext. The cron
@@ -330,6 +331,7 @@ ${forecastDisciplineBlock()}`;
       football ? "football"
       : (golf && !horseRacing) ? "golf"
       : horseRacing ? "horse_racing"
+      : tennis ? "tennis"
       : null;
 
     if (groundingSport) {
@@ -373,11 +375,11 @@ ${forecastDisciplineBlock()}`;
       }
     }
 
-    // theSportsDB stays as fallback for non-confirm sports (tennis, rugby,
-    // cricket, etc.) and props. Football / golf / horse racing are served
-    // by groundSportEventForCron above.
+    // theSportsDB stays as fallback for non-confirm sports (rugby, cricket,
+    // etc.) and props. Football / golf / horse racing / tennis are served by
+    // groundSportEventForCron above.
     const tasks: Array<Promise<SourceResult>> = [];
-    if (!football && !golf && !horseRacing) {
+    if (!football && !golf && !horseRacing && !tennis) {
       tasks.push(runSource("theSportsDB", () => fetchTheSportsDBContext(tsdbKey, hints)));
     }
 
@@ -572,6 +574,25 @@ function isFootballEvent(event: DomainEvent): boolean {
   for (const k of positiveKeywords) if (text.includes(k)) return true;
 
   return false;
+}
+
+export function isTennisEvent(event: DomainEvent): boolean {
+  const meta = (typeof event.metadata === "object" && event.metadata !== null)
+    ? event.metadata as Record<string, unknown>
+    : {};
+  const subCat = String(meta.sub_category ?? meta.subcategory ?? "").toLowerCase();
+  if (subCat === "tennis") return true;
+  // Feed-confirm marker beats any text heuristic.
+  if (meta.tennis_confirm) return true;
+  const text = [
+    event.title,
+    event.question,
+    String(meta.sport ?? ""),
+    String(meta.league ?? ""),
+  ].join(" ").toLowerCase();
+  // Strong negatives — golf majors share open names with tennis slams.
+  if (/\b(pga|masters|ryder cup|golf)\b/.test(text)) return false;
+  return /\b(tennis|atp|wta|wimbledon|us open|french open|roland garros|australian open)\b/.test(text);
 }
 
 function extractTeamNamesFromQuestion(

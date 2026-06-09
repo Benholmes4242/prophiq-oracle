@@ -393,6 +393,17 @@ Deno.serve(async (req) => {
           competition: structuredFbCompetition || null,
         };
       }
+      // Tennis match confirm threaded through to event upsert (outcomes,
+      // metadata, starts_at). Populated by the resolver tennis branch below.
+      type TennisConfirmThread = {
+        kind: "match";
+        event_id: string;
+        player_a: string;
+        player_b: string;
+        tournament: string | null;
+        starts_at: string;
+      };
+      let tennisConfirm: TennisConfirmThread | null = null;
 
       // ----- 3. MODERATION (CLASSIFY + POLICY) -----
       // Step-1 rebuild: the ONLY hard stop is a real policy breach
@@ -523,15 +534,17 @@ Deno.serve(async (req) => {
         const footballSport = decision.sport === "football" ||
           decision.sport === "soccer" ||
           decision.sport === "association_football";
+        const tennisSport = decision.sport === "tennis";
         const hasStructuredRacing = !!structuredCourse && (!!structuredTime || structuredRaceNo !== null);
         const skipForResubmit =
           (golfSport && hasStructuredGolf) ||
           (racingSport && hasStructuredRacing) ||
           (footballSport && hasStructuredFootball);
-        const sportKindForGrounding: "football" | "golf" | "horse_racing" | null =
+        const sportKindForGrounding: "football" | "golf" | "horse_racing" | "tennis" | null =
           footballSport ? "football"
           : golfSport ? "golf"
           : racingSport ? "horse_racing"
+          : tennisSport ? "tennis"
           : null;
 
         if (sportKindForGrounding && !skipForResubmit) {
@@ -680,6 +693,40 @@ Deno.serve(async (req) => {
                 },
               });
               sse.close(); return;
+            } else if (grounded.kind === "tennis_match") {
+              const t = grounded.metadata.tennis_confirm;
+              tennisConfirm = {
+                kind: "match",
+                event_id: t.event_id,
+                player_a: t.player_a,
+                player_b: t.player_b,
+                tournament: t.tournament,
+                starts_at: t.starts_at,
+              };
+              resolverOverride = {
+                normalized_question: `${t.player_a} vs ${t.player_b}`,
+                starts_at: t.starts_at,
+              };
+            } else if (grounded.kind === "picker_tennis") {
+              // Mirror football fixture_picker shape — rare (same two
+              // players meeting twice in the window).
+              sse.send({
+                stage: "clarification",
+                status: "done",
+                data: {
+                  type: "fixture_picker",
+                  message: "Those two players have more than one upcoming match. Which one did you mean?",
+                  fixtures: grounded.candidates.map((m) => ({
+                    fixture_id: m.event_id,
+                    home_team: m.player_a,
+                    away_team: m.player_b,
+                    kickoff: m.starts_at,
+                    competition: m.tournament ?? "",
+                    label: `${m.player_a} vs ${m.player_b}${m.tournament ? ` - ${m.tournament}` : ""} (${new Date(m.starts_at).toUTCString().slice(0, 16)})`,
+                  })),
+                },
+              });
+              sse.close(); return;
             }
             // "racing_fallthrough" or "none" -> downstream low_data
             // (horse-racing safety net in forecastContext.ts) or
@@ -741,6 +788,9 @@ Deno.serve(async (req) => {
           mod.outcomes.every((o) => /^(yes|no)$/i.test(o.trim())))
       ) {
         outcomes = footballConfirm.contenders;
+      } else if (tennisConfirm) {
+        // Tennis match winner: exactly two real player names. NO draw.
+        outcomes = [tennisConfirm.player_a, tennisConfirm.player_b];
       } else {
         outcomes = (mod.outcomes && mod.outcomes.length >= 2) ? mod.outcomes : ["Yes", "No"];
       }
@@ -790,6 +840,10 @@ Deno.serve(async (req) => {
           ...(footballConfirm ? {
             sub_category: "football",
             football_confirm: footballConfirm,
+          } : {}),
+          ...(tennisConfirm ? {
+            sub_category: "tennis",
+            tennis_confirm: tennisConfirm,
           } : {}),
         },
       }, { onConflict: "domain,external_id" }).select("*").single();
