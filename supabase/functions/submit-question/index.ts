@@ -568,8 +568,13 @@ Deno.serve(async (req) => {
           : null;
 
         console.log(`[tennis-trace] sportKind=${sportKindForGrounding} skip=${skipForResubmit}`);
+        debugTrace.decision_sport = decision.sport ?? null;
+        debugTrace.sport_kind_for_grounding = sportKindForGrounding;
+        debugTrace.skip_for_resubmit = skipForResubmit;
         if (sportKindForGrounding && !skipForResubmit) {
           domainId = "sport";
+          debugTrace.reached_grounding_gate = true;
+          debugTrace.grounded_kind = "GROUNDING_NOT_REACHED";
           try {
             console.log('[tennis-trace] entered grounding block');
             const grounded = await groundSportEvent({
@@ -580,6 +585,7 @@ Deno.serve(async (req) => {
             });
             console.log(`[tennis-trace] grounded kind=${grounded.kind}`);
             console.log(`[submit-question] resolver-sport sport=${sportKindForGrounding} kind=${grounded.kind}`);
+            debugTrace.grounded_kind = grounded.kind;
 
             if (grounded.kind === "picker_football") {
               sse.send({
