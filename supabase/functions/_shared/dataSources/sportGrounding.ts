@@ -399,6 +399,36 @@ async function groundTennis(
   };
 }
 
+async function groundF1(
+  input: SportGroundingInput,
+): Promise<SportGroundingResult> {
+  // Jolpica F1 is free + keyless. No env gate.
+  const confirm = await confirmF1Race(input.canonicalEvent, input.approxDate);
+  if (confirm.kind === "none") {
+    return { kind: "none", reason: `f1 confirm: ${confirm.reason}` };
+  }
+  if (confirm.drivers.length < 2) {
+    return { kind: "none", reason: "f1 driver field too small" };
+  }
+  return {
+    kind: "f1_race",
+    sport: "f1",
+    outcomes: confirm.drivers,
+    starts_at: confirm.starts_at,
+    metadata: {
+      f1_race: {
+        kind: "race",
+        season: confirm.season,
+        round: confirm.round,
+        race_name: confirm.race_name,
+        circuit: confirm.circuit,
+        date: confirm.date,
+        starts_at: confirm.starts_at,
+      },
+    },
+  };
+}
+
 /** Favourite-first runner labels (best decimal price first; unpriced last).
  * Bucketed tail "Any other runner" when field > 8. Mirrors the bucketing
  * used by sport.ts gatherStructuredSources for the cron grounding path. */
