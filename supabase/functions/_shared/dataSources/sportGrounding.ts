@@ -39,6 +39,12 @@ import {
   type FootballMatchCandidate,
 } from "./footballConfirm.ts";
 import {
+  findGolfMatches,
+  fetchGolfContext,
+  type GolfMatch,
+  type GolfSnapshot,
+} from "./sportRadarGolf.ts";
+import {
   fetchRacePicker,
   fetchRacingContext,
   type RacingRace,
