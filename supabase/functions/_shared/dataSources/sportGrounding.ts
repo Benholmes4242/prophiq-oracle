@@ -489,6 +489,11 @@ export interface CronGroundingResult {
   sources: CronGroundingSource[];
   outcomes: string[] | null;
   isGolf: boolean;
+  /** Optional explicit bucket label for the long-tail bucket. When set,
+   * overrides the isGolf-derived default ("Any other player" / "Any other
+   * runner"). Used by sports whose field is neither golfers nor runners
+   * (e.g. F1 -> "Any other driver"). */
+  bucketLabel?: string;
 }
 
 export async function groundSportEventForCron(
