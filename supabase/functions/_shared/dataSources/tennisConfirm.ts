@@ -180,11 +180,15 @@ export function extractPlayers(canonical: string): { a: string; b: string } | nu
   ) {
     aName = `${leftTokens[leftTokens.length - 2]} ${aName}`;
   }
-  // Right side: take FIRST 1-2 tokens (first token, plus particle handling).
+  // Right side: take LAST token (or particle+token) as the surname, matching
+  // the left-side logic. "Corentin Moutet" -> "Moutet"; "Alex de Minaur" -> "de Minaur".
   const rightTokens = rightRaw.split(/\s+/);
-  let bName = rightTokens[0] ?? "";
-  if (rightTokens.length >= 2 && PARTICLES.has(rightTokens[0].toLowerCase())) {
-    bName = `${rightTokens[0]} ${rightTokens[1]}`;
+  let bName = rightTokens[rightTokens.length - 1] ?? "";
+  if (
+    rightTokens.length >= 2 &&
+    PARTICLES.has(rightTokens[rightTokens.length - 2].toLowerCase())
+  ) {
+    bName = `${rightTokens[rightTokens.length - 2]} ${bName}`;
   }
   if (!aName || !bName) return null;
   return { a: aName, b: bName };
