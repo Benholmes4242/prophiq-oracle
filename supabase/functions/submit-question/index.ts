@@ -35,6 +35,19 @@ registerAllDomains();
 
 const PROMPT_VERSION = "v1.0.0";
 
+function readEnv(name: string): string | undefined {
+  try {
+    return (globalThis as { Deno?: { env: { get(k: string): string | undefined } } })
+      .Deno?.env.get(name);
+  } catch {
+    return undefined;
+  }
+}
+
+// Gated behind PROPHIQ_DEBUG_TRACE secret; off in production, set true to
+// diagnose sport grounding (decision_sport / grounded_kind etc.).
+const DEBUG_TRACE = (readEnv("PROPHIQ_DEBUG_TRACE") ?? "").toLowerCase() === "true";
+
 interface Body {
   question?: string;
   fingerprint?: string;
@@ -421,9 +434,9 @@ Deno.serve(async (req) => {
       };
       let f1Race: F1RaceThread | null = null;
 
-      // TEMP debug trace — written into event.metadata._debug_trace so we
-      // can observe runtime values via SQL (function logs are not visible).
-      // Remove once tennis is confirmed working end-to-end.
+      // Debug trace — captured into event.metadata._debug_trace only when
+      // the PROPHIQ_DEBUG_TRACE secret is set (off in production). Set true
+      // to diagnose sport grounding (decision_sport / grounded_kind etc.).
       const debugTrace: {
         decision_sport: string | null;
         sport_kind_for_grounding: string | null;
@@ -925,7 +938,7 @@ Deno.serve(async (req) => {
             sub_category: "f1",
             f1_race: f1Race,
           } : {}),
-          _debug_trace: debugTrace,
+          ...(DEBUG_TRACE ? { _debug_trace: debugTrace } : {}),
         },
       }, { onConflict: "domain,external_id" }).select("*").single();
       if (evErr || !event) {
