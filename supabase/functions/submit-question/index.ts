@@ -841,6 +841,10 @@ Deno.serve(async (req) => {
             sub_category: "football",
             football_confirm: footballConfirm,
           } : {}),
+          ...(tennisConfirm ? {
+            sub_category: "tennis",
+            tennis_confirm: tennisConfirm,
+          } : {}),
         },
       }, { onConflict: "domain,external_id" }).select("*").single();
       if (evErr || !event) {
