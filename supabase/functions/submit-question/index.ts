@@ -20,6 +20,7 @@ import { runConsensus } from "../_shared/runConsensus.ts";
 import { assembleForecastContext, isGolfRunnersSource } from "../_shared/forecastContext.ts";
 import { groundSportEvent } from "../_shared/dataSources/sportGrounding.ts";
 import { isDisplayPlaceholder } from "../_shared/placeholderPatterns.ts";
+import { writePredictionLineage } from "../_shared/predictionLineage.ts";
 import type { DomainEvent, EventOutcome } from "../_shared/domain.ts";
 import { getServiceClient } from "../_shared/supabaseClient.ts";
 import { scoreToConfidence } from "../_shared/confidence.ts";
