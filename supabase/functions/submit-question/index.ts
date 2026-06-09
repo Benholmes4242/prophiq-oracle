@@ -406,6 +406,25 @@ Deno.serve(async (req) => {
       };
       let tennisConfirm: TennisConfirmThread | null = null;
 
+      // TEMP debug trace — written into event.metadata._debug_trace so we
+      // can observe runtime values via SQL (function logs are not visible).
+      // Remove once tennis is confirmed working end-to-end.
+      const debugTrace: {
+        decision_sport: string | null;
+        sport_kind_for_grounding: string | null;
+        skip_for_resubmit: boolean | null;
+        grounded_kind: string;
+        reached_grounding_gate: boolean;
+        grounding_threw: string | null;
+      } = {
+        decision_sport: null,
+        sport_kind_for_grounding: null,
+        skip_for_resubmit: null,
+        grounded_kind: "GATE_NOT_REACHED",
+        reached_grounding_gate: false,
+        grounding_threw: null,
+      };
+
       // ----- 3. MODERATION (CLASSIFY + POLICY) -----
       // Step-1 rebuild: the ONLY hard stop is a real policy breach
       // (unsafe/sexual/fraud/private-individual/already-resolved). Every
