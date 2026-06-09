@@ -576,6 +576,25 @@ function isFootballEvent(event: DomainEvent): boolean {
   return false;
 }
 
+export function isTennisEvent(event: DomainEvent): boolean {
+  const meta = (typeof event.metadata === "object" && event.metadata !== null)
+    ? event.metadata as Record<string, unknown>
+    : {};
+  const subCat = String(meta.sub_category ?? meta.subcategory ?? "").toLowerCase();
+  if (subCat === "tennis") return true;
+  // Feed-confirm marker beats any text heuristic.
+  if (meta.tennis_confirm) return true;
+  const text = [
+    event.title,
+    event.question,
+    String(meta.sport ?? ""),
+    String(meta.league ?? ""),
+  ].join(" ").toLowerCase();
+  // Strong negatives — golf majors share open names with tennis slams.
+  if (/\b(pga|masters|ryder cup|golf)\b/.test(text)) return false;
+  return /\b(tennis|atp|wta|wimbledon|us open|french open|roland garros|australian open)\b/.test(text);
+}
+
 function extractTeamNamesFromQuestion(
   event: DomainEvent,
 ): { teamA: string; teamB: string } | null {
