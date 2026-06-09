@@ -1011,6 +1011,7 @@ Deno.serve(async (req) => {
       // ----- 5. MODELS -----
       sse.send({ stage: "models", status: "start", data: { models: ["claude", "gpt", "gemini"] } });
 
+      const timeOfCall = Date.now();
       let consensusOut;
       try {
         consensusOut = await runConsensus({
