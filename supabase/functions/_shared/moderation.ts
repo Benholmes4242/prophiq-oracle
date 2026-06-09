@@ -134,14 +134,19 @@ Return JSON:
   "starts_at": "ISO8601 UTC if the event has a known start, else null",
   "resolves_at": "ISO8601 UTC if the event has a known resolution time, else null",
   "normalized_question": "rewritten as a clear predictive question (e.g. 'Who will win X?')",
-  "outcomes": ["2-6 plausible outcome labels"],
+  "outcomes": ["2-6 REAL, NAMED, mutually-exclusive outcome labels (see OUTCOME RULES in system prompt)"],
   "metadata": { "...any structured extras..." }
 }
 
 Reminders:
 - policy_breach=true ONLY for unsafe/sexual/fraud/private-individual/already-resolved.
 - Niche or obscure real public events are VALID — set confidence="low" if unsure, never policy_breach.
-- Always provide normalized_question and outcomes even when confidence is low.`;
+- Always provide normalized_question and outcomes even when confidence is low.
+- Outcomes MUST be real NAMED contenders or concrete results. NEVER use hedge labels
+  like "cannot determine", "TBD", "the champion", "a surprise winner", "no clear
+  favourite", or any role/title that is not a specific named entity. If unsure,
+  name your best-guess top contenders from general knowledge — a hedge label is a
+  failure, a best-effort named field is required.`;
 }
 
 /**
