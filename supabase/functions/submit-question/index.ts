@@ -569,16 +569,18 @@ Deno.serve(async (req) => {
           decision.sport === "soccer" ||
           decision.sport === "association_football";
         const tennisSport = decision.sport === "tennis";
+        const f1Sport = decision.sport === "f1" || decision.sport === "formula_1" || decision.sport === "formula1";
         const hasStructuredRacing = !!structuredCourse && (!!structuredTime || structuredRaceNo !== null);
         const skipForResubmit =
           (golfSport && hasStructuredGolf) ||
           (racingSport && hasStructuredRacing) ||
           (footballSport && hasStructuredFootball);
-        const sportKindForGrounding: "football" | "golf" | "horse_racing" | "tennis" | null =
+        const sportKindForGrounding: "football" | "golf" | "horse_racing" | "tennis" | "f1" | null =
           footballSport ? "football"
           : golfSport ? "golf"
           : racingSport ? "horse_racing"
           : tennisSport ? "tennis"
+          : f1Sport ? "f1"
           : null;
 
         console.log(`[tennis-trace] sportKind=${sportKindForGrounding} skip=${skipForResubmit}`);
