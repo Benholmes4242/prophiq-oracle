@@ -177,16 +177,29 @@ export function AskInlinePanel({
             const priorUser = clarification.user_turns
               ?? structured?.user_turns
               ?? (clarification.original_question ? [clarification.original_question] : [question]);
+            const priorAssistant = structured?.assistant_turns ?? [];
             const nextUserTurns = [...priorUser, reply].slice(-5);
             const nextAssistantTurns = [
-              ...(structured?.assistant_turns ?? []),
+              ...priorAssistant,
               clarification.message,
             ].slice(-5);
+            // Build the alternating transcript the resolver reads as quoted
+            // context. Order: u, a, u, a, ..., trailing user reply answers
+            // the most recent assistant question.
+            const turns: Array<{ role: "user" | "assistant"; text: string }> = [];
+            const maxLen = Math.max(priorUser.length, priorAssistant.length);
+            for (let i = 0; i < maxLen; i++) {
+              if (i < priorUser.length) turns.push({ role: "user", text: priorUser[i] });
+              if (i < priorAssistant.length) turns.push({ role: "assistant", text: priorAssistant[i] });
+            }
+            turns.push({ role: "assistant", text: clarification.message });
+            turns.push({ role: "user", text: reply });
             const merged: StructuredAsk = {
               original_question: clarification.original_question,
               clarify_turn: clarification.clarify_turn,
               user_turns: nextUserTurns,
               assistant_turns: nextAssistantTurns,
+              turns: turns.slice(-10),
               ...(extraStructured ?? {}),
             };
             if (onResubmit) onResubmit(reply, merged);

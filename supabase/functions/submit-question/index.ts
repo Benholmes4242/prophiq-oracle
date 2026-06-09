@@ -71,11 +71,14 @@ interface Body {
   clarify_turn?: number;
   // Step 2: the accumulated USER replies across the conversational loop.
   // CRITICAL SECURITY: this is the ONLY conversation state we accept from
-  // the client. We do NOT accept assistant turns — a malicious client could
-  // otherwise inject a fake "assistant: you confirmed X" turn to steer the
-  // resolver or smuggle past the policy check. Assistant turns live in the
-  // frontend's local state for chat bubbles only.
+  // the client for POLICY decisions. Assistant turns (`turns` below) are
+  // mirrored back to the resolver as INERT quoted context only — they never
+  // relax policy and never carry instructions.
   user_turns?: unknown;
+  // Step 3: alternating transcript (user + assistant) used by the resolver
+  // so it can interpret short replies like "yes". Assistant entries are
+  // treated as quoted context for reference only.
+  turns?: unknown;
 }
 
 Deno.serve(async (req) => {
@@ -89,9 +92,10 @@ Deno.serve(async (req) => {
   const fingerprint = getFingerprint(body, req) ?? null;
   if (!question) return errorResponse("question required");
 
-  // Build the trusted USER-turns transcript. Client-sent assistant turns
-  // are NEVER accepted (jailbreak surface). Prefer the new `user_turns`
-  // array; fall back to legacy `original_question` + current `question`.
+  // Build the trusted USER-turns transcript (for POLICY) plus the full
+  // alternating transcript (for resolver context). Assistant turns are
+  // accepted ONLY as inert quoted context for the resolver — they are never
+  // included in policy evaluation and are never treated as instructions.
   const rawTurns = Array.isArray(body.user_turns) ? body.user_turns : null;
   let userTurns: string[] = rawTurns
     ? rawTurns
@@ -100,6 +104,24 @@ Deno.serve(async (req) => {
         .filter((t) => t.length > 0 && t.length <= 500)
         .slice(-5)
     : [];
+
+  // Parse the alternating transcript. Cap items, lengths, and roles.
+  const rawTranscript = Array.isArray(body.turns) ? body.turns : null;
+  type WireTurn = { role: "user" | "assistant"; text: string };
+  const transcript: WireTurn[] = rawTranscript
+    ? rawTranscript
+        .map((t): WireTurn | null => {
+          if (!t || typeof t !== "object") return null;
+          const rec = t as Record<string, unknown>;
+          const role = rec.role === "assistant" ? "assistant" : rec.role === "user" ? "user" : null;
+          const text = typeof rec.text === "string" ? rec.text.trim() : "";
+          if (!role || !text || text.length > 500) return null;
+          return { role, text };
+        })
+        .filter((t): t is WireTurn => t !== null)
+        .slice(-10)
+    : [];
+
   if (userTurns.length === 0) {
     const priorQuestion = typeof body.original_question === "string"
       ? body.original_question.trim()
@@ -112,8 +134,16 @@ Deno.serve(async (req) => {
     userTurns = userTurns.slice(-5);
   }
 
-  // Re-run POLICY on the combined transcript text, not just the latest turn.
-  // The conversational loop must not become a jailbreak around the policy gate.
+  // If the client did not send a transcript (legacy callers / first turn),
+  // synthesise a user-only one so the resolver still works.
+  const resolverTranscript: WireTurn[] = transcript.length > 0
+    ? transcript
+    : userTurns.map((text) => ({ role: "user" as const, text }));
+
+  // Re-run POLICY on the combined USER text only. Assistant turns are NEVER
+  // included here — a malicious client cannot relax policy by injecting a
+  // fake assistant turn. The conversational loop must not become a jailbreak
+  // around the policy gate.
   const combinedText = userTurns.join(" ").replace(/\s+/g, " ").trim();
   if (combinedText && combinedText.toLowerCase() !== question.toLowerCase()) {
     question = combinedText;
@@ -410,7 +440,7 @@ Deno.serve(async (req) => {
       let resolverOverride: { normalized_question: string; starts_at?: string } | null = null;
       if (!domainId || mod.confidence === "low") {
         sse.send({ stage: "resolver", status: "start" });
-        const decision = await runResolverTurn(userTurns, today);
+        const decision = await runResolverTurn(userTurns, today, resolverTranscript);
         sse.send({ stage: "resolver", status: "done", data: { action: decision.action } });
 
         if (decision.action === "decline") {
