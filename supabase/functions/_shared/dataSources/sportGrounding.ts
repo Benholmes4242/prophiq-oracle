@@ -115,14 +115,24 @@ export type SportGroundingResult =
       candidates: GolfMatch[];
     }
   | {
+      kind: "racing_confirmed";
+      sport: "horse_racing";
+      /** Favourite-first runner labels (bucketed tail when >8). */
+      outcomes: string[];
+      runners: RacingRunner[];
+      race: RacingRace;
+      track_name: string;
+      date: string;
+    }
+  | {
       kind: "picker_racing";
       /** Raw fetchRacePicker payload — submit-question already knows this shape. */
       picker: Awaited<ReturnType<typeof fetchRacePicker>>;
     }
   | {
       kind: "racing_fallthrough";
-      /** Single-race / dark-day / unmatched: caller proceeds to feed-backed
-       * forecast via existing gatherStructuredSources (racingApi). */
+      /** Dark-day / unmatched / no-runners: caller treats as field-forming
+       * (low_data) — research_grounded must NOT surface placeholder horses. */
       picker: Awaited<ReturnType<typeof fetchRacePicker>>;
     }
   | { kind: "none"; reason: string };
