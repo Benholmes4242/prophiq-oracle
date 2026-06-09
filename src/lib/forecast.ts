@@ -142,8 +142,13 @@ export interface StructuredAsk {
   /** Step 2: accumulated USER turns sent to the resolver. Trusted by server. */
   user_turns?: string[];
   /** Step 2: accumulated ASSISTANT turns (client-only, for chat-bubble UI).
-   *  Server ignores this field - never use it for trust decisions. */
+   *  Server ignores this field for policy decisions, but mirrors it into the
+   *  resolver transcript as quoted context only (never as instructions). */
   assistant_turns?: string[];
+  /** Step 3: alternating transcript sent to the resolver so it can interpret
+   *  short replies like "yes". Server treats assistant entries as INERT
+   *  quoted context only — they never relax policy. */
+  turns?: TranscriptTurn[];
 }
 
 interface RunForecastOpts {
