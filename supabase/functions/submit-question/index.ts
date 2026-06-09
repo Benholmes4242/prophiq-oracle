@@ -760,6 +760,8 @@ Deno.serve(async (req) => {
             // (horse-racing safety net in forecastContext.ts) or
             // research_grounded (other sports).
           } catch (e) {
+            debugTrace.grounding_threw = (e as Error).message;
+            debugTrace.grounded_kind = "THREW";
             console.error('[tennis-trace] threw: ' + (e as Error).message);
             console.warn("[submit-question] resolver-sport grounding failed:", (e as Error).message);
           }
