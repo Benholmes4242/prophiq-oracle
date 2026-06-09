@@ -39,12 +39,12 @@ import {
   type FootballMatchCandidate,
 } from "./footballConfirm.ts";
 import {
-  findGolfMatches,
-  fetchGolfContext,
-  type GolfMatch,
-  type GolfSnapshot,
-} from "./sportRadarGolf.ts";
-import { fetchRacePicker, fetchRacingContext, type RacingSnapshot } from "./racingApi.ts";
+  fetchRacePicker,
+  fetchRacingContext,
+  type RacingRace,
+  type RacingRunner,
+  type RacingSnapshot,
+} from "./racingApi.ts";
 
 /** Sport kinds with a wired confirm path. "other" falls through. */
 export type SportKind =
