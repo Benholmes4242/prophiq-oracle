@@ -819,6 +819,18 @@ export type RacePickerResult =
       date: string;
       races: PickerRace[];
     }
+  | {
+      // Single race fully specified by course+time/race_number — carries
+      // the real field + runners so callers can ground directly without a
+      // follow-up fetch (was previously a `races` length-1 collapse that
+      // dead-ended in racing_fallthrough).
+      kind: "race";
+      pick_by: PickBy;
+      track_name: string;
+      date: string;
+      race: RacingRace;
+      runners: RacingRunner[];
+    }
   | { kind: "dark_day"; pick_by: PickBy; track_name: string; date: string }
   | { kind: "unmatched"; reason: string };
 
