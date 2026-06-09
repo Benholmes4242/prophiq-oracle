@@ -601,6 +601,24 @@ export function isTennisEvent(event: DomainEvent): boolean {
   return /\b(tennis|atp|wta|wimbledon|us open|french open|roland garros|australian open)\b/.test(text);
 }
 
+export function isF1Event(event: DomainEvent): boolean {
+  const meta = (typeof event.metadata === "object" && event.metadata !== null)
+    ? event.metadata as Record<string, unknown>
+    : {};
+  const subCat = String(meta.sub_category ?? meta.subcategory ?? "").toLowerCase();
+  if (subCat === "f1" || subCat === "formula_1" || subCat === "formula1") return true;
+  if (meta.f1_race) return true;
+  const text = [
+    event.title,
+    event.question,
+    String(meta.sport ?? ""),
+    String(meta.league ?? ""),
+  ].join(" ").toLowerCase();
+  // Hard negatives — motorsport collisions.
+  if (/\b(motogp|moto2|moto3|nascar|indycar|wec|wrc)\b/.test(text)) return false;
+  return /\b(formula\s*1|formula\s*one|f1|grand\s*prix)\b/.test(text);
+}
+
 function extractTeamNamesFromQuestion(
   event: DomainEvent,
 ): { teamA: string; teamB: string } | null {
