@@ -88,7 +88,7 @@ Football special-case (match winner + league/title winner are feed-backed):
 - Football PROPS (goalscorers, cards, corners, over-under, half-specific) are still valid public events - RESOLVE them with sport="football" and a clear canonical_event; they do not get the feed-backed match/league treatment and that is fine.
 
 Tennis special-case (match winner is feed-backed; outright is not):
-- sport MUST be "tennis".
+- sport MUST be exactly "tennis" (never null, never "Tennis"). ANY singles or doubles match between named players, at any ATP/WTA/ITF/Challenger event or Grand Slam, is sport="tennis".
 - Match winner: canonical_event is "<PlayerA> vs <PlayerB>" using surnames, optionally prefixed with the tournament when given. Examples: "Alcaraz vs Sinner", "Boss Open Moutet vs Kyrgios", "Kyrgios vs Moutet". Set competitors to [playerA, playerB]. If two common surnames could mean different players (e.g. "Williams vs Williams"), CLARIFY which players or which tournament. Once narrowed, RESOLVE; the downstream feed picks the right match.
 - Tournament OUTRIGHT ("who wins Wimbledon 2026"): RESOLVE with sport="tennis" and canonical_event "<Tournament> <YYYY>". There is no feed-backed draw - this correctly falls to the research_grounded forecast. Do not CLARIFY just to avoid an outright; resolve it.
 
