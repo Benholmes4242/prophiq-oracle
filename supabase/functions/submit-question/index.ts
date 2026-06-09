@@ -393,6 +393,17 @@ Deno.serve(async (req) => {
           competition: structuredFbCompetition || null,
         };
       }
+      // Tennis match confirm threaded through to event upsert (outcomes,
+      // metadata, starts_at). Populated by the resolver tennis branch below.
+      type TennisConfirmThread = {
+        kind: "match";
+        event_id: string;
+        player_a: string;
+        player_b: string;
+        tournament: string | null;
+        starts_at: string;
+      };
+      let tennisConfirm: TennisConfirmThread | null = null;
 
       // ----- 3. MODERATION (CLASSIFY + POLICY) -----
       // Step-1 rebuild: the ONLY hard stop is a real policy breach
