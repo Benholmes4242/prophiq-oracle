@@ -141,13 +141,10 @@ export function parseRacingHints(hints: RacingHints): ParsedHints {
   let time: string | null = null;
   const timeMatch = text.match(/\b(\d{1,2})[:.](\d{2})\s*(am|pm)?\b/i);
   if (timeMatch) {
-    let h = parseInt(timeMatch[1], 10);
+    const hRaw = parseInt(timeMatch[1], 10);
     const m = parseInt(timeMatch[2], 10);
     const ap = (timeMatch[3] ?? "").toLowerCase();
-    if (ap === "pm" && h < 12) h += 12;
-    else if (ap === "am" && h === 12) h = 0;
-    // Heuristic: racing afternoon cards — if no am/pm and hour <= 6, assume PM.
-    else if (!ap && h >= 1 && h <= 6) h += 12;
+    const h = racingHourToPM(hRaw, ap === "am" ? "am" : ap === "pm" ? "pm" : null);
     if (h >= 0 && h <= 23 && m >= 0 && m <= 59) {
       time = `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
     }
