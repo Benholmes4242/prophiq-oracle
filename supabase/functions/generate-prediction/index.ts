@@ -46,6 +46,7 @@ registerAllDomains();
 
 const PROMPT_VERSION = "v1.4.0"; // bumped from v1.3.0 - structured data injection
 import { PREDICTION_CACHE_TTL_MS } from "../_shared/cacheTtl.ts";
+import { isDisplayPlaceholder } from "../_shared/placeholderPatterns.ts";
 const STALE_AFTER_MS = PREDICTION_CACHE_TTL_MS;
 const RESEARCH_CACHE_TTL_MS = 30 * 60 * 1000; // 30 minutes
 
