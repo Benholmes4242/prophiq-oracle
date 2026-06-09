@@ -320,9 +320,22 @@ Deno.serve(async (req) => {
   const hasSubstantiveResearch =
     research !== null && researchText.length >= 200;
 
+  // Horse racing safety net: web research cannot reliably enumerate a
+  // specific race's runners, so research_grounded for a race without a
+  // feed-backed field is worse than honest uncertainty (it surfaces
+  // fabricated "Horse A" / "Any other runner wins" placeholders at #1).
+  // Force low_data when racing has no real feed; the rest of the tiering
+  // logic stays unchanged for every other sport / domain.
+  const meta = (event as { metadata?: unknown }).metadata;
+  const subCategory = (meta && typeof meta === "object")
+    ? String((meta as Record<string, unknown>).sub_category ?? "").toLowerCase()
+    : "";
+  const isHorseRacing = subCategory === "horse_racing" || subCategory === "horseracing";
+  const racingPlaceholderGuard = isHorseRacing && !hasFeed;
+
   const dataTier: "feed_backed" | "research_grounded" | "low_data" = hasFeed
     ? "feed_backed"
-    : hasSubstantiveResearch
+    : (hasSubstantiveResearch && !racingPlaceholderGuard)
       ? "research_grounded"
       : "low_data";
 
