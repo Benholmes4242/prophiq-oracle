@@ -406,6 +406,19 @@ Deno.serve(async (req) => {
         starts_at: string;
       };
       let tennisConfirm: TennisConfirmThread | null = null;
+      // F1 race confirm — when set, outcomes become driver field +
+      // "Any other driver" bucket and metadata.f1_race carries the race.
+      type F1RaceThread = {
+        kind: "race";
+        season: number;
+        round: number;
+        race_name: string;
+        circuit: string | null;
+        date: string;
+        starts_at: string;
+        drivers: string[];
+      };
+      let f1Race: F1RaceThread | null = null;
 
       // TEMP debug trace — written into event.metadata._debug_trace so we
       // can observe runtime values via SQL (function logs are not visible).
