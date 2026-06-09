@@ -428,9 +428,36 @@ export async function groundSportEventForCron(
           isGolf: true,
         };
       }
+      case "racing_confirmed": {
+        // Feed-backed race + runners already in hand — emit a racingApi
+        // source so extractRacingRunners + isGolfRunnersSource (in
+        // forecastContext.ts) recognise it unchanged and downstream
+        // tiering goes straight to feed_backed.
+        const snap: RacingSnapshot = {
+          race: result.race,
+          runners: result.runners,
+          matched: `${result.race.course}${result.race.off_time ? ` ${result.race.off_time}` : ""}`,
+          note: `racing_confirmed ${result.runners.length} runners`,
+        };
+        return {
+          sources: [
+            {
+              name: "racingApi",
+              data: snap,
+              fetched_at: new Date().toISOString(),
+              duration_ms: Date.now() - t0,
+            },
+          ],
+          outcomes: result.outcomes,
+          isGolf: false,
+        };
+      }
       case "racing_fallthrough": {
-        // Single race / dark day / unmatched picker — try to get
-        // real runners for the specific race named by the cron event.
+        // Dark day / unmatched / runners not yet published — try a last-
+        // resort context fetch (parses fresh hints from canonicalEvent).
+        // If that also returns no runners, emit no sources so the trust
+        // layer falls through to the low_data field-forming guard rather
+        // than research_grounded placeholder horses.
         const snap = await fetchRacingRunners(input);
         const outcomes = extractRunnerLabels(snap);
         return {
