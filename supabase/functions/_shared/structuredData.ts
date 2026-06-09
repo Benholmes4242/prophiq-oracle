@@ -106,6 +106,15 @@ export interface StructuredDataContext {
   sources: StructuredDataSource[];
   errors: StructuredDataError[];
   total_duration_ms: number;
+  /**
+   * Optional. Set by adapters whose grounding produces a real, ordered
+   * field of outcome labels (favourite-first). The cron caller swaps
+   * these in for the prompt + consensus instead of the placeholder
+   * outcomes from discovery. Unset by adapters that don't ground
+   * outcomes (politics / markets / entertainment) — interface is
+   * unchanged for them.
+   */
+  groundedOutcomes?: string[];
 }
 
 export const STRUCTURED_DATA_TIMEOUT_MS = 5000;
