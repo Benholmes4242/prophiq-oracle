@@ -17,7 +17,8 @@ import { preFilter, runModeration, defaultResolvesAt } from "../_shared/moderati
 import { runResolverTurn, MAX_USER_TURNS } from "../_shared/resolver.ts";
 import { stableEventId } from "../_shared/domains/_util.ts";
 import { runConsensus } from "../_shared/runConsensus.ts";
-import { assembleForecastContext } from "../_shared/forecastContext.ts";
+import { assembleForecastContext, isGolfRunnersSource } from "../_shared/forecastContext.ts";
+import { groundSportEvent } from "../_shared/dataSources/sportGrounding.ts";
 import type { DomainEvent, EventOutcome } from "../_shared/domain.ts";
 import { getServiceClient } from "../_shared/supabaseClient.ts";
 import { scoreToConfidence } from "../_shared/confidence.ts";
@@ -547,16 +548,18 @@ Deno.serve(async (req) => {
           : tennisSport ? "tennis"
           : null;
 
+        console.log(`[tennis-trace] sportKind=${sportKindForGrounding} skip=${skipForResubmit}`);
         if (sportKindForGrounding && !skipForResubmit) {
           domainId = "sport";
           try {
-            const { groundSportEvent } = await import("../_shared/dataSources/sportGrounding.ts");
+            console.log('[tennis-trace] entered grounding block');
             const grounded = await groundSportEvent({
               sport: sportKindForGrounding,
               canonicalEvent: decision.canonical_event,
               approxDate: decision.approx_date ?? null,
               competitors: decision.competitors ?? null,
             });
+            console.log(`[tennis-trace] grounded kind=${grounded.kind}`);
             console.log(`[submit-question] resolver-sport sport=${sportKindForGrounding} kind=${grounded.kind}`);
 
             if (grounded.kind === "picker_football") {
