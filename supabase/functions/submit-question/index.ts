@@ -434,9 +434,9 @@ Deno.serve(async (req) => {
       };
       let f1Race: F1RaceThread | null = null;
 
-      // TEMP debug trace — written into event.metadata._debug_trace so we
-      // can observe runtime values via SQL (function logs are not visible).
-      // Remove once tennis is confirmed working end-to-end.
+      // Debug trace — captured into event.metadata._debug_trace only when
+      // the PROPHIQ_DEBUG_TRACE secret is set (off in production). Set true
+      // to diagnose sport grounding (decision_sport / grounded_kind etc.).
       const debugTrace: {
         decision_sport: string | null;
         sport_kind_for_grounding: string | null;
