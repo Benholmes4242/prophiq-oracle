@@ -876,6 +876,7 @@ Deno.serve(async (req) => {
             sub_category: "tennis",
             tennis_confirm: tennisConfirm,
           } : {}),
+          _debug_trace: debugTrace,
         },
       }, { onConflict: "domain,external_id" }).select("*").single();
       if (evErr || !event) {
