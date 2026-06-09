@@ -819,6 +819,18 @@ export type RacePickerResult =
       date: string;
       races: PickerRace[];
     }
+  | {
+      // Single race fully specified by course+time/race_number — carries
+      // the real field + runners so callers can ground directly without a
+      // follow-up fetch (was previously a `races` length-1 collapse that
+      // dead-ended in racing_fallthrough).
+      kind: "race";
+      pick_by: PickBy;
+      track_name: string;
+      date: string;
+      race: RacingRace;
+      runners: RacingRunner[];
+    }
   | { kind: "dark_day"; pick_by: PickBy; track_name: string; date: string }
   | { kind: "unmatched"; reason: string };
 
@@ -902,13 +914,20 @@ async function fetchUKRacePickerInner(
   }
   // Time-hint narrowing: a fully-specified race ("19:21 at Brighton") must
   // not be returned as an ambiguous multi-race picker. If the resolver
-  // supplied a time and exactly one race on the card matches it (HH:MM
-  // 24h), collapse the picker to that race. Downstream groundRacing then
-  // takes the racing_fallthrough path (length < 2) and fetchRacingContext
-  // locks in real runners for the matched race.
+  // supplied a time and exactly one race on the card matches it, return
+  // the dedicated single-race kind carrying the full RacingRace + runners
+  // so groundRacing can emit `racing_confirmed` directly (no second feed
+  // hit, no racing_fallthrough dead-end).
   if (parsed.time) {
     const exact = races.filter((r) => r.local_time === parsed.time);
     if (exact.length === 1) {
+      const race = matchRace(cards, course, parsed.time);
+      if (race && race.runners.length > 0) {
+        return { kind: "race", pick_by: "time", track_name: trackName, date, race, runners: race.runners };
+      }
+      // Race matched but runners not published yet → collapse to a 1-entry
+      // picker so the caller treats it as racing_fallthrough (low_data
+      // field-forming), not a confirmed field.
       return { kind: "races", pick_by: "time", track_name: trackName, date, races: exact };
     }
   }
@@ -965,13 +984,53 @@ async function fetchUSRacePickerInner(
   if (races.length === 0) {
     return { kind: "dark_day", pick_by: "race_number", track_name: trackName, date };
   }
-  // Symmetric time-hint narrowing for NA cards: when the user gave a
-  // time and exactly one race on the card matches, collapse the picker.
-  if (parsed.time) {
-    const exact = races.filter((r) => r.local_time === parsed.time);
-    if (exact.length === 1) {
-      return { kind: "races", pick_by: "race_number", track_name: trackName, date, races: exact };
+  // Symmetric narrowing for NA cards: when the user gave a race_number
+  // or a time and exactly one race matches, return the dedicated
+  // single-race kind (with full runners) so groundRacing can emit
+  // racing_confirmed directly.
+  const buildSingleRace = (rawIdx: number): RacePickerResult => {
+    const rawList = entries.races ?? [];
+    const matchedRaw = rawList[rawIdx];
+    if (!matchedRaw) {
+      return { kind: "races", pick_by: "race_number", track_name: trackName, date, races: [races[0]] };
     }
+    const runnersN = (matchedRaw.runners ?? []).map(normaliseNARunner);
+    if (runnersN.length === 0) {
+      // No runners published yet — degrade to 1-entry picker so caller
+      // treats it as racing_fallthrough (low_data field-forming).
+      const pr = races.find((p) => p.race_number === extractNARaceNumber(matchedRaw));
+      return { kind: "races", pick_by: "race_number", track_name: trackName, date, races: pr ? [pr] : races.slice(0, 1) };
+    }
+    const offTime = derivedNALocalTime(matchedRaw) ?? normalisePostTime(matchedRaw.post_time);
+    const offDt = derivedNAIsoTime(matchedRaw);
+    const raceNum = extractNARaceNumber(matchedRaw);
+    const race: RacingRace = {
+      race_id: raceNum !== null ? String(raceNum) : null,
+      course: trackName,
+      region: entries.country ?? meet.country ?? null,
+      off_time: offTime,
+      off_dt: offDt,
+      race_name: matchedRaw.race_name ?? (raceNum !== null ? `Race ${raceNum}` : null),
+      race_class: matchedRaw.race_class ?? matchedRaw.grade ?? null,
+      field_size: String(runnersN.length),
+      distance: matchedRaw.distance_description ?? null,
+      going: matchedRaw.surface_description ?? null,
+      betting_forecast: null,
+      runners: runnersN,
+    };
+    return { kind: "race", pick_by: "race_number", track_name: trackName, date, race, runners: runnersN };
+  };
+  if (parsed.raceNumber !== null) {
+    const idx = (entries.races ?? []).findIndex((r) => extractNARaceNumber(r) === parsed.raceNumber);
+    if (idx >= 0) return buildSingleRace(idx);
+  }
+  if (parsed.time) {
+    const matches: number[] = [];
+    (entries.races ?? []).forEach((r, i) => {
+      const t = derivedNALocalTime(r) ?? normalisePostTime(r.post_time);
+      if (t === parsed.time) matches.push(i);
+    });
+    if (matches.length === 1) return buildSingleRace(matches[0]);
   }
   return { kind: "races", pick_by: "race_number", track_name: trackName, date, races };
 }
@@ -1003,6 +1062,19 @@ export async function fetchUSRacePicker(
         runners: r.runners,
         race_type: r.race_class,
       })),
+    };
+  }
+  if (result.kind === "race") {
+    return {
+      kind: "races",
+      track_name: result.track_name,
+      date: result.date,
+      races: [{
+        race_number: parseInt(String(result.race.race_id ?? "0"), 10) || 0,
+        local_time: result.race.off_time,
+        runners: result.runners.length,
+        race_type: result.race.race_class,
+      }],
     };
   }
   if (result.kind === "dark_day") {

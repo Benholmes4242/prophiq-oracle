@@ -605,6 +605,25 @@ Deno.serve(async (req) => {
               sse.close(); return;
             } else if (grounded.kind === "golf_match") {
               autoGolfMatch = grounded.match;
+            } else if (grounded.kind === "racing_confirmed") {
+              // Feed-backed single race — bake course+off_time+date_word
+              // into normalized_question so the cron-side parser
+              // (sport.gatherStructuredSources → groundSportEventForCron)
+              // re-finds the same race and emits a racingApi source, keeping
+              // the forecast feed_backed end-to-end.
+              const race = grounded.race;
+              const offTime = race.off_time ?? "";
+              let dateWord: "today" | "tomorrow" = "today";
+              try {
+                const now = new Date();
+                const tmr = new Date(now.getTime() + 86400000).toISOString().slice(0, 10);
+                if (grounded.date === tmr) dateWord = "tomorrow";
+              } catch { /* default today */ }
+              const canonical = `${race.race_name ? `${race.race_name} — ` : ""}${race.course}${offTime ? ` ${offTime}` : ""} ${dateWord}`.trim();
+              resolverOverride = {
+                normalized_question: canonical,
+                starts_at: race.off_dt ?? resolverOverride?.starts_at,
+              };
             } else if (grounded.kind === "picker_racing") {
               const picker = grounded.picker as Extract<typeof grounded.picker, { kind: "races" }>;
               let dateWord: "today" | "tomorrow" | null = null;
@@ -632,7 +651,9 @@ Deno.serve(async (req) => {
               });
               sse.close(); return;
             }
-            // "racing_fallthrough" or "none" -> downstream research_grounded.
+            // "racing_fallthrough" or "none" -> downstream low_data
+            // (horse-racing safety net in forecastContext.ts) or
+            // research_grounded (other sports).
           } catch (e) {
             console.warn("[submit-question] resolver-sport grounding failed:", (e as Error).message);
           }

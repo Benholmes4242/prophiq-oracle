@@ -44,7 +44,13 @@ import {
   type GolfMatch,
   type GolfSnapshot,
 } from "./sportRadarGolf.ts";
-import { fetchRacePicker, fetchRacingContext, type RacingSnapshot } from "./racingApi.ts";
+import {
+  fetchRacePicker,
+  fetchRacingContext,
+  type RacingRace,
+  type RacingRunner,
+  type RacingSnapshot,
+} from "./racingApi.ts";
 
 /** Sport kinds with a wired confirm path. "other" falls through. */
 export type SportKind =
@@ -109,14 +115,24 @@ export type SportGroundingResult =
       candidates: GolfMatch[];
     }
   | {
+      kind: "racing_confirmed";
+      sport: "horse_racing";
+      /** Favourite-first runner labels (bucketed tail when >8). */
+      outcomes: string[];
+      runners: RacingRunner[];
+      race: RacingRace;
+      track_name: string;
+      date: string;
+    }
+  | {
       kind: "picker_racing";
       /** Raw fetchRacePicker payload — submit-question already knows this shape. */
       picker: Awaited<ReturnType<typeof fetchRacePicker>>;
     }
   | {
       kind: "racing_fallthrough";
-      /** Single-race / dark-day / unmatched: caller proceeds to feed-backed
-       * forecast via existing gatherStructuredSources (racingApi). */
+      /** Dark-day / unmatched / no-runners: caller treats as field-forming
+       * (low_data) — research_grounded must NOT surface placeholder horses. */
       picker: Awaited<ReturnType<typeof fetchRacePicker>>;
     }
   | { kind: "none"; reason: string };
@@ -277,10 +293,50 @@ async function groundRacing(
       ? new Date(`${input.approxDate}T12:00:00Z`).toISOString()
       : new Date().toISOString(),
   });
+  // Single race fully specified by course+time/race_number → emit a
+  // dedicated racing_confirmed result so both call sites can treat it
+  // as feed_backed without a second feed hit.
+  if (picker.kind === "race") {
+    const outcomes = favouriteFirstRunnerLabels(picker.runners);
+    return {
+      kind: "racing_confirmed",
+      sport: "horse_racing",
+      outcomes,
+      runners: picker.runners,
+      race: picker.race,
+      track_name: picker.track_name,
+      date: picker.date,
+    };
+  }
   if (picker.kind === "races" && picker.races.length >= 2) {
     return { kind: "picker_racing", picker };
   }
+  // dark_day / unmatched / 1-entry races picker (runners not published)
   return { kind: "racing_fallthrough", picker };
+}
+
+/** Favourite-first runner labels (best decimal price first; unpriced last).
+ * Bucketed tail "Any other runner" when field > 8. Mirrors the bucketing
+ * used by sport.ts gatherStructuredSources for the cron grounding path. */
+function favouriteFirstRunnerLabels(runners: RacingRunner[]): string[] {
+  const named = runners
+    .map((r) => {
+      const horse = String(r.horse ?? "").trim();
+      if (!horse) return null;
+      const decs: number[] = [];
+      for (const o of r.odds ?? []) {
+        const v = typeof o.decimal === "number" ? o.decimal : Number(o.decimal);
+        if (Number.isFinite(v) && v > 0) decs.push(v);
+      }
+      return { horse, best: decs.length > 0 ? Math.min(...decs) : null };
+    })
+    .filter((r): r is { horse: string; best: number | null } => r !== null);
+  const priced = named.filter((r) => r.best !== null).sort((a, b) => (a.best! - b.best!));
+  const unpriced = named.filter((r) => r.best === null);
+  const all = [...priced, ...unpriced].map((r) => r.horse);
+  const MAX = 8;
+  if (all.length <= MAX) return all;
+  return [...all.slice(0, MAX), "Any other runner"];
 }
 
 function readEnv(name: string): string | undefined {
@@ -372,9 +428,36 @@ export async function groundSportEventForCron(
           isGolf: true,
         };
       }
+      case "racing_confirmed": {
+        // Feed-backed race + runners already in hand — emit a racingApi
+        // source so extractRacingRunners + isGolfRunnersSource (in
+        // forecastContext.ts) recognise it unchanged and downstream
+        // tiering goes straight to feed_backed.
+        const snap: RacingSnapshot = {
+          race: result.race,
+          runners: result.runners,
+          matched: `${result.race.course}${result.race.off_time ? ` ${result.race.off_time}` : ""}`,
+          note: `racing_confirmed ${result.runners.length} runners`,
+        };
+        return {
+          sources: [
+            {
+              name: "racingApi",
+              data: snap,
+              fetched_at: new Date().toISOString(),
+              duration_ms: Date.now() - t0,
+            },
+          ],
+          outcomes: result.outcomes,
+          isGolf: false,
+        };
+      }
       case "racing_fallthrough": {
-        // Single race / dark day / unmatched picker — try to get
-        // real runners for the specific race named by the cron event.
+        // Dark day / unmatched / runners not yet published — try a last-
+        // resort context fetch (parses fresh hints from canonicalEvent).
+        // If that also returns no runners, emit no sources so the trust
+        // layer falls through to the low_data field-forming guard rather
+        // than research_grounded placeholder horses.
         const snap = await fetchRacingRunners(input);
         const outcomes = extractRunnerLabels(snap);
         return {
