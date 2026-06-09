@@ -534,15 +534,17 @@ Deno.serve(async (req) => {
         const footballSport = decision.sport === "football" ||
           decision.sport === "soccer" ||
           decision.sport === "association_football";
+        const tennisSport = decision.sport === "tennis";
         const hasStructuredRacing = !!structuredCourse && (!!structuredTime || structuredRaceNo !== null);
         const skipForResubmit =
           (golfSport && hasStructuredGolf) ||
           (racingSport && hasStructuredRacing) ||
           (footballSport && hasStructuredFootball);
-        const sportKindForGrounding: "football" | "golf" | "horse_racing" | null =
+        const sportKindForGrounding: "football" | "golf" | "horse_racing" | "tennis" | null =
           footballSport ? "football"
           : golfSport ? "golf"
           : racingSport ? "horse_racing"
+          : tennisSport ? "tennis"
           : null;
 
         if (sportKindForGrounding && !skipForResubmit) {
