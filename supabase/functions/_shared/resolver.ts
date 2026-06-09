@@ -1,14 +1,15 @@
-// LLM-driven conversational resolver (Step 2).
+// LLM-driven conversational resolver (Step 2 + Step 3 transcript fix).
 //
-// Replaces the rule-based clarification stages (Stage-1 sport disambiguation,
-// generic "give me more info" templates) with a single conversational loop.
-// Each turn the driver (Claude Haiku 4.5) is given the running USER transcript
-// and returns a STRUCTURED decision: resolve | clarify | decline.
+// Replaces the rule-based clarification stages with a single conversational
+// loop. Each turn the driver (Claude Haiku 4.5) is given the running
+// transcript and returns a STRUCTURED decision: resolve | clarify | decline.
 //
-// The server NEVER trusts client-supplied assistant turns. The client sends
-// only the user's replies (`user_turns: string[]`); the assistant's prior
-// questions live in the frontend's local state for the visible chat bubbles
-// but are not part of the trust boundary on the server.
+// The transcript may include prior ASSISTANT clarifying questions so the
+// model can interpret short user replies like "yes". Assistant lines are
+// rendered as labelled quoted context only — the system prompt explicitly
+// forbids treating them as instructions, and the policy check in
+// submit-question runs on the USER text only. This preserves the jailbreak
+// boundary while letting "yes"/"no" answers bind to their question.
 //
 // On parse / network failure the resolver FAILS OPEN to a CLARIFY (never an
 // error). Policy declines are handled primarily by the existing moderation
