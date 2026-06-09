@@ -289,3 +289,176 @@ function readEnv(name: string): string | undefined {
   const proc = (globalThis as { process?: { env: Record<string, string | undefined> } }).process;
   return proc?.env?.[name];
 }
+
+// ============================================================
+// Cron wrapper — converges feed-backed grounding for sport.ts
+// gatherStructuredSources. Produces:
+//   - sources: pre-shaped StructuredDataSource-like entries
+//              named with the SAME source names existing code
+//              (extractRacingRunners, isGolfRunnersSource) already
+//              recognises — "footballConfirm", "racingApi",
+//              "sportRadarGolf" — so the downstream rewrite logic
+//              works unchanged.
+//   - outcomes: when grounding produced a real field of named
+//               entities (teams / runners / players), the list of
+//               labels in favourite-first order; null otherwise.
+//   - isGolf: lets the caller pick the right bucket label
+//             ("Any other player" vs "Any other runner") when
+//             truncating long fields.
+// Never throws — internal failures degrade to {sources:[],outcomes:null}.
+// ============================================================
+
+export interface CronGroundingSource {
+  name: string;
+  data: unknown;
+  fetched_at: string;
+  duration_ms: number;
+}
+
+export interface CronGroundingResult {
+  sources: CronGroundingSource[];
+  outcomes: string[] | null;
+  isGolf: boolean;
+}
+
+export async function groundSportEventForCron(
+  input: SportGroundingInput,
+): Promise<CronGroundingResult> {
+  const t0 = Date.now();
+  try {
+    const result = await groundSportEvent(input);
+    switch (result.kind) {
+      case "confirmed_match":
+        return {
+          sources: [
+            {
+              name: "footballConfirm",
+              data: { matched: result.metadata.football_confirm },
+              fetched_at: new Date().toISOString(),
+              duration_ms: Date.now() - t0,
+            },
+          ],
+          outcomes: result.outcomes,
+          isGolf: false,
+        };
+      case "league":
+        return {
+          sources: [
+            {
+              name: "footballConfirm",
+              data: { matched: result.metadata.football_confirm },
+              fetched_at: new Date().toISOString(),
+              duration_ms: Date.now() - t0,
+            },
+          ],
+          outcomes: result.contenders,
+          isGolf: false,
+        };
+      case "golf_match": {
+        const snap = await fetchGolfRunners(input, result.match);
+        const outcomes = extractRunnerLabels(snap);
+        return {
+          sources: snap
+            ? [
+                {
+                  name: "sportRadarGolf",
+                  data: snap,
+                  fetched_at: new Date().toISOString(),
+                  duration_ms: Date.now() - t0,
+                },
+              ]
+            : [],
+          outcomes,
+          isGolf: true,
+        };
+      }
+      case "racing_fallthrough": {
+        // Single race / dark day / unmatched picker — try to get
+        // real runners for the specific race named by the cron event.
+        const snap = await fetchRacingRunners(input);
+        const outcomes = extractRunnerLabels(snap);
+        return {
+          sources: snap && snap.runners.length > 0
+            ? [
+                {
+                  name: "racingApi",
+                  data: snap,
+                  fetched_at: new Date().toISOString(),
+                  duration_ms: Date.now() - t0,
+                },
+              ]
+            : [],
+          outcomes,
+          isGolf: false,
+        };
+      }
+      case "picker_football":
+      case "picker_golf":
+      case "picker_racing":
+        // Cron has no user to disambiguate — fall through to research_grounded.
+        return { sources: [], outcomes: null, isGolf: false };
+      case "none":
+      default:
+        return { sources: [], outcomes: null, isGolf: false };
+    }
+  } catch (e) {
+    console.warn(`[sportGrounding] cron wrapper threw: ${(e as Error).message}`);
+    return { sources: [], outcomes: null, isGolf: false };
+  }
+}
+
+async function fetchGolfRunners(
+  input: SportGroundingInput,
+  match: GolfMatch,
+): Promise<GolfSnapshot | null> {
+  const apiKey = readEnv("SPORTRADAR_GOLF_API_KEY");
+  if (!apiKey) return null;
+  try {
+    return await fetchGolfContext(apiKey, {
+      metadata: {
+        golf_tour_alias: match.tour,
+        golf_tournament_id: match.tournament_id,
+        golf_tournament_name: match.tournament_name,
+      },
+      title: input.canonicalEvent,
+      question: input.canonicalEvent,
+      starts_at: input.approxDate
+        ? new Date(`${input.approxDate}T12:00:00Z`).toISOString()
+        : new Date().toISOString(),
+    });
+  } catch {
+    return null;
+  }
+}
+
+async function fetchRacingRunners(
+  input: SportGroundingInput,
+): Promise<RacingSnapshot | null> {
+  const u = readEnv("RACING_API_USERNAME");
+  const p = readEnv("RACING_API_PASSWORD");
+  if (!u || !p) return null;
+  try {
+    return await fetchRacingContext(u, p, {
+      title: input.canonicalEvent,
+      question: input.canonicalEvent,
+      starts_at: input.approxDate
+        ? new Date(`${input.approxDate}T12:00:00Z`).toISOString()
+        : new Date().toISOString(),
+      metadata: null,
+    });
+  } catch {
+    return null;
+  }
+}
+
+function extractRunnerLabels(
+  snap: { runners?: Array<{ horse?: string }> } | null,
+): string[] | null {
+  if (!snap || !Array.isArray(snap.runners) || snap.runners.length === 0) return null;
+  const labels: string[] = [];
+  for (const r of snap.runners) {
+    const h = String(r.horse ?? "").trim();
+    if (h) labels.push(h);
+  }
+  return labels.length > 0 ? labels : null;
+}
