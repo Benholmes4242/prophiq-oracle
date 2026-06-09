@@ -440,7 +440,7 @@ Deno.serve(async (req) => {
       let resolverOverride: { normalized_question: string; starts_at?: string } | null = null;
       if (!domainId || mod.confidence === "low") {
         sse.send({ stage: "resolver", status: "start" });
-        const decision = await runResolverTurn(userTurns, today);
+        const decision = await runResolverTurn(userTurns, today, resolverTranscript);
         sse.send({ stage: "resolver", status: "done", data: { action: decision.action } });
 
         if (decision.action === "decline") {
