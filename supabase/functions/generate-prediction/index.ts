@@ -32,7 +32,7 @@ import {
   emptyStructuredDataContext,
   formatStructuredSourcesBlock,
 } from "../_shared/structuredData.ts";
-import { extractRacingRunners, isGolfRunnersSource } from "../_shared/forecastContext.ts";
+
 import type {
   DomainEvent,
   EventOutcome,
@@ -277,50 +277,32 @@ Deno.serve(async (req) => {
   }
 
   // ============================================================
-  // Racing runner rewrite (mirrors submit-question).
-  // When racingApi matched a card, replace placeholder outcomes
-  // with real runners (favourite-first; bucket the long tail).
-  // Guarded: extractRacingRunners returns null for non-racing or
-  // unmatched racing events, so this is a no-op there.
+  // Sport grounding (Step 3 of feed-path unification) may have
+  // rewritten event_outcomes in-place during gatherStructuredSources
+  // (real teams / runners / players favourite-first, replacing
+  // placeholder outcomes). Refresh the local `outcomes` so the
+  // prompt + consensus see the rewritten labels.
   // ============================================================
-  const racingRunners = extractRacingRunners(structuredSources);
-  if (racingRunners && racingRunners.length > 0) {
-    const isGolf = isGolfRunnersSource(structuredSources);
-    const MAX_NAMED = 8;
-    const useBucket = racingRunners.length > MAX_NAMED;
-    const named = useBucket ? racingRunners.slice(0, MAX_NAMED) : racingRunners;
-    const newLabels = named.map((r) => r.horse);
-    if (useBucket) newLabels.push(isGolf ? "Any other player" : "Any other runner");
-
-    const { error: delErr } = await supabase
-      .from("event_outcomes").delete().eq("event_id", event.id);
-    if (delErr) {
-      console.warn(
-        `[generate-prediction] racing outcome delete failed for event ${body.event_id}: ${delErr.message}`,
+  if (event.domain === "sport") {
+    const { data: refreshed } = await supabase
+      .from("event_outcomes")
+      .select("*")
+      .eq("event_id", event.id)
+      .order("created_at");
+    if (refreshed && refreshed.length >= 2 && refreshed.length !== outcomes.length) {
+      outcomes = refreshed as EventOutcome[];
+      console.log(
+        `[generate-prediction] event=${body.event_id} outcomes_refreshed=${outcomes.length} (sport grounding rewrite)`,
       );
-    } else {
-      const newRows = newLabels.map((label) => ({
-        event_id: event.id, external_id: label, label, metadata: null,
-      }));
-      const { error: rwErr } = await supabase
-        .from("event_outcomes")
-        .upsert(newRows, { onConflict: "event_id,external_id" });
-      if (rwErr) {
-        console.warn(
-          `[generate-prediction] racing outcome upsert failed for event ${body.event_id}: ${rwErr.message}`,
+    } else if (refreshed && refreshed.length === outcomes.length) {
+      // Same count but labels may have changed; cheap label-diff check.
+      const oldLabels = outcomes.map((o) => o.label).join("|");
+      const newLabels = refreshed.map((o) => o.label).join("|");
+      if (oldLabels !== newLabels) {
+        outcomes = refreshed as EventOutcome[];
+        console.log(
+          `[generate-prediction] event=${body.event_id} outcomes_relabelled (sport grounding rewrite)`,
         );
-      } else {
-        const { data: refreshed } = await supabase
-          .from("event_outcomes")
-          .select("id,event_id,external_id,label,metadata")
-          .eq("event_id", event.id)
-          .order("created_at");
-        if (refreshed && refreshed.length > 0) {
-          outcomes = refreshed as EventOutcome[];
-          console.log(
-            `[generate-prediction] event=${body.event_id} racing_outcomes_rewritten=${outcomes.length}`,
-          );
-        }
       }
     }
   }
