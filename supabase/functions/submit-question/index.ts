@@ -982,10 +982,19 @@ Deno.serve(async (req) => {
       // ----- 6. CONSENSUS -----
       sse.send({ stage: "consensus", status: "start" });
       const labelById = new Map(outcomeIdsFinal.map((o) => [o.id, o.label]));
-      const ranked = consensusOut.consensus.ranked_outcomes.map((r) => ({
+      const rankedLabeled = consensusOut.consensus.ranked_outcomes.map((r) => ({
         ...r,
         outcome_label: labelById.get(r.outcome_id) ?? r.outcome_id,
       }));
+      // Stable demotion: mirror generate-prediction so a generic bucket /
+      // placeholder label (e.g. "Any other player", "Rest of the field")
+      // never headlines ranked_outcomes[0] in storage. Probability mass
+      // preserved — only ordering changes. Both write paths must agree.
+      const realOnly = rankedLabeled.filter((r) => !isDisplayPlaceholder(r.outcome_label));
+      const placeholdersOnly = rankedLabeled.filter((r) => isDisplayPlaceholder(r.outcome_label));
+      const ranked = realOnly.length > 0
+        ? [...realOnly, ...placeholdersOnly].map((r, i) => ({ ...r, rank: i + 1 }))
+        : rankedLabeled;
       // Flip prior current rows, then insert the new one. The pair is
       // non-atomic; uniq_current_prediction (partial unique index) is the
       // DB-level guarantee. On collision (concurrent writer), re-flip and
