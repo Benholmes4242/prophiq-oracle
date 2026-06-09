@@ -330,22 +330,54 @@ export function inferSportFromCanonical(
   const c = ` ${canonical.toLowerCase()} `;
   const hasVs = /\b(vs?|v)\b/.test(c) || competitors.length >= 2;
 
+  // GOLF — explicit tour / major / known events
+  const golfTokens = [
+    "pga tour", "dp world tour", " lpga", "liv golf", "korn ferry",
+    "masters tournament", "the masters", "open championship", "british open",
+    "u.s. open golf", "us open golf", "pga championship",
+    "ryder cup", "presidents cup", "fedex", "race to dubai",
+    "rbc ", "genesis ", "travelers championship", "memorial tournament",
+    "scottish open", "irish open", "bmw pga", "tour championship",
+    " wgc ", "players championship",
+  ];
+  // MOTORSPORT
+  const f1Tokens = ["formula 1", "formula one", " f1 ", "grand prix", " gp "];
+  const motogpTokens = ["motogp", "moto gp", "moto2", "moto3"];
+
+  // TENNIS — tournament tokens (allow OUTRIGHT, not gated on vs)
   const tennisTokens = [
     "boss open", "libema", "wimbledon", "queen's", "queens club", "halle",
-    "stuttgart open", "eastbourne", "roland garros", "french open", "us open",
-    "australian open", "indian wells", "miami open", "madrid open",
+    "stuttgart open", "eastbourne", "roland garros", "french open",
+    "indian wells", "miami open", "madrid open",
     "monte carlo", " atp ", " wta ", " itf ", "challenger",
   ];
-  if (hasVs && tennisTokens.some((t) => c.includes(t))) return "tennis";
+  // "us open" / "australian open" collide with golf — only treat as tennis
+  // when paired with a tennis disambiguator (vs / atp / wta).
+  const ambiguousTennisOpens = ["us open", "u.s. open", "australian open"];
 
   const footballTokens = [
     "premier league", "la liga", "serie a", "bundesliga", "ligue 1",
     "champions league", "europa league", "fa cup", "efl", "carabao cup",
     "uefa", "world cup qualifier", "nations league",
   ];
-  if (footballTokens.some((t) => c.includes(t))) return "football";
 
-  // Horse racing: "<Course> HH:MM ..." or "<Course> race <N> ..."
+  // Order matters for collisions.
+  // 1) MotoGP explicit first (so "Grand Prix" with motogp context wins).
+  if (motogpTokens.some((t) => c.includes(t))) return "motogp";
+  // 2) Golf explicit tokens.
+  if (golfTokens.some((t) => c.includes(t))) return "golf";
+  // 3) Football tokens.
+  if (footballTokens.some((t) => c.includes(t))) return "football";
+  // 4) Tennis tournament tokens (outright OK).
+  if (tennisTokens.some((t) => c.includes(t))) return "tennis";
+  // 4b) Ambiguous "US Open" / "Australian Open" — only tennis with a hint.
+  if (ambiguousTennisOpens.some((t) => c.includes(t))) {
+    if (hasVs || / atp | wta /.test(c)) return "tennis";
+    // bare ambiguous → leave null so Layer 2 (clarify) asks
+  }
+  // 5) F1 grand prix tokens (after motogp).
+  if (f1Tokens.some((t) => c.includes(t))) return "f1";
+  // 6) Horse racing: "<Course> HH:MM ..." or "<Course> race <N> ..."
   if (/\b\d{1,2}:\d{2}\b/.test(c) || /\brace\s+\d+\b/.test(c)) {
     return "horse_racing";
   }
