@@ -965,6 +965,14 @@ async function fetchUSRacePickerInner(
   if (races.length === 0) {
     return { kind: "dark_day", pick_by: "race_number", track_name: trackName, date };
   }
+  // Symmetric time-hint narrowing for NA cards: when the user gave a
+  // time and exactly one race on the card matches, collapse the picker.
+  if (parsed.time) {
+    const exact = races.filter((r) => r.local_time === parsed.time);
+    if (exact.length === 1) {
+      return { kind: "races", pick_by: "race_number", track_name: trackName, date, races: exact };
+    }
+  }
   return { kind: "races", pick_by: "race_number", track_name: trackName, date, races };
 }
 
