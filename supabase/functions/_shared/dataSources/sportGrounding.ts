@@ -536,9 +536,23 @@ export async function groundSportEventForCron(
           isGolf: false,
         };
       }
+      case "tennis_match":
+        return {
+          sources: [
+            {
+              name: "tennisConfirm",
+              data: { matched: result.metadata.tennis_confirm },
+              fetched_at: new Date().toISOString(),
+              duration_ms: Date.now() - t0,
+            },
+          ],
+          outcomes: [result.outcomes[0], result.outcomes[1]],
+          isGolf: false,
+        };
       case "picker_football":
       case "picker_golf":
       case "picker_racing":
+      case "picker_tennis":
         // Cron has no user to disambiguate — fall through to research_grounded.
         return { sources: [], outcomes: null, isGolf: false };
       case "none":
