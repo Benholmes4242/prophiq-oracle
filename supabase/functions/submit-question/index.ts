@@ -20,6 +20,7 @@ import { runConsensus } from "../_shared/runConsensus.ts";
 import { assembleForecastContext, isGolfRunnersSource } from "../_shared/forecastContext.ts";
 import { groundSportEvent } from "../_shared/dataSources/sportGrounding.ts";
 import { isDisplayPlaceholder } from "../_shared/placeholderPatterns.ts";
+import { writePredictionLineage } from "../_shared/predictionLineage.ts";
 import type { DomainEvent, EventOutcome } from "../_shared/domain.ts";
 import { getServiceClient } from "../_shared/supabaseClient.ts";
 import { scoreToConfidence } from "../_shared/confidence.ts";
@@ -1010,6 +1011,7 @@ Deno.serve(async (req) => {
       // ----- 5. MODELS -----
       sse.send({ stage: "models", status: "start", data: { models: ["claude", "gpt", "gemini"] } });
 
+      const timeOfCall = Date.now();
       let consensusOut;
       try {
         consensusOut = await runConsensus({
@@ -1082,6 +1084,31 @@ Deno.serve(async (req) => {
         await recordOutcome("failed"); await logSearchQuery({ result_type: "failed", domain: domainId, matched_event_id: event.id }); sse.close(); return;
       }
       sse.send({ stage: "consensus", status: "done", data: { confidence: scoreToConfidence(consensusOut.consensus.agreement_score), data_tier: ctx.dataTier } });
+
+      // prediction_inputs lineage (best-effort; shared with cron path).
+      await writePredictionLineage({
+        supabase,
+        prediction_id: prediction.id,
+        event_id: event.id,
+        prompt_resolved: ctx.prompt,
+        domain: domainId,
+        model_results: consensusOut.model_results,
+        prompt_version: PROMPT_VERSION,
+        time_of_call: timeOfCall,
+        research_tokens_used: ctx.research?.tokens_used ?? null,
+        priors: ctx.priors.map((p) => ({
+          prediction_id: p.prediction_id,
+          event_id: p.event_id,
+          similarity: p.similarity,
+          top_pick_label: p.top_pick_label,
+          top_pick_prob: p.top_pick_prob,
+          was_correct: p.was_correct,
+        })),
+        top_pick_prob_raw: ranked[0]?.probability ?? null,
+        market_signals: ctx.marketSignals,
+        structured_data: ctx.structuredData,
+        structured_sources: ctx.structuredSources.sources,
+      });
 
       // ----- 7. DONE -----
       await recordOutcome("accepted");
