@@ -693,6 +693,40 @@ Deno.serve(async (req) => {
                 },
               });
               sse.close(); return;
+            } else if (grounded.kind === "tennis_match") {
+              const t = grounded.metadata.tennis_confirm;
+              tennisConfirm = {
+                kind: "match",
+                event_id: t.event_id,
+                player_a: t.player_a,
+                player_b: t.player_b,
+                tournament: t.tournament,
+                starts_at: t.starts_at,
+              };
+              resolverOverride = {
+                normalized_question: `${t.player_a} vs ${t.player_b}`,
+                starts_at: t.starts_at,
+              };
+            } else if (grounded.kind === "picker_tennis") {
+              // Mirror football fixture_picker shape — rare (same two
+              // players meeting twice in the window).
+              sse.send({
+                stage: "clarification",
+                status: "done",
+                data: {
+                  type: "fixture_picker",
+                  message: "Those two players have more than one upcoming match. Which one did you mean?",
+                  fixtures: grounded.candidates.map((m) => ({
+                    fixture_id: m.event_id,
+                    home_team: m.player_a,
+                    away_team: m.player_b,
+                    kickoff: m.starts_at,
+                    competition: m.tournament ?? "",
+                    label: `${m.player_a} vs ${m.player_b}${m.tournament ? ` - ${m.tournament}` : ""} (${new Date(m.starts_at).toUTCString().slice(0, 16)})`,
+                  })),
+                },
+              });
+              sse.close(); return;
             }
             // "racing_fallthrough" or "none" -> downstream low_data
             // (horse-racing safety net in forecastContext.ts) or
