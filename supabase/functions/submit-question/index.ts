@@ -854,6 +854,18 @@ Deno.serve(async (req) => {
       } else if (tennisConfirm) {
         // Tennis match winner: exactly two real player names. NO draw.
         outcomes = [tennisConfirm.player_a, tennisConfirm.player_b];
+      } else if (f1Race) {
+        // F1 race winner: ordered driver field (championship-position
+        // first) with a single "Any other driver" bucket tail when the
+        // field exceeds MAX_NAMED. Mirrors the racing/golf pattern; the
+        // bucket label is gated by isDisplayPlaceholder so it can never
+        // headline ranked_outcomes[0] (Gap-1 demotion).
+        const MAX_NAMED = 8;
+        if (f1Race.drivers.length <= MAX_NAMED) {
+          outcomes = [...f1Race.drivers];
+        } else {
+          outcomes = [...f1Race.drivers.slice(0, MAX_NAMED), "Any other driver"];
+        }
       } else {
         outcomes = (mod.outcomes && mod.outcomes.length >= 2) ? mod.outcomes : ["Yes", "No"];
       }
