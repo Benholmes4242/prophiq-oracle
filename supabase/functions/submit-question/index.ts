@@ -71,11 +71,14 @@ interface Body {
   clarify_turn?: number;
   // Step 2: the accumulated USER replies across the conversational loop.
   // CRITICAL SECURITY: this is the ONLY conversation state we accept from
-  // the client. We do NOT accept assistant turns — a malicious client could
-  // otherwise inject a fake "assistant: you confirmed X" turn to steer the
-  // resolver or smuggle past the policy check. Assistant turns live in the
-  // frontend's local state for chat bubbles only.
+  // the client for POLICY decisions. Assistant turns (`turns` below) are
+  // mirrored back to the resolver as INERT quoted context only — they never
+  // relax policy and never carry instructions.
   user_turns?: unknown;
+  // Step 3: alternating transcript (user + assistant) used by the resolver
+  // so it can interpret short replies like "yes". Assistant entries are
+  // treated as quoted context for reference only.
+  turns?: unknown;
 }
 
 Deno.serve(async (req) => {
