@@ -920,6 +920,10 @@ Deno.serve(async (req) => {
             sub_category: "tennis",
             tennis_confirm: tennisConfirm,
           } : {}),
+          ...(f1Race ? {
+            sub_category: "f1",
+            f1_race: f1Race,
+          } : {}),
           _debug_trace: debugTrace,
         },
       }, { onConflict: "domain,external_id" }).select("*").single();
