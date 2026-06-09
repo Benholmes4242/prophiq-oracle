@@ -367,7 +367,7 @@ ${forecastDisciplineBlock()}`;
         // Surface grounded outcomes (favourite-first, bucketed long tail)
         // via the return value. The caller decides whether/how to use them.
         if (cron.outcomes && cron.outcomes.length > 0) {
-          groundedOutcomes = bucketGroundedOutcomes(cron.outcomes, cron.isGolf);
+          groundedOutcomes = bucketGroundedOutcomes(cron.outcomes, cron.isGolf, cron.bucketLabel);
         }
       } catch (e) {
         console.warn(
