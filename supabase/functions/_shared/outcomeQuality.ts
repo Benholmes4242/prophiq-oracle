@@ -65,6 +65,58 @@ function matchesSharedBucket(trimmed: string): boolean {
   return false;
 }
 
+// Hedge / non-answer labels. Kept SEPARATE from placeholderPatterns.ts
+// (buckets) so we don't drag the SQL + frontend mirror + conformance test
+// into a guard for moderation-prompt failures. Buckets = legitimate tail
+// ("Any other player"); hedges = non-answers ("cannot determine", "the
+// champion") that should never headline or persist as outcome #1.
+const HEDGE_SUBSTRINGS: readonly string[] = [
+  "cannot determine",
+  "cannot be determined",
+  "to be confirmed",
+  "too early to say",
+  "no clear favourite",
+  "no clear favorite",
+  "no clear winner",
+  "surprise underdog",
+  "surprise winner",
+  "a surprise",
+];
+
+const HEDGE_EXACT: ReadonlySet<string> = new Set([
+  "tbd",
+  "tba",
+  "unknown",
+  "the champion",
+  "the winner",
+  "the men's singles champion",
+  "the women's singles champion",
+  "men's singles champion",
+  "women's singles champion",
+  "champion",
+  "winner",
+]);
+
+const HEDGE_REGEX: readonly RegExp[] = [
+  // "<x>'s champion/winner" where <x> is a generic role/title, not a tournament name
+  /^the\s+(men|women|boys|girls)['']s\s+(singles|doubles)?\s*(champion|winner)$/i,
+];
+
+export function isHedgeLabel(label: string | null | undefined): boolean {
+  if (label == null) return false;
+  const trimmed = label.trim();
+  if (!trimmed) return false;
+  const lower = trimmed.toLowerCase();
+  if (HEDGE_EXACT.has(lower)) return true;
+  for (const s of HEDGE_SUBSTRINGS) {
+    if (lower.includes(s)) return true;
+  }
+  for (const re of HEDGE_REGEX) {
+    if (re.test(trimmed)) return true;
+  }
+  return false;
+}
+
 export function isPlaceholderLabel(label: string): boolean {
   const trimmed = label.trim();
   if (trimmed.length === 0) return true;
@@ -73,6 +125,9 @@ export function isPlaceholderLabel(label: string): boolean {
   for (const re of PERSISTENCE_ONLY_PATTERNS) {
     if (re.test(trimmed)) return true;
   }
+  // Defense-in-depth: treat hedge / non-answer labels as placeholders at the
+  // persistence boundary so a moderation-prompt slip can't headline a card.
+  if (isHedgeLabel(trimmed)) return true;
   return false;
 }
 
