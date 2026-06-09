@@ -306,6 +306,7 @@ ${forecastDisciplineBlock()}`;
     const horseRacing = isHorseRacingEvent(event);
     const golf = isGolfEvent(event);
     const tennis = isTennisEvent(event);
+    const f1 = isF1Event(event);
 
     const sources: StructuredDataSource[] = [];
     const errors: StructuredDataError[] = [];
@@ -314,11 +315,10 @@ ${forecastDisciplineBlock()}`;
     // ====================================================================
     // Sport grounding (Step 3): one shared module produces feed-backed
     // outcomes + grounding sources for football / golf / horse racing /
-    // tennis (match winner). Both submit-question and the cron route
-    // through groundSportEvent so a discovered event gets the SAME real
-    // runners / teams / players as the same question typed. Replaces the
-    // old fetchFootballDataContext / fetchRacingContext / fetchGolfContext
-    // call sites AND the event.metadata.football_confirm passthrough block.
+    // tennis (match winner) / f1 (race winner). Both submit-question and
+    // the cron route through groundSportEvent so a discovered event gets
+    // the SAME real runners / teams / players / drivers as the same
+    // question typed.
     //
     // CLEAN RETURN: grounded outcomes are returned via the optional
     // `groundedOutcomes` field on StructuredDataContext. The cron
@@ -332,6 +332,7 @@ ${forecastDisciplineBlock()}`;
       : (golf && !horseRacing) ? "golf"
       : horseRacing ? "horse_racing"
       : tennis ? "tennis"
+      : f1 ? "f1"
       : null;
 
     if (groundingSport) {
