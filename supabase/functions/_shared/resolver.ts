@@ -73,6 +73,7 @@ Domain rules (sport vs politics):
 - Any match, race, game, bout, heat, fixture, or tournament contested between teams, athletes, or nations is ALWAYS domain="sport" - regardless of whether nations compete. World Cup, Euros, Olympics (every event), Nations League, Davis Cup, Ryder Cup, international rugby / cricket / hockey / basketball / football - all domain="sport". Nations or politically-prominent entities competing in a SPORTING contest is SPORT, never politics.
 - domain="politics" is ONLY for elections, referendums, votes, leadership contests, legislation, appointments, and policy outcomes - never a sporting fixture.
 - Examples: "Serbia vs Croatia (World Cup)" -> domain="sport", sport="football"; "England vs New Zealand rugby" -> domain="sport", sport="rugby"; "USA vs Canada Olympic hockey" -> domain="sport", sport="hockey"; "2028 US presidential election" -> domain="politics".
+- If domain="sport", the "sport" field is MANDATORY and must be a specific lowercase value (e.g. "tennis", "football", "golf", "horse_racing", "f1", "nfl", "nba", "nhl", "cricket", "rugby", "hockey", "boxing", "mma", ...). NEVER return sport=null when domain="sport". If you are unsure of the exact sport, infer it from the competitors/competition (e.g. two tennis players at a tournament -> "tennis"; two football clubs -> "football"). A match between two individual players at a tennis tournament (Boss Open, Wimbledon, Queen's, ATP/WTA/Challenger events) is ALWAYS sport="tennis".
 
 Horse racing special-case:
 - sport MUST be "horse_racing".
@@ -87,7 +88,7 @@ Football special-case (match winner + league/title winner are feed-backed):
 - Football PROPS (goalscorers, cards, corners, over-under, half-specific) are still valid public events - RESOLVE them with sport="football" and a clear canonical_event; they do not get the feed-backed match/league treatment and that is fine.
 
 Tennis special-case (match winner is feed-backed; outright is not):
-- sport MUST be "tennis".
+- sport MUST be exactly "tennis" (never null, never "Tennis"). ANY singles or doubles match between named players, at any ATP/WTA/ITF/Challenger event or Grand Slam, is sport="tennis".
 - Match winner: canonical_event is "<PlayerA> vs <PlayerB>" using surnames, optionally prefixed with the tournament when given. Examples: "Alcaraz vs Sinner", "Boss Open Moutet vs Kyrgios", "Kyrgios vs Moutet". Set competitors to [playerA, playerB]. If two common surnames could mean different players (e.g. "Williams vs Williams"), CLARIFY which players or which tournament. Once narrowed, RESOLVE; the downstream feed picks the right match.
 - Tournament OUTRIGHT ("who wins Wimbledon 2026"): RESOLVE with sport="tennis" and canonical_event "<Tournament> <YYYY>". There is no feed-backed draw - this correctly falls to the research_grounded forecast. Do not CLARIFY just to avoid an outright; resolve it.
 
