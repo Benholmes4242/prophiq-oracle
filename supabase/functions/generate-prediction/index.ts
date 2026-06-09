@@ -277,35 +277,33 @@ Deno.serve(async (req) => {
   }
 
   // ============================================================
-  // Sport grounding (Step 3 of feed-path unification) may have
-  // rewritten event_outcomes in-place during gatherStructuredSources
-  // (real teams / runners / players favourite-first, replacing
-  // placeholder outcomes). Refresh the local `outcomes` so the
-  // prompt + consensus see the rewritten labels.
+  // Sport grounding (Step 3, clean return): when the adapter's
+  // gatherStructuredSources produced a real favourite-first field
+  // of outcome labels, swap them in for the prompt + consensus.
+  // In-memory only — no DB round-trip. The prediction row stores
+  // outcome_label inline via ranked_outcomes, so downstream UI
+  // sees the real names without needing event_outcomes mutated.
+  // Non-sport adapters never set groundedOutcomes; this is a no-op.
   // ============================================================
-  if (event.domain === "sport") {
-    const { data: refreshed } = await supabase
-      .from("event_outcomes")
-      .select("*")
-      .eq("event_id", event.id)
-      .order("created_at");
-    if (refreshed && refreshed.length >= 2 && refreshed.length !== outcomes.length) {
-      outcomes = refreshed as EventOutcome[];
+  const groundedOutcomes = structuredSources.groundedOutcomes;
+  if (groundedOutcomes && groundedOutcomes.length >= 2) {
+    const synthetic: EventOutcome[] = groundedOutcomes.map((label) => ({
+      id: `grounded:${label}`,
+      event_id: event.id,
+      external_id: label,
+      label,
+      metadata: null,
+    } as EventOutcome));
+    const oldLabels = (outcomes as EventOutcome[]).map((o) => o.label).join("|");
+    const newLabels = groundedOutcomes.join("|");
+    if (oldLabels !== newLabels) {
+      outcomes = synthetic;
       console.log(
-        `[generate-prediction] event=${body.event_id} outcomes_refreshed=${outcomes.length} (sport grounding rewrite)`,
+        `[generate-prediction] event=${body.event_id} outcomes_grounded=${synthetic.length} (in-memory swap from groundedOutcomes)`,
       );
-    } else if (refreshed && refreshed.length === outcomes.length) {
-      // Same count but labels may have changed; cheap label-diff check.
-      const oldLabels = outcomes.map((o) => o.label).join("|");
-      const newLabels = refreshed.map((o) => o.label).join("|");
-      if (oldLabels !== newLabels) {
-        outcomes = refreshed as EventOutcome[];
-        console.log(
-          `[generate-prediction] event=${body.event_id} outcomes_relabelled (sport grounding rewrite)`,
-        );
-      }
     }
   }
+
 
   // ============================================================
   // Trust layer: classify what real evidence backs this forecast.
