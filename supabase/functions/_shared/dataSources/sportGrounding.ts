@@ -55,6 +55,7 @@ import {
   confirmTennisMatch,
   type TennisMatchCandidate,
 } from "./tennisConfirm.ts";
+import { confirmF1Race } from "./f1Confirm.ts";
 
 /** Sport kinds with a wired confirm path. "other" falls through. */
 export type SportKind =
@@ -62,6 +63,7 @@ export type SportKind =
   | "golf"
   | "horse_racing"
   | "tennis"
+  | "f1"
   | "other";
 
 export interface SportGroundingInput {
@@ -152,7 +154,26 @@ export type SportGroundingResult =
       kind: "picker_tennis";
       candidates: TennisMatchCandidate[];
     }
+  | {
+      kind: "f1_race";
+      sport: "f1";
+      /** Ordered driver full names, championship-position first. NO bucket
+       * here — the caller appends "Any other driver" after the named head. */
+      outcomes: string[];
+      starts_at: string;
+      metadata: { f1_race: F1RaceConfirmMeta };
+    }
   | { kind: "none"; reason: string };
+
+export interface F1RaceConfirmMeta {
+  kind: "race";
+  season: number;
+  round: number;
+  race_name: string;
+  circuit: string | null;
+  date: string;
+  starts_at: string;
+}
 
 export interface TennisMatchConfirmMeta {
   kind: "match";
@@ -205,6 +226,8 @@ export async function groundSportEvent(
         return await groundRacing(input);
       case "tennis":
         return await groundTennis(input);
+      case "f1":
+        return await groundF1(input);
       case "other":
       default:
         return { kind: "none", reason: "sport not wired for confirm" };
@@ -376,6 +399,36 @@ async function groundTennis(
   };
 }
 
+async function groundF1(
+  input: SportGroundingInput,
+): Promise<SportGroundingResult> {
+  // Jolpica F1 is free + keyless. No env gate.
+  const confirm = await confirmF1Race(input.canonicalEvent, input.approxDate);
+  if (confirm.kind === "none") {
+    return { kind: "none", reason: `f1 confirm: ${confirm.reason}` };
+  }
+  if (confirm.drivers.length < 2) {
+    return { kind: "none", reason: "f1 driver field too small" };
+  }
+  return {
+    kind: "f1_race",
+    sport: "f1",
+    outcomes: confirm.drivers,
+    starts_at: confirm.starts_at,
+    metadata: {
+      f1_race: {
+        kind: "race",
+        season: confirm.season,
+        round: confirm.round,
+        race_name: confirm.race_name,
+        circuit: confirm.circuit,
+        date: confirm.date,
+        starts_at: confirm.starts_at,
+      },
+    },
+  };
+}
+
 /** Favourite-first runner labels (best decimal price first; unpriced last).
  * Bucketed tail "Any other runner" when field > 8. Mirrors the bucketing
  * used by sport.ts gatherStructuredSources for the cron grounding path. */
@@ -436,6 +489,11 @@ export interface CronGroundingResult {
   sources: CronGroundingSource[];
   outcomes: string[] | null;
   isGolf: boolean;
+  /** Optional explicit bucket label for the long-tail bucket. When set,
+   * overrides the isGolf-derived default ("Any other player" / "Any other
+   * runner"). Used by sports whose field is neither golfers nor runners
+   * (e.g. F1 -> "Any other driver"). */
+  bucketLabel?: string;
 }
 
 export async function groundSportEventForCron(
@@ -548,6 +606,20 @@ export async function groundSportEventForCron(
           ],
           outcomes: [result.outcomes[0], result.outcomes[1]],
           isGolf: false,
+        };
+      case "f1_race":
+        return {
+          sources: [
+            {
+              name: "f1Confirm",
+              data: { matched: result.metadata.f1_race },
+              fetched_at: new Date().toISOString(),
+              duration_ms: Date.now() - t0,
+            },
+          ],
+          outcomes: result.outcomes,
+          isGolf: false,
+          bucketLabel: "Any other driver",
         };
       case "picker_football":
       case "picker_golf":

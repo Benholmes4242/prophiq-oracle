@@ -406,6 +406,19 @@ Deno.serve(async (req) => {
         starts_at: string;
       };
       let tennisConfirm: TennisConfirmThread | null = null;
+      // F1 race confirm — when set, outcomes become driver field +
+      // "Any other driver" bucket and metadata.f1_race carries the race.
+      type F1RaceThread = {
+        kind: "race";
+        season: number;
+        round: number;
+        race_name: string;
+        circuit: string | null;
+        date: string;
+        starts_at: string;
+        drivers: string[];
+      };
+      let f1Race: F1RaceThread | null = null;
 
       // TEMP debug trace — written into event.metadata._debug_trace so we
       // can observe runtime values via SQL (function logs are not visible).
@@ -556,16 +569,18 @@ Deno.serve(async (req) => {
           decision.sport === "soccer" ||
           decision.sport === "association_football";
         const tennisSport = decision.sport === "tennis";
+        const f1Sport = decision.sport === "f1" || decision.sport === "formula_1" || decision.sport === "formula1";
         const hasStructuredRacing = !!structuredCourse && (!!structuredTime || structuredRaceNo !== null);
         const skipForResubmit =
           (golfSport && hasStructuredGolf) ||
           (racingSport && hasStructuredRacing) ||
           (footballSport && hasStructuredFootball);
-        const sportKindForGrounding: "football" | "golf" | "horse_racing" | "tennis" | null =
+        const sportKindForGrounding: "football" | "golf" | "horse_racing" | "tennis" | "f1" | null =
           footballSport ? "football"
           : golfSport ? "golf"
           : racingSport ? "horse_racing"
           : tennisSport ? "tennis"
+          : f1Sport ? "f1"
           : null;
 
         console.log(`[tennis-trace] sportKind=${sportKindForGrounding} skip=${skipForResubmit}`);
@@ -756,6 +771,22 @@ Deno.serve(async (req) => {
                 },
               });
               sse.close(); return;
+            } else if (grounded.kind === "f1_race") {
+              const f = grounded.metadata.f1_race;
+              f1Race = {
+                kind: "race",
+                season: f.season,
+                round: f.round,
+                race_name: f.race_name,
+                circuit: f.circuit,
+                date: f.date,
+                starts_at: f.starts_at,
+                drivers: grounded.outcomes,
+              };
+              resolverOverride = {
+                normalized_question: `${f.race_name} ${f.season}`,
+                starts_at: f.starts_at,
+              };
             }
             // "racing_fallthrough" or "none" -> downstream low_data
             // (horse-racing safety net in forecastContext.ts) or
@@ -823,6 +854,18 @@ Deno.serve(async (req) => {
       } else if (tennisConfirm) {
         // Tennis match winner: exactly two real player names. NO draw.
         outcomes = [tennisConfirm.player_a, tennisConfirm.player_b];
+      } else if (f1Race) {
+        // F1 race winner: ordered driver field (championship-position
+        // first) with a single "Any other driver" bucket tail when the
+        // field exceeds MAX_NAMED. Mirrors the racing/golf pattern; the
+        // bucket label is gated by isDisplayPlaceholder so it can never
+        // headline ranked_outcomes[0] (Gap-1 demotion).
+        const MAX_NAMED = 8;
+        if (f1Race.drivers.length <= MAX_NAMED) {
+          outcomes = [...f1Race.drivers];
+        } else {
+          outcomes = [...f1Race.drivers.slice(0, MAX_NAMED), "Any other driver"];
+        }
       } else {
         outcomes = (mod.outcomes && mod.outcomes.length >= 2) ? mod.outcomes : ["Yes", "No"];
       }
@@ -876,6 +919,10 @@ Deno.serve(async (req) => {
           ...(tennisConfirm ? {
             sub_category: "tennis",
             tennis_confirm: tennisConfirm,
+          } : {}),
+          ...(f1Race ? {
+            sub_category: "f1",
+            f1_race: f1Race,
           } : {}),
           _debug_trace: debugTrace,
         },
