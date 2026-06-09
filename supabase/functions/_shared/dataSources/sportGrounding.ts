@@ -203,6 +203,8 @@ export async function groundSportEvent(
         return await groundGolf(input);
       case "horse_racing":
         return await groundRacing(input);
+      case "tennis":
+        return await groundTennis(input);
       case "other":
       default:
         return { kind: "none", reason: "sport not wired for confirm" };
