@@ -1064,6 +1064,19 @@ export async function fetchUSRacePicker(
       })),
     };
   }
+  if (result.kind === "race") {
+    return {
+      kind: "races",
+      track_name: result.track_name,
+      date: result.date,
+      races: [{
+        race_number: parseInt(String(result.race.race_id ?? "0"), 10) || 0,
+        local_time: result.race.off_time,
+        runners: result.runners.length,
+        race_type: result.race.race_class,
+      }],
+    };
+  }
   if (result.kind === "dark_day") {
     return { kind: "dark_day", track_name: result.track_name, date: result.date };
   }
