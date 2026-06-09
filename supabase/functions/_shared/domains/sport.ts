@@ -289,7 +289,7 @@ ${forecastDisciplineBlock()}`;
   },
 
   async gatherStructuredSources(
-    supabase,
+    _supabase,
     event: DomainEvent,
     _outcomes: EventOutcome[],
   ): Promise<StructuredDataContext> {
@@ -308,6 +308,7 @@ ${forecastDisciplineBlock()}`;
 
     const sources: StructuredDataSource[] = [];
     const errors: StructuredDataError[] = [];
+    let groundedOutcomes: string[] | undefined;
 
     // ====================================================================
     // Sport grounding (Step 3): one shared module produces feed-backed
@@ -317,6 +318,13 @@ ${forecastDisciplineBlock()}`;
     // question typed. Replaces the old fetchFootballDataContext /
     // fetchRacingContext / fetchGolfContext call sites AND the
     // event.metadata.football_confirm passthrough block.
+    //
+    // CLEAN RETURN: grounded outcomes are returned via the optional
+    // `groundedOutcomes` field on StructuredDataContext. The cron
+    // caller (generate-prediction) swaps them in for the prompt +
+    // consensus. NO mid-pipeline event_outcomes write here — that was
+    // the prior workaround. gatherStructuredSources is a read-shaped
+    // gather function and must not mutate the DB as a side effect.
     // ====================================================================
     const groundingSport: SportKind | null =
       football ? "football"
@@ -353,10 +361,10 @@ ${forecastDisciplineBlock()}`;
           });
         }
 
-        // Persist outcomes from grounding (replaces the post-hoc
-        // extractRacingRunners rewrite block in generate-prediction).
+        // Surface grounded outcomes (favourite-first, bucketed long tail)
+        // via the return value. The caller decides whether/how to use them.
         if (cron.outcomes && cron.outcomes.length > 0) {
-          await persistGroundingOutcomes(supabase, event.id, cron.outcomes, cron.isGolf);
+          groundedOutcomes = bucketGroundedOutcomes(cron.outcomes, cron.isGolf);
         }
       } catch (e) {
         console.warn(
@@ -387,50 +395,20 @@ ${forecastDisciplineBlock()}`;
       }
     }
 
-    return { sources, errors, total_duration_ms: Date.now() - t0 };
+    return { sources, errors, total_duration_ms: Date.now() - t0, groundedOutcomes };
   },
 };
 
 // ============================================================
-// Persist grounding-produced outcomes (favourite-first; bucket
-// the long tail). Replaces the racing/golf outcome-rewrite block
-// that previously lived in generate-prediction.
+// Truncate a long field to a named head + a single bucket tail
+// ("Any other player" / "Any other runner"). Pure helper; no I/O.
 // ============================================================
-async function persistGroundingOutcomes(
-  supabase: SupabaseClient,
-  eventId: string,
-  outcomes: string[],
-  isGolf: boolean,
-): Promise<void> {
+function bucketGroundedOutcomes(outcomes: string[], isGolf: boolean): string[] {
   const MAX_NAMED = 8;
-  const useBucket = outcomes.length > MAX_NAMED;
-  const named = useBucket ? outcomes.slice(0, MAX_NAMED) : outcomes;
-  const newLabels = [...named];
-  if (useBucket) newLabels.push(isGolf ? "Any other player" : "Any other runner");
-
-  const { error: delErr } = await supabase
-    .from("event_outcomes").delete().eq("event_id", eventId);
-  if (delErr) {
-    console.warn(
-      `[sport.persistGroundingOutcomes] delete failed for event ${eventId}: ${delErr.message}`,
-    );
-    return;
-  }
-  const newRows = newLabels.map((label) => ({
-    event_id: eventId, external_id: label, label, metadata: null,
-  }));
-  const { error: rwErr } = await supabase
-    .from("event_outcomes")
-    .upsert(newRows, { onConflict: "event_id,external_id" });
-  if (rwErr) {
-    console.warn(
-      `[sport.persistGroundingOutcomes] upsert failed for event ${eventId}: ${rwErr.message}`,
-    );
-    return;
-  }
-  console.log(
-    `[sport.persistGroundingOutcomes] event=${eventId} outcomes_written=${newLabels.length}`,
-  );
+  if (outcomes.length <= MAX_NAMED) return [...outcomes];
+  const head = outcomes.slice(0, MAX_NAMED);
+  head.push(isGolf ? "Any other player" : "Any other runner");
+  return head;
 }
 
 type SourceResult =
