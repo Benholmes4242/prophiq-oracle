@@ -289,12 +289,11 @@ ${forecastDisciplineBlock()}`;
   },
 
   async gatherStructuredSources(
-    _supabase,
+    supabase,
     event: DomainEvent,
     _outcomes: EventOutcome[],
   ): Promise<StructuredDataContext> {
     const t0 = Date.now();
-    const fdKey = readEnv("FOOTBALL_DATA_API_KEY") ?? "";
     const tsdbKey = readEnv("THESPORTSDB_API_KEY") ?? "";
     const hints = {
       metadata: event.metadata as Record<string, unknown> | null,
@@ -303,72 +302,82 @@ ${forecastDisciplineBlock()}`;
       starts_at: event.starts_at,
     };
 
-    // Bug 2 fix: route feed selection by sub-sport. Football feeds must NOT
-    // be called for horse racing, tennis, golf, etc. — they previously
-    // returned empty-but-non-null payloads that mis-triggered feed_backed.
     const football = isFootballEvent(event);
     const horseRacing = isHorseRacingEvent(event);
     const golf = isGolfEvent(event);
 
-    const tasks: Array<Promise<SourceResult>> = [];
-    if (football) {
-      tasks.push(runSource("footballData", () => fetchFootballDataContext(fdKey, hints)));
-    }
-    // theSportsDB covers many sports but has no horse-racing data.
-    if (!horseRacing) {
-      tasks.push(runSource("theSportsDB", () => fetchTheSportsDBContext(tsdbKey, hints)));
-    }
-    if (horseRacing) {
-      const u = readEnv("RACING_API_USERNAME");
-      const p = readEnv("RACING_API_PASSWORD");
-      if (u && p) {
-        tasks.push(runSource("racingApi", () => fetchRacingContext(u, p, hints)));
-      }
-    }
-    if (golf && !football && !horseRacing) {
-      const gk = readEnv("SPORTRADAR_GOLF_API_KEY");
-      if (gk) {
-        tasks.push(runSource("sportRadarGolf", () => fetchGolfContext(gk, hints)));
+    const sources: StructuredDataSource[] = [];
+    const errors: StructuredDataError[] = [];
+
+    // ====================================================================
+    // Sport grounding (Step 3): one shared module produces feed-backed
+    // outcomes + grounding sources for football / golf / horse racing.
+    // Both submit-question and the cron route through groundSportEvent so
+    // a discovered event gets the SAME real runners / teams as the same
+    // question typed. Replaces the old fetchFootballDataContext /
+    // fetchRacingContext / fetchGolfContext call sites AND the
+    // event.metadata.football_confirm passthrough block.
+    // ====================================================================
+    const groundingSport: SportKind | null =
+      football ? "football"
+      : (golf && !horseRacing) ? "golf"
+      : horseRacing ? "horse_racing"
+      : null;
+
+    if (groundingSport) {
+      try {
+        const meta = (typeof event.metadata === "object" && event.metadata !== null)
+          ? (event.metadata as Record<string, unknown>)
+          : {};
+        const rawCompetitors = meta.competitors;
+        const competitors: string[] | null = Array.isArray(rawCompetitors)
+          ? rawCompetitors.map((c) => String(c)).filter((s) => s.trim().length > 0)
+          : null;
+        const approxDate = event.starts_at
+          ? new Date(event.starts_at).toISOString().slice(0, 10)
+          : null;
+
+        const cron = await groundSportEventForCron({
+          sport: groundingSport,
+          canonicalEvent: event.title,
+          approxDate,
+          competitors: competitors && competitors.length > 0 ? competitors : null,
+        });
+
+        for (const s of cron.sources) {
+          sources.push({
+            name: s.name,
+            data: s.data,
+            fetched_at: s.fetched_at,
+            duration_ms: s.duration_ms,
+          });
+        }
+
+        // Persist outcomes from grounding (replaces the post-hoc
+        // extractRacingRunners rewrite block in generate-prediction).
+        if (cron.outcomes && cron.outcomes.length > 0) {
+          await persistGroundingOutcomes(supabase, event.id, cron.outcomes, cron.isGolf);
+        }
+      } catch (e) {
+        console.warn(
+          `[sport.gatherStructuredSources] grounding failed for event ${event.id}: ${(e as Error).message}`,
+        );
       }
     }
 
-    // Football confirm (Step 4 feed-backed): submit-question's resolver
-    // football branch writes a `football_confirm` payload onto event.metadata
-    // for confirmed match-winner / league-winner questions. Surface it as a
-    // structured-data source so the trust layer flips to feed_backed and the
-    // prompt sees the kickoff / live standings inline. No new fetch here -
-    // the data was already fetched + validated upstream.
-    {
-      const meta = (typeof event.metadata === "object" && event.metadata !== null)
-        ? (event.metadata as Record<string, unknown>)
-        : {};
-      const fc = meta.football_confirm;
-      if (fc && typeof fc === "object") {
-        tasks.push(Promise.resolve({
-          kind: "ok",
-          source: {
-            name: "footballConfirm",
-            data: { matched: fc },
-            fetched_at: new Date().toISOString(),
-            duration_ms: 0,
-          },
-        } as SourceResult));
-      }
+    // theSportsDB stays as fallback for non-confirm sports (tennis, rugby,
+    // cricket, etc.) and props. Football / golf / horse racing are served
+    // by groundSportEventForCron above.
+    const tasks: Array<Promise<SourceResult>> = [];
+    if (!football && !golf && !horseRacing) {
+      tasks.push(runSource("theSportsDB", () => fetchTheSportsDBContext(tsdbKey, hints)));
     }
 
     const settled = await Promise.allSettled(tasks);
-
-    const sources: StructuredDataSource[] = [];
-    const errors: StructuredDataError[] = [];
     for (const res of settled) {
       if (res.status === "fulfilled") {
-        // Bug 1 fix: only `ok` (with usable data) counts as a real source.
-        // `empty` results (feed succeeded but found nothing for this event)
-        // are dropped so they cannot inflate hasFeed and suppress the
-        // low_data discipline guardrail downstream.
         if (res.value.kind === "ok") sources.push(res.value.source);
         else if (res.value.kind === "err") errors.push(res.value.error);
-        // kind === "empty" → silently dropped
       } else {
         errors.push({
           source: "unknown",
@@ -381,6 +390,48 @@ ${forecastDisciplineBlock()}`;
     return { sources, errors, total_duration_ms: Date.now() - t0 };
   },
 };
+
+// ============================================================
+// Persist grounding-produced outcomes (favourite-first; bucket
+// the long tail). Replaces the racing/golf outcome-rewrite block
+// that previously lived in generate-prediction.
+// ============================================================
+async function persistGroundingOutcomes(
+  supabase: SupabaseClient,
+  eventId: string,
+  outcomes: string[],
+  isGolf: boolean,
+): Promise<void> {
+  const MAX_NAMED = 8;
+  const useBucket = outcomes.length > MAX_NAMED;
+  const named = useBucket ? outcomes.slice(0, MAX_NAMED) : outcomes;
+  const newLabels = [...named];
+  if (useBucket) newLabels.push(isGolf ? "Any other player" : "Any other runner");
+
+  const { error: delErr } = await supabase
+    .from("event_outcomes").delete().eq("event_id", eventId);
+  if (delErr) {
+    console.warn(
+      `[sport.persistGroundingOutcomes] delete failed for event ${eventId}: ${delErr.message}`,
+    );
+    return;
+  }
+  const newRows = newLabels.map((label) => ({
+    event_id: eventId, external_id: label, label, metadata: null,
+  }));
+  const { error: rwErr } = await supabase
+    .from("event_outcomes")
+    .upsert(newRows, { onConflict: "event_id,external_id" });
+  if (rwErr) {
+    console.warn(
+      `[sport.persistGroundingOutcomes] upsert failed for event ${eventId}: ${rwErr.message}`,
+    );
+    return;
+  }
+  console.log(
+    `[sport.persistGroundingOutcomes] event=${eventId} outcomes_written=${newLabels.length}`,
+  );
+}
 
 type SourceResult =
   | { kind: "ok"; source: StructuredDataSource }
