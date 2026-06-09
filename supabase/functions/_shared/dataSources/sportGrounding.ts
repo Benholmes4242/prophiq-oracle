@@ -293,10 +293,50 @@ async function groundRacing(
       ? new Date(`${input.approxDate}T12:00:00Z`).toISOString()
       : new Date().toISOString(),
   });
+  // Single race fully specified by course+time/race_number → emit a
+  // dedicated racing_confirmed result so both call sites can treat it
+  // as feed_backed without a second feed hit.
+  if (picker.kind === "race") {
+    const outcomes = favouriteFirstRunnerLabels(picker.runners);
+    return {
+      kind: "racing_confirmed",
+      sport: "horse_racing",
+      outcomes,
+      runners: picker.runners,
+      race: picker.race,
+      track_name: picker.track_name,
+      date: picker.date,
+    };
+  }
   if (picker.kind === "races" && picker.races.length >= 2) {
     return { kind: "picker_racing", picker };
   }
+  // dark_day / unmatched / 1-entry races picker (runners not published)
   return { kind: "racing_fallthrough", picker };
+}
+
+/** Favourite-first runner labels (best decimal price first; unpriced last).
+ * Bucketed tail "Any other runner" when field > 8. Mirrors the bucketing
+ * used by sport.ts gatherStructuredSources for the cron grounding path. */
+function favouriteFirstRunnerLabels(runners: RacingRunner[]): string[] {
+  const named = runners
+    .map((r) => {
+      const horse = String(r.horse ?? "").trim();
+      if (!horse) return null;
+      const decs: number[] = [];
+      for (const o of r.odds ?? []) {
+        const v = typeof o.decimal === "number" ? o.decimal : Number(o.decimal);
+        if (Number.isFinite(v) && v > 0) decs.push(v);
+      }
+      return { horse, best: decs.length > 0 ? Math.min(...decs) : null };
+    })
+    .filter((r): r is { horse: string; best: number | null } => r !== null);
+  const priced = named.filter((r) => r.best !== null).sort((a, b) => (a.best! - b.best!));
+  const unpriced = named.filter((r) => r.best === null);
+  const all = [...priced, ...unpriced].map((r) => r.horse);
+  const MAX = 8;
+  if (all.length <= MAX) return all;
+  return [...all.slice(0, MAX), "Any other runner"];
 }
 
 function readEnv(name: string): string | undefined {
