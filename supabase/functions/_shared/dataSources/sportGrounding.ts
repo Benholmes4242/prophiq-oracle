@@ -607,6 +607,20 @@ export async function groundSportEventForCron(
           outcomes: [result.outcomes[0], result.outcomes[1]],
           isGolf: false,
         };
+      case "f1_race":
+        return {
+          sources: [
+            {
+              name: "f1Confirm",
+              data: { matched: result.metadata.f1_race },
+              fetched_at: new Date().toISOString(),
+              duration_ms: Date.now() - t0,
+            },
+          ],
+          outcomes: result.outcomes,
+          isGolf: false,
+          bucketLabel: "Any other driver",
+        };
       case "picker_football":
       case "picker_golf":
       case "picker_racing":
