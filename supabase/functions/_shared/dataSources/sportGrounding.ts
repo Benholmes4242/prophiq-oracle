@@ -154,7 +154,26 @@ export type SportGroundingResult =
       kind: "picker_tennis";
       candidates: TennisMatchCandidate[];
     }
+  | {
+      kind: "f1_race";
+      sport: "f1";
+      /** Ordered driver full names, championship-position first. NO bucket
+       * here — the caller appends "Any other driver" after the named head. */
+      outcomes: string[];
+      starts_at: string;
+      metadata: { f1_race: F1RaceConfirmMeta };
+    }
   | { kind: "none"; reason: string };
+
+export interface F1RaceConfirmMeta {
+  kind: "race";
+  season: number;
+  round: number;
+  race_name: string;
+  circuit: string | null;
+  date: string;
+  starts_at: string;
+}
 
 export interface TennisMatchConfirmMeta {
   kind: "match";
