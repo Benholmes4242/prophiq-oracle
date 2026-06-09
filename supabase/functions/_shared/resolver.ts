@@ -68,6 +68,7 @@ Rules:
 - The conversation is the picker. Never enumerate options in your message.
 - Policy: DECLINE is rare and only for the five categories listed above.
 - Output ONLY JSON. No prose. No code fences.
+- Confirm-when-unsure: if you cannot determine a field needed to identify the event with HIGH confidence, ask ONE short warm CLARIFY rather than resolving with a guess or with the field missing. Examples: sport is unclear ("Quick check so the forecast is accurate - which sport is this for?"), the date is unclear ("Which day did you mean?"), which of two events ("Is that the league match or the cup tie?"). BUT: if the event is obvious (two named football clubs, two named tennis players at a named tournament, a clear single event), RESOLVE immediately and DO NOT ask - over-asking on obvious questions is a failure.
 
 Domain rules (sport vs politics):
 - Any match, race, game, bout, heat, fixture, or tournament contested between teams, athletes, or nations is ALWAYS domain="sport" - regardless of whether nations compete. World Cup, Euros, Olympics (every event), Nations League, Davis Cup, Ryder Cup, international rugby / cricket / hockey / basketball / football - all domain="sport". Nations or politically-prominent entities competing in a SPORTING contest is SPORT, never politics.
@@ -292,7 +293,7 @@ export function parseDecision(text: string): ResolverDecision {
           .filter((c) => c.length > 0)
           .slice(0, 16)
       : [];
-    return {
+    const decision: ResolveDecision = {
       action: "resolve",
       domain,
       canonical_event: canonical,
@@ -300,10 +301,58 @@ export function parseDecision(text: string): ResolverDecision {
       approx_date: approxDate,
       competitors,
     };
+
+    // Layer 1: deterministic sport repair for domain=sport.
+    // Conservative — only fills when canonical contains an unambiguous
+    // tournament/competition/format token. Otherwise leaves sport=null and
+    // lets the prompt's "confirm-when-unsure" rule (Layer 2) ask the user.
+    if (decision.domain === "sport" && !decision.sport) {
+      const inferred = inferSportFromCanonical(decision.canonical_event, decision.competitors);
+      if (inferred) {
+        console.log(`[resolver] sport repaired -> ${inferred} (canonical="${decision.canonical_event}")`);
+        decision.sport = inferred;
+      }
+    }
+
+    return decision;
   }
 
   return failOpenClarify();
 }
+
+// Conservative deterministic sport inference. Returns null when no
+// unambiguous token is present — we'd rather ask the user (Layer 2) than
+// silently mis-tag and ship a bad forecast.
+export function inferSportFromCanonical(
+  canonical: string,
+  competitors: string[],
+): string | null {
+  const c = ` ${canonical.toLowerCase()} `;
+  const hasVs = /\b(vs?|v)\b/.test(c) || competitors.length >= 2;
+
+  const tennisTokens = [
+    "boss open", "libema", "wimbledon", "queen's", "queens club", "halle",
+    "stuttgart open", "eastbourne", "roland garros", "french open", "us open",
+    "australian open", "indian wells", "miami open", "madrid open",
+    "monte carlo", " atp ", " wta ", " itf ", "challenger",
+  ];
+  if (hasVs && tennisTokens.some((t) => c.includes(t))) return "tennis";
+
+  const footballTokens = [
+    "premier league", "la liga", "serie a", "bundesliga", "ligue 1",
+    "champions league", "europa league", "fa cup", "efl", "carabao cup",
+    "uefa", "world cup qualifier", "nations league",
+  ];
+  if (footballTokens.some((t) => c.includes(t))) return "football";
+
+  // Horse racing: "<Course> HH:MM ..." or "<Course> race <N> ..."
+  if (/\b\d{1,2}:\d{2}\b/.test(c) || /\brace\s+\d+\b/.test(c)) {
+    return "horse_racing";
+  }
+
+  return null;
+}
+
 
 function failOpenClarify(): ClarifyDecision {
   return {
