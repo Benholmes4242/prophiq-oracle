@@ -51,12 +51,17 @@ import {
   type RacingRunner,
   type RacingSnapshot,
 } from "./racingApi.ts";
+import {
+  confirmTennisMatch,
+  type TennisMatchCandidate,
+} from "./tennisConfirm.ts";
 
 /** Sport kinds with a wired confirm path. "other" falls through. */
 export type SportKind =
   | "football"
   | "golf"
   | "horse_racing"
+  | "tennis"
   | "other";
 
 export interface SportGroundingInput {
