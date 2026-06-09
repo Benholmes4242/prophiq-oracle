@@ -377,10 +377,10 @@ ${forecastDisciplineBlock()}`;
     }
 
     // theSportsDB stays as fallback for non-confirm sports (rugby, cricket,
-    // etc.) and props. Football / golf / horse racing / tennis are served by
-    // groundSportEventForCron above.
+    // etc.) and props. Football / golf / horse racing / tennis / f1 are
+    // served by groundSportEventForCron above.
     const tasks: Array<Promise<SourceResult>> = [];
-    if (!football && !golf && !horseRacing && !tennis) {
+    if (!football && !golf && !horseRacing && !tennis && !f1) {
       tasks.push(runSource("theSportsDB", () => fetchTheSportsDBContext(tsdbKey, hints)));
     }
 
