@@ -141,13 +141,10 @@ export function parseRacingHints(hints: RacingHints): ParsedHints {
   let time: string | null = null;
   const timeMatch = text.match(/\b(\d{1,2})[:.](\d{2})\s*(am|pm)?\b/i);
   if (timeMatch) {
-    let h = parseInt(timeMatch[1], 10);
+    const hRaw = parseInt(timeMatch[1], 10);
     const m = parseInt(timeMatch[2], 10);
     const ap = (timeMatch[3] ?? "").toLowerCase();
-    if (ap === "pm" && h < 12) h += 12;
-    else if (ap === "am" && h === 12) h = 0;
-    // Heuristic: racing afternoon cards — if no am/pm and hour <= 6, assume PM.
-    else if (!ap && h >= 1 && h <= 6) h += 12;
+    const h = racingHourToPM(hRaw, ap === "am" ? "am" : ap === "pm" ? "pm" : null);
     if (h >= 0 && h <= 23 && m >= 0 && m <= 59) {
       time = `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
     }
@@ -362,13 +359,29 @@ function raceLocalTime(c: RawRacecard): string | null {
 
 function normaliseTime(t: string | undefined): string | null {
   if (!t) return null;
-  const m = t.match(/(\d{1,2})[:.](\d{2})/);
+  const m = t.match(/(\d{1,2})[:.](\d{2})\s*(am|pm)?/i);
   if (!m) return null;
-  let h = parseInt(m[1], 10);
+  const hRaw = parseInt(m[1], 10);
   const mins = m[2];
-  // PM heuristic mirroring parseRacingHints: bare 1–11 on a racing card = PM.
-  if (h >= 1 && h <= 11) h += 12;
+  const ap = (m[3] ?? "").toLowerCase();
+  const h = racingHourToPM(hRaw, ap === "am" ? "am" : ap === "pm" ? "pm" : null);
   return `${String(h).padStart(2, "0")}:${mins}`;
+}
+
+/**
+ * Shared PM-heuristic for racing times: UK / IRE cards run roughly
+ * 11:00-21:00, so a bare-hour value 1-11 with no am/pm is overwhelmingly
+ * PM (+12). 12 stays 12 (noon) unless explicit "am". Explicit am/pm
+ * always wins. Used by BOTH parseRacingHints (user text) and
+ * normaliseTime (API off_time fallback) so the two can never drift —
+ * previously they disagreed on 7-11 and 19:21 at Brighton (API "7:21")
+ * never matched the user's "7:21".
+ */
+function racingHourToPM(h: number, meridian: "am" | "pm" | null): number {
+  if (meridian === "pm") return h < 12 ? h + 12 : h;
+  if (meridian === "am") return h === 12 ? 0 : h;
+  if (h >= 1 && h <= 11) return h + 12;
+  return h;
 }
 
 function normaliseRunner(r: RawRunner): RacingRunner {
