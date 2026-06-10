@@ -29,9 +29,37 @@ export interface F1RaceConfirm {
   drivers: string[];      // ordered full names (standings first)
 }
 
+export interface F1ChampionshipConfirm {
+  kind: "championship";
+  season: number;
+  drivers: string[];          // standings-ordered full names
+  leader_points: number | null;
+  round_as_of: number | null; // last round counted into standings (best-effort)
+  starts_at: string | null;   // championship resolves at season end
+}
+
 export type F1RaceResult =
   | F1RaceConfirm
   | { kind: "none"; reason: string };
+
+export type F1ChampionshipResult =
+  | F1ChampionshipConfirm
+  | { kind: "none"; reason: string };
+
+/** True when the canonical/question text frames a DRIVERS championship,
+ *  not a single race. "Constructors championship" is intentionally NOT
+ *  matched here — that's a teams question and out of scope. */
+export function isF1DriversChampionshipIntent(text: string): boolean {
+  const s = (text ?? "").toLowerCase();
+  if (!s) return false;
+  if (/\bconstructor(s)?\b/.test(s)) return false; // teams, out of scope
+  if (/\bdrivers?[''']?\s*championship\b/.test(s)) return true;
+  if (/\bworld\s*champion(ship)?\b/.test(s)) return true;
+  if (/\bf1\s*title\b/.test(s) || /\bformula\s*(1|one)\s*title\b/.test(s)) return true;
+  // bare "championship" / "title" only counts with f1/formula context
+  if (/\b(championship|title)\b/.test(s) && /\b(f1|formula\s*(1|one))\b/.test(s)) return true;
+  return false;
+}
 
 interface JolpicaDriver {
   driverId?: string;
