@@ -252,3 +252,56 @@ async function fetchStandings(year: number): Promise<JolpicaStanding[]> {
   >(`/${year}/driverStandings.json`);
   return body?.MRData?.StandingsTable?.StandingsLists?.[0]?.DriverStandings ?? [];
 }
+
+/** Drivers championship outright — reuses the season standings + driver list
+ *  already used by confirmF1Race. Standings position IS the title-contention
+ *  order. Returns "none" pre-season (empty standings) so the caller falls
+ *  back to research_grounded. */
+export async function confirmF1Championship(
+  approxDateISO: string | null,
+): Promise<F1ChampionshipResult> {
+  const season = inferSeason(approxDateISO);
+  const [drivers, standings] = await Promise.all([
+    fetchDrivers(season),
+    fetchStandings(season),
+  ]);
+
+  if (standings.length === 0) {
+    return { kind: "none", reason: `no F1 standings yet for season ${season}` };
+  }
+
+  const standingsOrdered = [...standings].sort((a, b) => {
+    const pa = Number(a.position ?? "999");
+    const pb = Number(b.position ?? "999");
+    return pa - pb;
+  });
+  const ordered: string[] = [];
+  const seen = new Set<string>();
+  for (const s of standingsOrdered) {
+    const name = fullName(s.Driver);
+    if (name && !seen.has(name)) { ordered.push(name); seen.add(name); }
+  }
+  for (const d of drivers) {
+    const name = fullName(d);
+    if (name && !seen.has(name)) { ordered.push(name); seen.add(name); }
+  }
+  if (ordered.length < 2) {
+    return { kind: "none", reason: "F1 driver field too small for championship" };
+  }
+
+  const leaderPointsRaw = standingsOrdered[0]?.points;
+  const leaderPoints = leaderPointsRaw != null && Number.isFinite(Number(leaderPointsRaw))
+    ? Number(leaderPointsRaw)
+    : null;
+
+  // Best-effort: Jolpica driverStandings doesn't include round here; we leave
+  // round_as_of null. Callers can surface "after round N" via a later fetch.
+  return {
+    kind: "championship",
+    season,
+    drivers: ordered,
+    leader_points: leaderPoints,
+    round_as_of: null,
+    starts_at: null,
+  };
+}
