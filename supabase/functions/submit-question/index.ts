@@ -423,14 +423,14 @@ Deno.serve(async (req) => {
       // F1 race confirm — when set, outcomes become driver field +
       // "Any other driver" bucket and metadata.f1_race carries the race.
       type F1RaceThread = {
-        kind: "race" | "championship";
+        kind: "race" | "championship" | "constructors_championship";
         season: number;
         round: number;
         race_name: string;
         circuit: string | null;
         date: string;
         starts_at: string;
-        drivers: string[];
+        drivers: string[]; // for constructors_championship these are TEAM names
       };
       let f1Race: F1RaceThread | null = null;
 
@@ -823,9 +823,11 @@ Deno.serve(async (req) => {
                 drivers: grounded.outcomes,
               };
               resolverOverride = {
-                normalized_question: f.kind === "championship"
-                  ? `Formula 1 Drivers' Championship ${f.season}`
-                  : `${f.race_name} ${f.season}`,
+                normalized_question: f.kind === "constructors_championship"
+                  ? `Formula 1 Constructors' Championship ${f.season}`
+                  : f.kind === "championship"
+                    ? `Formula 1 Drivers' Championship ${f.season}`
+                    : `${f.race_name} ${f.season}`,
                 starts_at: f.starts_at,
               };
             }
@@ -902,10 +904,13 @@ Deno.serve(async (req) => {
         // bucket label is gated by isDisplayPlaceholder so it can never
         // headline ranked_outcomes[0] (Gap-1 demotion).
         const MAX_NAMED = 8;
+        const bucketLabel = f1Race.kind === "constructors_championship"
+          ? "Any other team"
+          : "Any other driver";
         if (f1Race.drivers.length <= MAX_NAMED) {
           outcomes = [...f1Race.drivers];
         } else {
-          outcomes = [...f1Race.drivers.slice(0, MAX_NAMED), "Any other driver"];
+          outcomes = [...f1Race.drivers.slice(0, MAX_NAMED), bucketLabel];
         }
       } else {
         outcomes = (mod.outcomes && mod.outcomes.length >= 2) ? mod.outcomes : ["Yes", "No"];
