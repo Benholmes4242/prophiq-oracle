@@ -62,6 +62,10 @@ import {
   isF1DriversChampionshipIntent,
   isF1ConstructorsChampionshipIntent,
 } from "./f1Confirm.ts";
+import {
+  confirmNbaGame,
+  type NbaGameCandidate,
+} from "./nbaConfirm.ts";
 
 /** Sport kinds with a wired confirm path. "other" falls through. */
 export type SportKind =
@@ -70,6 +74,7 @@ export type SportKind =
   | "horse_racing"
   | "tennis"
   | "f1"
+  | "basketball"
   | "other";
 
 export interface SportGroundingInput {
