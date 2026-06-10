@@ -381,6 +381,22 @@ export function inferSportFromCanonical(
   if (/\b\d{1,2}:\d{2}\b/.test(c) || /\brace\s+\d+\b/.test(c)) {
     return "horse_racing";
   }
+  // 7) NBA / basketball. Tokens or a known NBA team nickname (require the
+  //    nickname, not just city, to avoid "Miami" / "LA" / "New York"
+  //    collisions with other sports). Allow with-or-without "vs".
+  const basketballTokens = [" nba ", "basketball", "nba finals", "eastern conference", "western conference"];
+  const nbaNicknames = [
+    "lakers", "celtics", "knicks", "warriors", "nuggets", "heat", "bucks",
+    "suns", "mavericks", "nets", "76ers", "sixers", "clippers", "bulls",
+    "hawks", "raptors", "rockets", "spurs", "thunder", "jazz", "kings",
+    "pelicans", "pistons", "magic", "wizards", "hornets", "cavaliers",
+    "cavs", "grizzlies", "timberwolves", "wolves", "blazers", "trail blazers",
+    "pacers",
+  ];
+  if (basketballTokens.some((t) => c.includes(t))) return "basketball";
+  if (nbaNicknames.some((n) => c.includes(` ${n} `) || c.includes(` ${n}.`))) {
+    return "basketball";
+  }
 
   return null;
 }
