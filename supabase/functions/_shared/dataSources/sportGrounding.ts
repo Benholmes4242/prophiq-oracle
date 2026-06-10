@@ -456,6 +456,42 @@ async function groundF1(
   // Reuse kind:"f1_race" so submit-question's existing F1 outcome shaping
   // (top MAX_NAMED + "Any other driver") applies unchanged; the
   // metadata.f1_race.kind discriminator distinguishes championship vs race.
+  // Constructors championship intent checked FIRST — the phrase
+  // "constructors championship" also contains "championship", so the
+  // drivers detector would otherwise win. Drivers detector already
+  // excludes /constructor/, but order matters defensively.
+  if (isF1ConstructorsChampionshipIntent(input.canonicalEvent)) {
+    const champ = await confirmF1Constructors(input.approxDate);
+    // NEVER fall back to drivers for a constructors question — return
+    // none so the caller routes to research_grounded with TEAM framing.
+    if (champ.kind === "none") {
+      return { kind: "none", reason: `f1 constructors: ${champ.reason}` };
+    }
+    if (champ.teams.length < 2) {
+      return { kind: "none", reason: "f1 constructors field too small" };
+    }
+    const seasonEnd = `${champ.season}-12-31T23:59:00Z`;
+    return {
+      kind: "f1_race",
+      sport: "f1",
+      outcomes: champ.teams,
+      starts_at: seasonEnd,
+      metadata: {
+        f1_race: {
+          kind: "constructors_championship",
+          season: champ.season,
+          round: 0,
+          race_name: `Formula 1 Constructors' Championship ${champ.season}`,
+          circuit: null,
+          date: seasonEnd.slice(0, 10),
+          starts_at: seasonEnd,
+          leader_points: champ.leader_points,
+          round_as_of: champ.round_as_of,
+        },
+      },
+    };
+  }
+
   if (isF1DriversChampionshipIntent(input.canonicalEvent)) {
     const champ = await confirmF1Championship(input.approxDate);
     if (champ.kind === "none") {
