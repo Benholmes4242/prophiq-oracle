@@ -74,7 +74,15 @@ export interface SportGroundingInput {
   approxDate: string | null;
   /** Named competitors when known (e.g. football [home, away]); empty/null otherwise. */
   competitors: string[] | null;
+  /** Structured golf picker hint — when present, groundGolf locks the
+   * tournament by (tour, tournament_id) and skips name matching / picker. */
+  golfHint?: {
+    tour: string;
+    tournament_id: string;
+    tournament_name: string;
+  } | null;
 }
+
 
 /**
  * Uniform grounding result. Callers branch on `kind`:
