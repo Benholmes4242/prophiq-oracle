@@ -738,7 +738,9 @@ export async function groundSportEventForCron(
           ],
           outcomes: result.outcomes,
           isGolf: false,
-          bucketLabel: "Any other driver",
+          bucketLabel: result.metadata.f1_race.kind === "constructors_championship"
+            ? "Any other team"
+            : "Any other driver",
         };
       case "picker_football":
       case "picker_golf":
