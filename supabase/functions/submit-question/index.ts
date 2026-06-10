@@ -497,7 +497,12 @@ Deno.serve(async (req) => {
       //                the primary policy gate is the moderation POLICY check
       //                above).
       let resolverOverride: { normalized_question: string; starts_at?: string } | null = null;
-      if (!domainId || mod.confidence === "low") {
+      // Sport questions must always reach the resolver+grounding gate, even when
+      // moderation is highly confident — otherwise feed-backed grounding (golf,
+      // racing, football, F1, tennis) is skipped and we fall back to research.
+      // See prophiq-grounding-gate-placement-bug.md (Option A).
+      const sportDomain = domainId === "sport";
+      if (!domainId || mod.confidence === "low" || sportDomain) {
         sse.send({ stage: "resolver", status: "start" });
         const decision = await runResolverTurn(userTurns, today, resolverTranscript);
         sse.send({ stage: "resolver", status: "done", data: { action: decision.action } });
