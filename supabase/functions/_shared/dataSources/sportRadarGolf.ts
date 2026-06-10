@@ -291,7 +291,13 @@ export function parseTournamentName(text: string): string | null {
   t = t.replace(/\b(the\s+golf|golf|tournament|championship\s+golf)\b/gi, " ");
   // Strip explicit tour qualifiers so the name itself matches the schedule.
   t = t.replace(/\b(pga tour|pga|dp world(?:\s+tour)?|european\s+tour|euro\s+tour|lpga(?:\s+tour)?|champions\s+tour|senior\s+(?:pga\s+)?tour?|korn\s+ferry(?:\s+tour)?|liv(?:\s+golf(?:\s+league)?)?)\b/gi, " ");
+  // Strip standalone 4-digit years so "2026 RBC Canadian Open" matches the
+  // bare schedule entry "RBC Canadian Open".
+  t = t.replace(/\b(19|20)\d{2}\b/g, " ");
   t = t.replace(/[?!.]/g, " ");
+  // Clean dangling trailing connector words left by the tour-qualifier strip
+  // (e.g. "...on the PGA Tour" -> "...on the" -> ""). Conservative: trailing only.
+  t = t.replace(/\s+(on|at|in|of|for)(\s+the)?\s*$/i, " ");
   t = t.replace(/\s+/g, " ").trim();
   t = t.replace(/^the\s+/i, "").trim();
   if (t.length < 3) return null;
