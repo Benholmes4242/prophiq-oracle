@@ -46,6 +46,31 @@ export type F1ChampionshipResult =
   | F1ChampionshipConfirm
   | { kind: "none"; reason: string };
 
+export interface F1ConstructorsConfirm {
+  kind: "constructors_championship";
+  season: number;
+  teams: string[];           // standings-ordered constructor (team) names
+  leader_points: number | null;
+  round_as_of: number | null;
+  starts_at: string | null;
+}
+
+export type F1ConstructorsResult =
+  | F1ConstructorsConfirm
+  | { kind: "none"; reason: string };
+
+/** True when the canonical/question text frames a CONSTRUCTORS (teams)
+ *  championship. Mutually exclusive with isF1DriversChampionshipIntent
+ *  (which short-circuits on /constructor/). */
+export function isF1ConstructorsChampionshipIntent(text: string): boolean {
+  const s = (text ?? "").toLowerCase();
+  if (!s) return false;
+  if (!/\bconstructor(s)?\b/.test(s)) return false;
+  if (/\b(championship|title|cup|trophy)\b/.test(s)) return true;
+  if (/\b(f1|formula\s*(1|one))\b/.test(s)) return true;
+  return false;
+}
+
 /** True when the canonical/question text frames a DRIVERS championship,
  *  not a single race. "Constructors championship" is intentionally NOT
  *  matched here — that's a teams question and out of scope. */
