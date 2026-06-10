@@ -423,14 +423,14 @@ Deno.serve(async (req) => {
       // F1 race confirm — when set, outcomes become driver field +
       // "Any other driver" bucket and metadata.f1_race carries the race.
       type F1RaceThread = {
-        kind: "race" | "championship";
+        kind: "race" | "championship" | "constructors_championship";
         season: number;
         round: number;
         race_name: string;
         circuit: string | null;
         date: string;
         starts_at: string;
-        drivers: string[];
+        drivers: string[]; // for constructors_championship these are TEAM names
       };
       let f1Race: F1RaceThread | null = null;
 
