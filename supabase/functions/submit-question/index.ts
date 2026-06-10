@@ -1015,6 +1015,10 @@ Deno.serve(async (req) => {
             sub_category: "tennis",
             tennis_confirm: tennisConfirm,
           } : {}),
+          ...(nbaConfirm ? {
+            sub_category: "basketball",
+            nba_game: nbaConfirm,
+          } : {}),
           ...(f1Race ? {
             sub_category: "f1",
             f1_race: f1Race,
