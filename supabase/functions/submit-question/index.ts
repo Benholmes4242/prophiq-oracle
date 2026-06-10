@@ -626,7 +626,13 @@ Deno.serve(async (req) => {
               canonicalEvent: decision.canonical_event,
               approxDate: decision.approx_date ?? null,
               competitors: decision.competitors ?? null,
+              golfHint: hasStructuredGolf ? {
+                tour: structuredTourAlias,
+                tournament_id: structuredTournamentId,
+                tournament_name: structuredTournamentName,
+              } : null,
             });
+
             console.log(`[tennis-trace] grounded kind=${grounded.kind}`);
             console.log(`[submit-question] resolver-sport sport=${sportKindForGrounding} kind=${grounded.kind}`);
             debugTrace.grounded_kind = grounded.kind;
