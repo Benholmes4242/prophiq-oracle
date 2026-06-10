@@ -1,38 +1,59 @@
 // NBA game-winner confirm via TheSportsDB (free public key "3").
 //
-// Pattern mirrors tennisConfirm.ts (two-competitor). NBA league id 4387.
-// Match shape: home vs away. Returns one of single / multiple / none.
+// Team list is hardcoded (30 teams, stable reference data). The free-tier
+// search_all_teams.php?l=NBA is capped at 10 alphabetical results so it
+// cannot resolve Knicks/Lakers/Spurs etc. — hardcoding is more reliable
+// than the API for this stable roster. The SCHEDULE still comes live from
+// eventsnextleague.php?id=4387.
 //
-// Steps:
-//  1. extractTeams(canonical) — split on vs / v / at / @ into two team refs.
-//  2. Resolve each ref against a cached NBA team list (search_all_teams.php
-//     ?l=NBA), matching nickname (last token of strTeam), city, or short
-//     code (strTeamShort).
-//  3. Pull the upcoming schedule (eventsnextleague.php?id=4387) and match
-//     any event whose (home, away) covers both resolved teams in either
-//     orientation.
-//  4. Return { kind:"single", game } / "multiple" / "none".
-//
-// Match-winner ONLY. Title/playoff outrights are a separate shape and stay
-// research_grounded for now. Never throws.
+// Match-winner ONLY. Title/playoff outrights stay research_grounded.
+// Never throws.
 
 const TSDB_BASE_TEMPLATE = "https://www.thesportsdb.com/api/v1/json";
 const TSDB_TIMEOUT_MS = 10_000;
 const PUBLIC_KEY = "3";
 const NBA_LEAGUE_ID = "4387";
 
-// Module-scope cache for the NBA team list (30 teams; small + stable).
-let TEAM_CACHE: NbaTeam[] | null = null;
-let TEAM_CACHE_AT = 0;
-const TEAM_CACHE_TTL_MS = 60 * 60 * 1000; // 1h
-
 export interface NbaTeam {
-  id: string;
-  name: string;        // strTeam, e.g. "Los Angeles Lakers"
-  short: string | null;// strTeamShort, e.g. "LAL"
-  nickname: string;    // last token(s) of strTeam, e.g. "Lakers"
-  city: string;        // strTeam minus nickname, e.g. "Los Angeles"
+  name: string;       // canonical strTeam form returned by TheSportsDB
+  tokens: string[];   // lowercase nickname / city / short-code tokens
 }
+
+/** Static NBA roster. Tokens are matched against a normalised ref by
+ *  whole-word containment. "LA" / "Los Angeles" deliberately omitted —
+ *  ambiguous between Lakers + Clippers (require nickname). */
+const NBA_TEAMS: NbaTeam[] = [
+  { name: "Atlanta Hawks", tokens: ["hawks", "atlanta", "atl"] },
+  { name: "Boston Celtics", tokens: ["celtics", "boston", "bos"] },
+  { name: "Brooklyn Nets", tokens: ["nets", "brooklyn", "bkn"] },
+  { name: "Charlotte Hornets", tokens: ["hornets", "charlotte", "cha"] },
+  { name: "Chicago Bulls", tokens: ["bulls", "chicago", "chi"] },
+  { name: "Cleveland Cavaliers", tokens: ["cavaliers", "cavs", "cleveland", "cle"] },
+  { name: "Dallas Mavericks", tokens: ["mavericks", "mavs", "dallas", "dal"] },
+  { name: "Denver Nuggets", tokens: ["nuggets", "denver", "den"] },
+  { name: "Detroit Pistons", tokens: ["pistons", "detroit", "det"] },
+  { name: "Golden State Warriors", tokens: ["warriors", "golden state", "gsw", "dubs"] },
+  { name: "Houston Rockets", tokens: ["rockets", "houston", "hou"] },
+  { name: "Indiana Pacers", tokens: ["pacers", "indiana", "ind"] },
+  { name: "LA Clippers", tokens: ["clippers", "la clippers", "lac"] },
+  { name: "Los Angeles Lakers", tokens: ["lakers", "la lakers", "lal"] },
+  { name: "Memphis Grizzlies", tokens: ["grizzlies", "memphis", "mem"] },
+  { name: "Miami Heat", tokens: ["heat", "miami", "mia"] },
+  { name: "Milwaukee Bucks", tokens: ["bucks", "milwaukee", "mil"] },
+  { name: "Minnesota Timberwolves", tokens: ["timberwolves", "wolves", "minnesota", "min"] },
+  { name: "New Orleans Pelicans", tokens: ["pelicans", "new orleans", "nop"] },
+  { name: "New York Knicks", tokens: ["knicks", "new york knicks", "new york", "nyk"] },
+  { name: "Oklahoma City Thunder", tokens: ["thunder", "oklahoma city", "oklahoma", "okc"] },
+  { name: "Orlando Magic", tokens: ["magic", "orlando", "orl"] },
+  { name: "Philadelphia 76ers", tokens: ["76ers", "sixers", "philadelphia", "phi", "philly"] },
+  { name: "Phoenix Suns", tokens: ["suns", "phoenix", "phx"] },
+  { name: "Portland Trail Blazers", tokens: ["trail blazers", "blazers", "portland", "por"] },
+  { name: "Sacramento Kings", tokens: ["kings", "sacramento", "sac"] },
+  { name: "San Antonio Spurs", tokens: ["spurs", "san antonio", "sas"] },
+  { name: "Toronto Raptors", tokens: ["raptors", "toronto", "tor"] },
+  { name: "Utah Jazz", tokens: ["jazz", "utah", "uta"] },
+  { name: "Washington Wizards", tokens: ["wizards", "washington", "was", "wsh"] },
+];
 
 export interface NbaGameCandidate {
   event_id: string;
@@ -59,14 +80,6 @@ interface TSDBRawEvent {
   strAwayTeam?: string | null;
 }
 
-interface TSDBRawTeam {
-  idTeam?: string | null;
-  strTeam?: string | null;
-  strTeamShort?: string | null;
-  strSport?: string | null;
-  strLeague?: string | null;
-}
-
 export async function confirmNbaGame(
   canonicalEvent: string,
   _approxDateISO: string | null,
@@ -74,21 +87,16 @@ export async function confirmNbaGame(
   const refs = extractTeams(canonicalEvent);
   if (!refs) return { kind: "none", reason: "could not parse two NBA teams" };
 
-  const base = `${TSDB_BASE_TEMPLATE}/${readEnv("THESPORTSDB_API_KEY") || PUBLIC_KEY}`;
-  const teams = await loadNbaTeams(base);
-  if (!teams || teams.length === 0) {
-    return { kind: "none", reason: "could not load NBA team list" };
-  }
-
-  const teamA = resolveTeam(refs.a, teams);
-  const teamB = resolveTeam(refs.b, teams);
+  const teamA = resolveTeam(refs.a);
+  const teamB = resolveTeam(refs.b);
   if (!teamA || !teamB) {
     return { kind: "none", reason: "could not resolve both team references" };
   }
-  if (teamA.id === teamB.id) {
+  if (teamA.name === teamB.name) {
     return { kind: "none", reason: "both references resolved to the same team" };
   }
 
+  const base = `${TSDB_BASE_TEMPLATE}/${readEnv("THESPORTSDB_API_KEY") || PUBLIC_KEY}`;
   const events = await fetchNextLeagueEvents(base);
   if (!events) return { kind: "none", reason: "could not fetch NBA schedule" };
 
@@ -126,7 +134,7 @@ export async function confirmNbaGame(
 }
 
 // ---------------------------------------------------------------------------
-// Team resolution
+// Parsing + resolution
 // ---------------------------------------------------------------------------
 
 /** Parse the canonical event into two team references. Splits on vs / v /
@@ -141,78 +149,35 @@ export function extractTeams(canonical: string): { a: string; b: string } | null
   return { a, b };
 }
 
-async function loadNbaTeams(base: string): Promise<NbaTeam[] | null> {
-  const now = Date.now();
-  if (TEAM_CACHE && now - TEAM_CACHE_AT < TEAM_CACHE_TTL_MS) return TEAM_CACHE;
-  const url = `${base}/search_all_teams.php?l=NBA`;
-  const raw = await fetchJson<{ teams?: TSDBRawTeam[] | null }>(url);
-  if (!raw || !Array.isArray(raw.teams)) return null;
-  const list: NbaTeam[] = [];
-  for (const t of raw.teams) {
-    const name = String(t.strTeam ?? "").trim();
-    if (!name) continue;
-    // Defence in depth: filter to basketball / NBA only.
-    const sport = String(t.strSport ?? "").toLowerCase();
-    const league = String(t.strLeague ?? "").toLowerCase();
-    if (sport && sport !== "basketball") continue;
-    if (league && !league.includes("nba")) continue;
-    const tokens = name.split(/\s+/);
-    // Handle "Portland Trail Blazers" (nickname = last two tokens) by
-    // taking the last 1-2 tokens but always keeping the FULL name match.
-    const nickname = tokens[tokens.length - 1] ?? name;
-    const city = tokens.slice(0, -1).join(" ") || name;
-    list.push({
-      id: String(t.idTeam ?? ""),
-      name,
-      short: t.strTeamShort ? String(t.strTeamShort).trim() : null,
-      nickname,
-      city,
-    });
-  }
-  if (list.length === 0) return null;
-  TEAM_CACHE = list;
-  TEAM_CACHE_AT = now;
-  return list;
-}
-
-/** Resolve a free-text team reference (e.g. "Knicks", "LA Lakers", "LAL")
- *  to a canonical team. Score: full-name contains > nickname == > city == >
- *  short-code ==. Null when no match. */
-function resolveTeam(ref: string, teams: NbaTeam[]): NbaTeam | null {
+/** Resolve a free-text team reference (e.g. "Knicks", "LA Lakers", "NYK")
+ *  against NBA_TEAMS. Returns null when no unique match (e.g. bare "LA"). */
+export function resolveTeam(ref: string): NbaTeam | null {
   const n = normalise(ref);
   if (!n) return null;
-  let best: { team: NbaTeam; score: number } | null = null;
-  for (const t of teams) {
-    const fullN = normalise(t.name);
-    const nickN = normalise(t.nickname);
-    const cityN = normalise(t.city);
-    const shortN = t.short ? normalise(t.short) : "";
-    let score = 0;
-    if (fullN === n) score = 100;
-    else if (nickN && nickN === n) score = 90;
-    else if (shortN && shortN === n) score = 85;
-    // "LA Lakers" / "Brooklyn Nets" — both tokens hit.
-    else if (nickN && cityN && (n.includes(nickN) && n.includes(cityN))) score = 80;
-    // Bare nickname inside the ref ("New York Knicks tonight").
-    else if (nickN && wordIncludes(n, nickN)) score = 70;
-    // Full team name appears as substring of ref.
-    else if (fullN && n.includes(fullN)) score = 65;
-    // City-only — last resort (Miami, LA, NY), but ambiguous and risky.
-    // Skip unless ref is exactly the city AND the city is unique enough
-    // (don't auto-match "Miami" since Heat shares with other Miami brands).
-    else if (cityN && cityN === n && cityN.length >= 5) score = 30;
-    if (score > 0 && (!best || score > best.score)) best = { team: t, score };
+  const hits: NbaTeam[] = [];
+  for (const t of NBA_TEAMS) {
+    if (normalise(t.name) === n) return t; // exact full-name short-circuit
+    for (const tok of t.tokens) {
+      if (wordIncludes(n, tok)) {
+        hits.push(t);
+        break;
+      }
+    }
   }
-  return best && best.score >= 50 ? best.team : null;
+  if (hits.length === 1) return hits[0];
+  return null; // ambiguous (e.g. bare "LA") or no match
 }
 
-/** True when `teamName` (from the feed) refers to the resolved team. */
+/** True when `teamName` (from the schedule feed) refers to the resolved
+ *  team. Compares the feed name's normalised form to the canonical and
+ *  the token list. */
 export function teamNameMatch(team: NbaTeam, teamName: string): boolean {
   const n = normalise(teamName);
   if (!n) return false;
   if (n === normalise(team.name)) return true;
-  if (team.short && n === normalise(team.short)) return true;
-  if (wordIncludes(n, normalise(team.nickname))) return true;
+  for (const tok of team.tokens) {
+    if (wordIncludes(n, tok)) return true;
+  }
   return false;
 }
 
@@ -222,11 +187,13 @@ function normalise(s: string): string {
 
 function wordIncludes(hay: string, needle: string): boolean {
   if (!needle) return false;
-  return new RegExp(`(?:^|\\s)${needle.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?:\\s|$)`).test(hay);
+  const n = needle.toLowerCase();
+  const escaped = n.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return new RegExp(`(?:^|\\s)${escaped}(?:\\s|$)`).test(hay);
 }
 
 // ---------------------------------------------------------------------------
-// Network helpers
+// Network
 // ---------------------------------------------------------------------------
 
 async function fetchNextLeagueEvents(base: string): Promise<TSDBRawEvent[] | null> {
@@ -255,7 +222,7 @@ function combineDateTime(date: string, time: string | null): string {
   if (time && /^\d{2}:\d{2}/.test(time)) {
     return `${d}T${time.slice(0, 8).padEnd(8, "0")}Z`.replace(/T(\d{2}:\d{2})Z$/, "T$1:00Z");
   }
-  return `${d}T23:00:00Z`; // NBA tip-offs are evening local; placeholder when missing
+  return `${d}T23:00:00Z`;
 }
 
 function readEnv(name: string): string | undefined {
