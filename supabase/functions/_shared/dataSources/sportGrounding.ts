@@ -806,10 +806,24 @@ export async function groundSportEventForCron(
             ? "Any other team"
             : "Any other driver",
         };
+      case "nba_game":
+        return {
+          sources: [
+            {
+              name: "nbaConfirm",
+              data: { matched: result.metadata.nba_game },
+              fetched_at: new Date().toISOString(),
+              duration_ms: Date.now() - t0,
+            },
+          ],
+          outcomes: [result.outcomes[0], result.outcomes[1]],
+          isGolf: false,
+        };
       case "picker_football":
       case "picker_golf":
       case "picker_racing":
       case "picker_tennis":
+      case "picker_nba":
         // Cron has no user to disambiguate — fall through to research_grounded.
         return { sources: [], outcomes: null, isGolf: false };
       case "none":
