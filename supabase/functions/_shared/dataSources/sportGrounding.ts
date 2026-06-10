@@ -55,7 +55,13 @@ import {
   confirmTennisMatch,
   type TennisMatchCandidate,
 } from "./tennisConfirm.ts";
-import { confirmF1Race, confirmF1Championship, isF1DriversChampionshipIntent } from "./f1Confirm.ts";
+import {
+  confirmF1Race,
+  confirmF1Championship,
+  confirmF1Constructors,
+  isF1DriversChampionshipIntent,
+  isF1ConstructorsChampionshipIntent,
+} from "./f1Confirm.ts";
 
 /** Sport kinds with a wired confirm path. "other" falls through. */
 export type SportKind =
