@@ -420,6 +420,17 @@ Deno.serve(async (req) => {
         starts_at: string;
       };
       let tennisConfirm: TennisConfirmThread | null = null;
+      // NBA game confirm — exactly two team names (no draw, no bucket).
+      type NbaConfirmThread = {
+        kind: "game";
+        event_id: string;
+        home: string;
+        away: string;
+        date: string;
+        starts_at: string;
+        event_name: string;
+      };
+      let nbaConfirm: NbaConfirmThread | null = null;
       // F1 race confirm — when set, outcomes become driver field +
       // "Any other driver" bucket and metadata.f1_race carries the race.
       type F1RaceThread = {
