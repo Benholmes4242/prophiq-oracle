@@ -62,6 +62,10 @@ import {
   isF1DriversChampionshipIntent,
   isF1ConstructorsChampionshipIntent,
 } from "./f1Confirm.ts";
+import {
+  confirmNbaGame,
+  type NbaGameCandidate,
+} from "./nbaConfirm.ts";
 
 /** Sport kinds with a wired confirm path. "other" falls through. */
 export type SportKind =
@@ -70,6 +74,7 @@ export type SportKind =
   | "horse_racing"
   | "tennis"
   | "f1"
+  | "basketball"
   | "other";
 
 export interface SportGroundingInput {
@@ -178,7 +183,29 @@ export type SportGroundingResult =
       starts_at: string;
       metadata: { f1_race: F1RaceConfirmMeta };
     }
+  | {
+      kind: "nba_game";
+      sport: "basketball";
+      /** Exactly two real team names from the feed; NO draw, NO bucket. */
+      outcomes: [string, string];
+      starts_at: string;
+      metadata: { nba_game: NbaGameConfirmMeta };
+    }
+  | {
+      kind: "picker_nba";
+      candidates: NbaGameCandidate[];
+    }
   | { kind: "none"; reason: string };
+
+export interface NbaGameConfirmMeta {
+  kind: "game";
+  event_id: string;
+  home: string;
+  away: string;
+  date: string;
+  starts_at: string;
+  event_name: string;
+}
 
 export interface F1RaceConfirmMeta {
   /** "race" = single Grand Prix winner; "championship" = drivers title;
@@ -249,6 +276,8 @@ export async function groundSportEvent(
         return await groundTennis(input);
       case "f1":
         return await groundF1(input);
+      case "basketball":
+        return await groundNba(input);
       case "other":
       default:
         return { kind: "none", reason: "sport not wired for confirm" };
@@ -446,6 +475,41 @@ async function groundTennis(
     },
   };
 }
+
+async function groundNba(
+  input: SportGroundingInput,
+): Promise<SportGroundingResult> {
+  // TheSportsDB free public key "3" — same as tennis. No env gate.
+  const confirm = await confirmNbaGame(input.canonicalEvent, input.approxDate);
+  if (confirm.kind === "none") {
+    return { kind: "none", reason: `nba confirm: ${confirm.reason}` };
+  }
+  if (confirm.kind === "multiple") {
+    return { kind: "picker_nba", candidates: confirm.games };
+  }
+  const g = confirm.game;
+  if (!g.home || !g.away) {
+    return { kind: "none", reason: "nba confirm returned an empty team" };
+  }
+  return {
+    kind: "nba_game",
+    sport: "basketball",
+    outcomes: [g.home, g.away],
+    starts_at: g.starts_at,
+    metadata: {
+      nba_game: {
+        kind: "game",
+        event_id: g.event_id,
+        home: g.home,
+        away: g.away,
+        date: g.date,
+        starts_at: g.starts_at,
+        event_name: g.event_name,
+      },
+    },
+  };
+}
+
 
 async function groundF1(
   input: SportGroundingInput,
@@ -742,10 +806,24 @@ export async function groundSportEventForCron(
             ? "Any other team"
             : "Any other driver",
         };
+      case "nba_game":
+        return {
+          sources: [
+            {
+              name: "nbaConfirm",
+              data: { matched: result.metadata.nba_game },
+              fetched_at: new Date().toISOString(),
+              duration_ms: Date.now() - t0,
+            },
+          ],
+          outcomes: [result.outcomes[0], result.outcomes[1]],
+          isGolf: false,
+        };
       case "picker_football":
       case "picker_golf":
       case "picker_racing":
       case "picker_tennis":
+      case "picker_nba":
         // Cron has no user to disambiguate — fall through to research_grounded.
         return { sources: [], outcomes: null, isGolf: false };
       case "none":

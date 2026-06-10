@@ -420,6 +420,17 @@ Deno.serve(async (req) => {
         starts_at: string;
       };
       let tennisConfirm: TennisConfirmThread | null = null;
+      // NBA game confirm — exactly two team names (no draw, no bucket).
+      type NbaConfirmThread = {
+        kind: "game";
+        event_id: string;
+        home: string;
+        away: string;
+        date: string;
+        starts_at: string;
+        event_name: string;
+      };
+      let nbaConfirm: NbaConfirmThread | null = null;
       // F1 race confirm — when set, outcomes become driver field +
       // "Any other driver" bucket and metadata.f1_race carries the race.
       type F1RaceThread = {
@@ -600,6 +611,7 @@ Deno.serve(async (req) => {
           decision.sport === "association_football";
         const tennisSport = decision.sport === "tennis";
         const f1Sport = decision.sport === "f1" || decision.sport === "formula_1" || decision.sport === "formula1";
+        const basketballSport = decision.sport === "basketball" || decision.sport === "nba";
         // NOTE: structured golf is NOT in skipForResubmit. groundSportEvent /
         // groundGolf is the ONLY grounding path; skipping it dropped structured
         // golf resubmits to research_grounded. groundGolf now short-circuits on
@@ -608,12 +620,13 @@ Deno.serve(async (req) => {
           (racingSport && hasStructuredRacing) ||
           (footballSport && hasStructuredFootball);
 
-        const sportKindForGrounding: "football" | "golf" | "horse_racing" | "tennis" | "f1" | null =
+        const sportKindForGrounding: "football" | "golf" | "horse_racing" | "tennis" | "f1" | "basketball" | null =
           footballSport ? "football"
           : golfSport ? "golf"
           : racingSport ? "horse_racing"
           : tennisSport ? "tennis"
           : f1Sport ? "f1"
+          : basketballSport ? "basketball"
           : null;
 
         console.log(`[tennis-trace] sportKind=${sportKindForGrounding} skip=${skipForResubmit}`);
@@ -830,6 +843,39 @@ Deno.serve(async (req) => {
                     : `${f.race_name} ${f.season}`,
                 starts_at: f.starts_at,
               };
+            } else if (grounded.kind === "nba_game") {
+              const g = grounded.metadata.nba_game;
+              nbaConfirm = {
+                kind: "game",
+                event_id: g.event_id,
+                home: g.home,
+                away: g.away,
+                date: g.date,
+                starts_at: g.starts_at,
+                event_name: g.event_name,
+              };
+              resolverOverride = {
+                normalized_question: `${g.away} at ${g.home}`,
+                starts_at: g.starts_at,
+              };
+            } else if (grounded.kind === "picker_nba") {
+              sse.send({
+                stage: "clarification",
+                status: "done",
+                data: {
+                  type: "fixture_picker",
+                  message: "Those two teams have more than one upcoming game. Which one did you mean?",
+                  fixtures: grounded.candidates.map((m) => ({
+                    fixture_id: m.event_id,
+                    home_team: m.home,
+                    away_team: m.away,
+                    kickoff: m.starts_at,
+                    competition: "NBA",
+                    label: `${m.away} @ ${m.home} (${new Date(m.starts_at).toUTCString().slice(0, 16)})`,
+                  })),
+                },
+              });
+              sse.close(); return;
             }
             // "racing_fallthrough" or "none" -> downstream low_data
             // (horse-racing safety net in forecastContext.ts) or
@@ -897,6 +943,9 @@ Deno.serve(async (req) => {
       } else if (tennisConfirm) {
         // Tennis match winner: exactly two real player names. NO draw.
         outcomes = [tennisConfirm.player_a, tennisConfirm.player_b];
+      } else if (nbaConfirm) {
+        // NBA game winner: exactly two real team names. NO draw, NO bucket.
+        outcomes = [nbaConfirm.home, nbaConfirm.away];
       } else if (f1Race) {
         // F1 race winner: ordered driver field (championship-position
         // first) with a single "Any other driver" bucket tail when the
@@ -965,6 +1014,10 @@ Deno.serve(async (req) => {
           ...(tennisConfirm ? {
             sub_category: "tennis",
             tennis_confirm: tennisConfirm,
+          } : {}),
+          ...(nbaConfirm ? {
+            sub_category: "basketball",
+            nba_game: nbaConfirm,
           } : {}),
           ...(f1Race ? {
             sub_category: "f1",
