@@ -595,10 +595,14 @@ Deno.serve(async (req) => {
           decision.sport === "association_football";
         const tennisSport = decision.sport === "tennis";
         const f1Sport = decision.sport === "f1" || decision.sport === "formula_1" || decision.sport === "formula1";
+        // NOTE: structured golf is NOT in skipForResubmit. groundSportEvent /
+        // groundGolf is the ONLY grounding path; skipping it dropped structured
+        // golf resubmits to research_grounded. groundGolf now short-circuits on
+        // golfHint (tour + tournament_id) so the picker doesn't re-prompt.
         const skipForResubmit =
-          (golfSport && hasStructuredGolf) ||
           (racingSport && hasStructuredRacing) ||
           (footballSport && hasStructuredFootball);
+
         const sportKindForGrounding: "football" | "golf" | "horse_racing" | "tennis" | "f1" | null =
           footballSport ? "football"
           : golfSport ? "golf"
@@ -622,7 +626,13 @@ Deno.serve(async (req) => {
               canonicalEvent: decision.canonical_event,
               approxDate: decision.approx_date ?? null,
               competitors: decision.competitors ?? null,
+              golfHint: hasStructuredGolf ? {
+                tour: structuredTourAlias,
+                tournament_id: structuredTournamentId,
+                tournament_name: structuredTournamentName,
+              } : null,
             });
+
             console.log(`[tennis-trace] grounded kind=${grounded.kind}`);
             console.log(`[submit-question] resolver-sport sport=${sportKindForGrounding} kind=${grounded.kind}`);
             debugTrace.grounded_kind = grounded.kind;

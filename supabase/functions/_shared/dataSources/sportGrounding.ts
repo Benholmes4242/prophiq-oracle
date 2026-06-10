@@ -74,7 +74,15 @@ export interface SportGroundingInput {
   approxDate: string | null;
   /** Named competitors when known (e.g. football [home, away]); empty/null otherwise. */
   competitors: string[] | null;
+  /** Structured golf picker hint — when present, groundGolf locks the
+   * tournament by (tour, tournament_id) and skips name matching / picker. */
+  golfHint?: {
+    tour: string;
+    tournament_id: string;
+    tournament_name: string;
+  } | null;
 }
+
 
 /**
  * Uniform grounding result. Callers branch on `kind`:
@@ -313,6 +321,33 @@ async function groundGolf(
 ): Promise<SportGroundingResult> {
   const apiKey = readEnv("SPORTRADAR_GOLF_API_KEY");
   if (!apiKey) return { kind: "none", reason: "SPORTRADAR_GOLF_API_KEY missing" };
+
+  // Structured picker resubmit: the user already chose this tournament.
+  // Lock by (tour, tournament_id) so we don't re-prompt with a picker and
+  // so name-matching can't drift to a different tour. fetchGolfContext
+  // (the cron path) already has the same short-circuit via event metadata.
+  const hint = input.golfHint;
+  const VALID_GOLF_TOURS = new Set(["pga", "euro", "lpga", "champ", "pgad", "liv"]);
+  const TOUR_DISPLAY: Record<string, string> = {
+    pga: "PGA Tour", euro: "DP World Tour", lpga: "LPGA Tour",
+    champ: "Champions Tour", pgad: "Korn Ferry Tour", liv: "LIV Golf League",
+  };
+  if (hint && hint.tournament_id && VALID_GOLF_TOURS.has(hint.tour)) {
+    return {
+      kind: "golf_match",
+      sport: "golf",
+      match: {
+        tour: hint.tour as GolfMatch["tour"],
+        tour_name: TOUR_DISPLAY[hint.tour] ?? hint.tour,
+        tournament_id: hint.tournament_id,
+        tournament_name: hint.tournament_name || "tournament",
+        status: null,
+        start_date: null,
+        end_date: null,
+      },
+    };
+  }
+
 
   const { matches } = await findGolfMatches(apiKey, {
     title: input.canonicalEvent,
