@@ -575,6 +575,17 @@ Deno.serve(async (req) => {
         // mapped back to the existing typed SSE shapes; confirmed results
         // arm footballConfirm / autoGolfMatch / resolverOverride exactly
         // as the old inline branches did so downstream stays unchanged.
+        const hasStructuredRacing = !!structuredCourse && (!!structuredTime || structuredRaceNo !== null);
+        // Structured picker resubmits identify the sport via picker metadata,
+        // not the resolver tag. Backfill decision.sport so the sport is
+        // consistent for the trace and any downstream consumer. Does not
+        // change grounding (these still ground via their structured-resubmit
+        // path).
+        if (!decision.sport) {
+          if (hasStructuredGolf) decision.sport = "golf";
+          else if (hasStructuredRacing) decision.sport = "horse_racing";
+          else if (hasStructuredFootball) decision.sport = "football";
+        }
         const golfSport = decision.sport === "golf";
         const racingSport = decision.sport === "horse_racing" ||
           decision.sport === "horse racing" ||
@@ -584,7 +595,6 @@ Deno.serve(async (req) => {
           decision.sport === "association_football";
         const tennisSport = decision.sport === "tennis";
         const f1Sport = decision.sport === "f1" || decision.sport === "formula_1" || decision.sport === "formula1";
-        const hasStructuredRacing = !!structuredCourse && (!!structuredTime || structuredRaceNo !== null);
         const skipForResubmit =
           (golfSport && hasStructuredGolf) ||
           (racingSport && hasStructuredRacing) ||
