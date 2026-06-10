@@ -813,7 +813,7 @@ Deno.serve(async (req) => {
             } else if (grounded.kind === "f1_race") {
               const f = grounded.metadata.f1_race;
               f1Race = {
-                kind: "race",
+                kind: f.kind, // "race" | "championship"
                 season: f.season,
                 round: f.round,
                 race_name: f.race_name,
@@ -823,7 +823,9 @@ Deno.serve(async (req) => {
                 drivers: grounded.outcomes,
               };
               resolverOverride = {
-                normalized_question: `${f.race_name} ${f.season}`,
+                normalized_question: f.kind === "championship"
+                  ? `Formula 1 Drivers' Championship ${f.season}`
+                  : `${f.race_name} ${f.season}`,
                 starts_at: f.starts_at,
               };
             }
