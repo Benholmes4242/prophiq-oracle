@@ -843,6 +843,39 @@ Deno.serve(async (req) => {
                     : `${f.race_name} ${f.season}`,
                 starts_at: f.starts_at,
               };
+            } else if (grounded.kind === "nba_game") {
+              const g = grounded.metadata.nba_game;
+              nbaConfirm = {
+                kind: "game",
+                event_id: g.event_id,
+                home: g.home,
+                away: g.away,
+                date: g.date,
+                starts_at: g.starts_at,
+                event_name: g.event_name,
+              };
+              resolverOverride = {
+                normalized_question: `${g.away} at ${g.home}`,
+                starts_at: g.starts_at,
+              };
+            } else if (grounded.kind === "picker_nba") {
+              sse.send({
+                stage: "clarification",
+                status: "done",
+                data: {
+                  type: "fixture_picker",
+                  message: "Those two teams have more than one upcoming game. Which one did you mean?",
+                  fixtures: grounded.candidates.map((m) => ({
+                    fixture_id: m.event_id,
+                    home_team: m.home,
+                    away_team: m.away,
+                    kickoff: m.starts_at,
+                    competition: "NBA",
+                    label: `${m.away} @ ${m.home} (${new Date(m.starts_at).toUTCString().slice(0, 16)})`,
+                  })),
+                },
+              });
+              sse.close(); return;
             }
             // "racing_fallthrough" or "none" -> downstream low_data
             // (horse-racing safety net in forecastContext.ts) or
