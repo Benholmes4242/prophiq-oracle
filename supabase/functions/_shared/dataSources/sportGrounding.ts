@@ -181,8 +181,9 @@ export type SportGroundingResult =
   | { kind: "none"; reason: string };
 
 export interface F1RaceConfirmMeta {
-  /** "race" = single Grand Prix winner; "championship" = drivers title. */
-  kind: "race" | "championship";
+  /** "race" = single Grand Prix winner; "championship" = drivers title;
+   *  "constructors_championship" = teams title. */
+  kind: "race" | "championship" | "constructors_championship";
   season: number;
   round: number;
   race_name: string;
