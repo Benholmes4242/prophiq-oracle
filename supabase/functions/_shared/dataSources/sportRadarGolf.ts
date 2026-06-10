@@ -485,6 +485,14 @@ function matchTournament(
   query: string,
   now: Date,
 ): RawScheduleTournament | null {
+  return matchTournamentScored(tournaments, query, now)?.t ?? null;
+}
+
+function matchTournamentScored(
+  tournaments: RawScheduleTournament[],
+  query: string,
+  now: Date,
+): { t: RawScheduleTournament; score: number } | null {
   const q = query.toLowerCase().trim();
   const PREFERRED_STATUS = new Set(["inprogress", "scheduled", "created"]);
   let best: { t: RawScheduleTournament; score: number } | null = null;
@@ -514,8 +522,9 @@ function matchTournament(
     if (!best || score > best.score) best = { t, score };
   }
   if (!best || best.score < 10) return null;
-  return best.t;
+  return best;
 }
+
 
 function mapLeaderboard(lb: RawLeaderboardResp): GolfPlayer[] {
   const rows = Array.isArray(lb.leaderboard) ? lb.leaderboard : [];
