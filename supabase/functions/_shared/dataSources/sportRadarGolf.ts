@@ -122,30 +122,54 @@ export async function findGolfMatches(
   const now = hints.starts_at ? new Date(hints.starts_at) : new Date();
   const years = nearbyYears(now);
 
-  const matches: GolfMatch[] = [];
+  const scored: Array<{ match: GolfMatch; score: number; tourIdx: number }> = [];
   let calls = 0;
-  for (const tour of tours) {
+  let shortCircuited = false;
+  outer: for (let i = 0; i < tours.length; i++) {
+    const tour = tours[i];
     for (const year of years) {
       const schedule = await fetchSchedule(apiKey, tour, year, () => calls++);
       if (!schedule) continue;
-      const best = matchTournament(schedule, query, now);
+      const best = matchTournamentScored(schedule, query, now);
       if (best) {
-        matches.push({
-          tour,
-          tour_name: GOLF_TOUR_NAMES[tour],
-          tournament_id: best.id ?? "",
-          tournament_name: best.name ?? "",
-          status: best.status ?? null,
-          start_date: best.start_date ?? null,
-          end_date: best.end_date ?? null,
+        scored.push({
+          match: {
+            tour,
+            tour_name: GOLF_TOUR_NAMES[tour],
+            tournament_id: best.t.id ?? "",
+            tournament_name: best.t.name ?? "",
+            status: best.t.status ?? null,
+            start_date: best.t.start_date ?? null,
+            end_date: best.t.end_date ?? null,
+          },
+          score: best.score,
+          tourIdx: i,
         });
+        // Strong match short-circuit: exact normalised name + reasonable
+        // date proximity bonus. Avoids 12 sequential SportRadar calls when
+        // tour 1 already gave us a confident hit.
+        if (best.score >= 100) {
+          shortCircuited = true;
+          break outer;
+        }
       }
     }
   }
-  return {
-    matches,
-    note: `searched ${tours.length} tours (${calls} live calls), found ${matches.length}`,
-  };
+
+  // Pick single best match: higher score > earlier tour in priority list >
+  // nearer start_date to now.
+  scored.sort((a, b) => {
+    if (b.score !== a.score) return b.score - a.score;
+    if (a.tourIdx !== b.tourIdx) return a.tourIdx - b.tourIdx;
+    const ad = a.match.start_date ? Math.abs(new Date(a.match.start_date).getTime() - now.getTime()) : Infinity;
+    const bd = b.match.start_date ? Math.abs(new Date(b.match.start_date).getTime() - now.getTime()) : Infinity;
+    return ad - bd;
+  });
+
+  const matches: GolfMatch[] = scored.length > 0 ? [scored[0].match] : [];
+  const note = `searched ${tours.length} tours (${calls} live calls)${shortCircuited ? " [short-circuit]" : ""}, candidates=${scored.length}, picked=${matches.length}`;
+  console.log(`[findGolfMatches] query="${query}" tours=${JSON.stringify(tours)} calls=${calls} candidates=${scored.map((s) => `${s.match.tour}:${s.match.tournament_name}(${s.score})`).join("|")} picked=${matches[0]?.tournament_name ?? "none"}`);
+  return { matches, note };
 }
 
 export async function fetchGolfContext(
@@ -461,6 +485,14 @@ function matchTournament(
   query: string,
   now: Date,
 ): RawScheduleTournament | null {
+  return matchTournamentScored(tournaments, query, now)?.t ?? null;
+}
+
+function matchTournamentScored(
+  tournaments: RawScheduleTournament[],
+  query: string,
+  now: Date,
+): { t: RawScheduleTournament; score: number } | null {
   const q = query.toLowerCase().trim();
   const PREFERRED_STATUS = new Set(["inprogress", "scheduled", "created"]);
   let best: { t: RawScheduleTournament; score: number } | null = null;
@@ -490,8 +522,9 @@ function matchTournament(
     if (!best || score > best.score) best = { t, score };
   }
   if (!best || best.score < 10) return null;
-  return best.t;
+  return best;
 }
+
 
 function mapLeaderboard(lb: RawLeaderboardResp): GolfPlayer[] {
   const rows = Array.isArray(lb.leaderboard) ? lb.leaderboard : [];
