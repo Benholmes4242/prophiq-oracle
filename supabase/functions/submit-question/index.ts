@@ -943,6 +943,9 @@ Deno.serve(async (req) => {
       } else if (tennisConfirm) {
         // Tennis match winner: exactly two real player names. NO draw.
         outcomes = [tennisConfirm.player_a, tennisConfirm.player_b];
+      } else if (nbaConfirm) {
+        // NBA game winner: exactly two real team names. NO draw, NO bucket.
+        outcomes = [nbaConfirm.home, nbaConfirm.away];
       } else if (f1Race) {
         // F1 race winner: ordered driver field (championship-position
         // first) with a single "Any other driver" bucket tail when the
