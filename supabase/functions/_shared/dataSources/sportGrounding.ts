@@ -55,7 +55,7 @@ import {
   confirmTennisMatch,
   type TennisMatchCandidate,
 } from "./tennisConfirm.ts";
-import { confirmF1Race } from "./f1Confirm.ts";
+import { confirmF1Race, confirmF1Championship, isF1DriversChampionshipIntent } from "./f1Confirm.ts";
 
 /** Sport kinds with a wired confirm path. "other" falls through. */
 export type SportKind =
@@ -168,19 +168,25 @@ export type SportGroundingResult =
       /** Ordered driver full names, championship-position first. NO bucket
        * here — the caller appends "Any other driver" after the named head. */
       outcomes: string[];
+      /** Race start for kind="race"; season-end placeholder for "championship". */
       starts_at: string;
       metadata: { f1_race: F1RaceConfirmMeta };
     }
   | { kind: "none"; reason: string };
 
 export interface F1RaceConfirmMeta {
-  kind: "race";
+  /** "race" = single Grand Prix winner; "championship" = drivers title. */
+  kind: "race" | "championship";
   season: number;
   round: number;
   race_name: string;
   circuit: string | null;
   date: string;
   starts_at: string;
+  /** Championship-only: current leader points snapshot. */
+  leader_points?: number | null;
+  /** Championship-only: last round counted into standings, if known. */
+  round_as_of?: number | null;
 }
 
 export interface TennisMatchConfirmMeta {
@@ -438,6 +444,41 @@ async function groundF1(
   input: SportGroundingInput,
 ): Promise<SportGroundingResult> {
   // Jolpica F1 is free + keyless. No env gate.
+
+  // Championship intent → reuse driverStandings as the ordered field.
+  // Reuse kind:"f1_race" so submit-question's existing F1 outcome shaping
+  // (top MAX_NAMED + "Any other driver") applies unchanged; the
+  // metadata.f1_race.kind discriminator distinguishes championship vs race.
+  if (isF1DriversChampionshipIntent(input.canonicalEvent)) {
+    const champ = await confirmF1Championship(input.approxDate);
+    if (champ.kind === "none") {
+      return { kind: "none", reason: `f1 championship: ${champ.reason}` };
+    }
+    if (champ.drivers.length < 2) {
+      return { kind: "none", reason: "f1 championship field too small" };
+    }
+    const seasonEnd = `${champ.season}-12-31T23:59:00Z`;
+    return {
+      kind: "f1_race",
+      sport: "f1",
+      outcomes: champ.drivers,
+      starts_at: seasonEnd,
+      metadata: {
+        f1_race: {
+          kind: "championship",
+          season: champ.season,
+          round: 0,
+          race_name: `Formula 1 Drivers' Championship ${champ.season}`,
+          circuit: null,
+          date: seasonEnd.slice(0, 10),
+          starts_at: seasonEnd,
+          leader_points: champ.leader_points,
+          round_as_of: champ.round_as_of,
+        },
+      },
+    };
+  }
+
   const confirm = await confirmF1Race(input.canonicalEvent, input.approxDate);
   if (confirm.kind === "none") {
     return { kind: "none", reason: `f1 confirm: ${confirm.reason}` };

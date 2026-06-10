@@ -29,9 +29,37 @@ export interface F1RaceConfirm {
   drivers: string[];      // ordered full names (standings first)
 }
 
+export interface F1ChampionshipConfirm {
+  kind: "championship";
+  season: number;
+  drivers: string[];          // standings-ordered full names
+  leader_points: number | null;
+  round_as_of: number | null; // last round counted into standings (best-effort)
+  starts_at: string | null;   // championship resolves at season end
+}
+
 export type F1RaceResult =
   | F1RaceConfirm
   | { kind: "none"; reason: string };
+
+export type F1ChampionshipResult =
+  | F1ChampionshipConfirm
+  | { kind: "none"; reason: string };
+
+/** True when the canonical/question text frames a DRIVERS championship,
+ *  not a single race. "Constructors championship" is intentionally NOT
+ *  matched here — that's a teams question and out of scope. */
+export function isF1DriversChampionshipIntent(text: string): boolean {
+  const s = (text ?? "").toLowerCase();
+  if (!s) return false;
+  if (/\bconstructor(s)?\b/.test(s)) return false; // teams, out of scope
+  if (/\bdrivers?[''']?\s*championship\b/.test(s)) return true;
+  if (/\bworld\s*champion(ship)?\b/.test(s)) return true;
+  if (/\bf1\s*title\b/.test(s) || /\bformula\s*(1|one)\s*title\b/.test(s)) return true;
+  // bare "championship" / "title" only counts with f1/formula context
+  if (/\b(championship|title)\b/.test(s) && /\b(f1|formula\s*(1|one))\b/.test(s)) return true;
+  return false;
+}
 
 interface JolpicaDriver {
   driverId?: string;
@@ -223,4 +251,57 @@ async function fetchStandings(year: number): Promise<JolpicaStanding[]> {
     }>
   >(`/${year}/driverStandings.json`);
   return body?.MRData?.StandingsTable?.StandingsLists?.[0]?.DriverStandings ?? [];
+}
+
+/** Drivers championship outright — reuses the season standings + driver list
+ *  already used by confirmF1Race. Standings position IS the title-contention
+ *  order. Returns "none" pre-season (empty standings) so the caller falls
+ *  back to research_grounded. */
+export async function confirmF1Championship(
+  approxDateISO: string | null,
+): Promise<F1ChampionshipResult> {
+  const season = inferSeason(approxDateISO);
+  const [drivers, standings] = await Promise.all([
+    fetchDrivers(season),
+    fetchStandings(season),
+  ]);
+
+  if (standings.length === 0) {
+    return { kind: "none", reason: `no F1 standings yet for season ${season}` };
+  }
+
+  const standingsOrdered = [...standings].sort((a, b) => {
+    const pa = Number(a.position ?? "999");
+    const pb = Number(b.position ?? "999");
+    return pa - pb;
+  });
+  const ordered: string[] = [];
+  const seen = new Set<string>();
+  for (const s of standingsOrdered) {
+    const name = fullName(s.Driver);
+    if (name && !seen.has(name)) { ordered.push(name); seen.add(name); }
+  }
+  for (const d of drivers) {
+    const name = fullName(d);
+    if (name && !seen.has(name)) { ordered.push(name); seen.add(name); }
+  }
+  if (ordered.length < 2) {
+    return { kind: "none", reason: "F1 driver field too small for championship" };
+  }
+
+  const leaderPointsRaw = standingsOrdered[0]?.points;
+  const leaderPoints = leaderPointsRaw != null && Number.isFinite(Number(leaderPointsRaw))
+    ? Number(leaderPointsRaw)
+    : null;
+
+  // Best-effort: Jolpica driverStandings doesn't include round here; we leave
+  // round_as_of null. Callers can surface "after round N" via a later fetch.
+  return {
+    kind: "championship",
+    season,
+    drivers: ordered,
+    leader_points: leaderPoints,
+    round_as_of: null,
+    starts_at: null,
+  };
 }
