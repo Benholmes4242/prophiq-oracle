@@ -823,9 +823,11 @@ Deno.serve(async (req) => {
                 drivers: grounded.outcomes,
               };
               resolverOverride = {
-                normalized_question: f.kind === "championship"
-                  ? `Formula 1 Drivers' Championship ${f.season}`
-                  : `${f.race_name} ${f.season}`,
+                normalized_question: f.kind === "constructors_championship"
+                  ? `Formula 1 Constructors' Championship ${f.season}`
+                  : f.kind === "championship"
+                    ? `Formula 1 Drivers' Championship ${f.season}`
+                    : `${f.race_name} ${f.season}`,
                 starts_at: f.starts_at,
               };
             }
