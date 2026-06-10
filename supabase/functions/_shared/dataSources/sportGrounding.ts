@@ -476,6 +476,41 @@ async function groundTennis(
   };
 }
 
+async function groundNba(
+  input: SportGroundingInput,
+): Promise<SportGroundingResult> {
+  // TheSportsDB free public key "3" — same as tennis. No env gate.
+  const confirm = await confirmNbaGame(input.canonicalEvent, input.approxDate);
+  if (confirm.kind === "none") {
+    return { kind: "none", reason: `nba confirm: ${confirm.reason}` };
+  }
+  if (confirm.kind === "multiple") {
+    return { kind: "picker_nba", candidates: confirm.games };
+  }
+  const g = confirm.game;
+  if (!g.home || !g.away) {
+    return { kind: "none", reason: "nba confirm returned an empty team" };
+  }
+  return {
+    kind: "nba_game",
+    sport: "basketball",
+    outcomes: [g.home, g.away],
+    starts_at: g.starts_at,
+    metadata: {
+      nba_game: {
+        kind: "game",
+        event_id: g.event_id,
+        home: g.home,
+        away: g.away,
+        date: g.date,
+        starts_at: g.starts_at,
+        event_name: g.event_name,
+      },
+    },
+  };
+}
+
+
 async function groundF1(
   input: SportGroundingInput,
 ): Promise<SportGroundingResult> {
