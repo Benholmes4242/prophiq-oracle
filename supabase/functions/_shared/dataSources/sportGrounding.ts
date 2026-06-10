@@ -168,19 +168,25 @@ export type SportGroundingResult =
       /** Ordered driver full names, championship-position first. NO bucket
        * here — the caller appends "Any other driver" after the named head. */
       outcomes: string[];
+      /** Race start for kind="race"; season-end placeholder for "championship". */
       starts_at: string;
       metadata: { f1_race: F1RaceConfirmMeta };
     }
   | { kind: "none"; reason: string };
 
 export interface F1RaceConfirmMeta {
-  kind: "race";
+  /** "race" = single Grand Prix winner; "championship" = drivers title. */
+  kind: "race" | "championship";
   season: number;
   round: number;
   race_name: string;
   circuit: string | null;
   date: string;
   starts_at: string;
+  /** Championship-only: current leader points snapshot. */
+  leader_points?: number | null;
+  /** Championship-only: last round counted into standings, if known. */
+  round_as_of?: number | null;
 }
 
 export interface TennisMatchConfirmMeta {
