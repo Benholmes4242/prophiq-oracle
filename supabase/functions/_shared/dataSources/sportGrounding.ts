@@ -183,7 +183,29 @@ export type SportGroundingResult =
       starts_at: string;
       metadata: { f1_race: F1RaceConfirmMeta };
     }
+  | {
+      kind: "nba_game";
+      sport: "basketball";
+      /** Exactly two real team names from the feed; NO draw, NO bucket. */
+      outcomes: [string, string];
+      starts_at: string;
+      metadata: { nba_game: NbaGameConfirmMeta };
+    }
+  | {
+      kind: "picker_nba";
+      candidates: NbaGameCandidate[];
+    }
   | { kind: "none"; reason: string };
+
+export interface NbaGameConfirmMeta {
+  kind: "game";
+  event_id: string;
+  home: string;
+  away: string;
+  date: string;
+  starts_at: string;
+  event_name: string;
+}
 
 export interface F1RaceConfirmMeta {
   /** "race" = single Grand Prix winner; "championship" = drivers title;
