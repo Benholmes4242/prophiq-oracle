@@ -330,3 +330,65 @@ export async function confirmF1Championship(
     starts_at: null,
   };
 }
+
+interface JolpicaConstructor {
+  constructorId?: string;
+  name?: string;
+  nationality?: string;
+}
+interface JolpicaConstructorStanding {
+  position?: string;
+  points?: string;
+  Constructor?: JolpicaConstructor;
+}
+
+async function fetchConstructorStandings(year: number): Promise<JolpicaConstructorStanding[]> {
+  const body = await fetchJson<
+    MRDataEnvelope<{
+      StandingsTable?: {
+        StandingsLists?: Array<{ ConstructorStandings?: JolpicaConstructorStanding[] }>;
+      };
+    }>
+  >(`/${year}/constructorStandings.json`);
+  return body?.MRData?.StandingsTable?.StandingsLists?.[0]?.ConstructorStandings ?? [];
+}
+
+/** Constructors championship outright — reuses constructorStandings as the
+ *  TEAM field. NEVER falls back to driver names; returns "none" pre-season
+ *  (empty standings) so the caller routes to research_grounded. */
+export async function confirmF1Constructors(
+  approxDateISO: string | null,
+): Promise<F1ConstructorsResult> {
+  const season = inferSeason(approxDateISO);
+  const standings = await fetchConstructorStandings(season);
+
+  if (standings.length === 0) {
+    return { kind: "none", reason: `no F1 constructor standings yet for season ${season}` };
+  }
+
+  const ordered = [...standings]
+    .sort((a, b) => Number(a.position ?? "999") - Number(b.position ?? "999"));
+  const teams: string[] = [];
+  const seen = new Set<string>();
+  for (const s of ordered) {
+    const name = String(s.Constructor?.name ?? "").trim();
+    if (name && !seen.has(name)) { teams.push(name); seen.add(name); }
+  }
+  if (teams.length < 2) {
+    return { kind: "none", reason: "F1 constructor field too small for championship" };
+  }
+
+  const leaderPointsRaw = ordered[0]?.points;
+  const leaderPoints = leaderPointsRaw != null && Number.isFinite(Number(leaderPointsRaw))
+    ? Number(leaderPointsRaw)
+    : null;
+
+  return {
+    kind: "constructors_championship",
+    season,
+    teams,
+    leader_points: leaderPoints,
+    round_as_of: null,
+    starts_at: null,
+  };
+}
