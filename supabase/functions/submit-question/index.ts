@@ -904,10 +904,13 @@ Deno.serve(async (req) => {
         // bucket label is gated by isDisplayPlaceholder so it can never
         // headline ranked_outcomes[0] (Gap-1 demotion).
         const MAX_NAMED = 8;
+        const bucketLabel = f1Race.kind === "constructors_championship"
+          ? "Any other team"
+          : "Any other driver";
         if (f1Race.drivers.length <= MAX_NAMED) {
           outcomes = [...f1Race.drivers];
         } else {
-          outcomes = [...f1Race.drivers.slice(0, MAX_NAMED), "Any other driver"];
+          outcomes = [...f1Race.drivers.slice(0, MAX_NAMED), bucketLabel];
         }
       } else {
         outcomes = (mod.outcomes && mod.outcomes.length >= 2) ? mod.outcomes : ["Yes", "No"];
